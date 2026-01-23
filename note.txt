@@ -1,8 +1,8 @@
 how to run
-backend
+- backend
     cd backend
     dotnet run
 
-frontend
+- frontend
     cd frontend
     npm run dev
