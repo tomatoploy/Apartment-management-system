@@ -1,0 +1,23 @@
+# ===== Frontend (Vite / React) =====
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+*.local
+
+# ===== Backend (.NET) =====
+backend/bin/
+backend/obj/
+
+# ===== Logs =====
+logs
+*.log
+
+# ===== Editor / OS =====
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sw?
