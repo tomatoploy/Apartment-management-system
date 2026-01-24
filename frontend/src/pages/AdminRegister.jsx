@@ -6,7 +6,7 @@ const Register = () => {
   const navigate = useNavigate();
   // สร้าง State เพื่อเก็บข้อมูลจากฟอร์ม
   const [formData, setFormData] = useState({
-    prefix: "",
+    prefix: "นาย",
     firstName: "",
     lastName: "",
     phone: "",
