@@ -27,7 +27,7 @@ const Settings = () => {
     {
       id: 3,
       title: 'ค่าเช่าห้องพักและค่าบริการ',
-      path: '/settings/rental',
+      path: '/settings/roomrate',
       bgImage: `url("${rental}")`,
       bgColor: 'bg-[#e8c39a]'
     }

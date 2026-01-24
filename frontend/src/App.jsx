@@ -7,6 +7,8 @@ import AdminRegister from "./pages/AdminRegister";
 import Rooms from "./pages/Rooms";
 import BuildingRegister from "./pages/BuildingRegister";
 import Settings from "./pages/Setting";
+import UtilitySetting from "./pages/UtilitySetting";
+import RoomRateSetting from "./pages/RoomRateSetting";
 
 function App() {
   const userData = {
@@ -57,6 +59,23 @@ function App() {
           </Layout>
         }
       />
+      <Route
+        path="/settings/utility"
+        element={
+          <Layout userProfileImage={userData.profileImage}>
+            <UtilitySetting />
+          </Layout>
+        }
+      />
+      <Route
+        path="/settings/roomrate"
+        element={
+          <Layout userProfileImage={userData.profileImage}>
+            <RoomRateSetting />
+          </Layout>
+        }
+      />
+      
 
       {/* case กันคนพิมพ์ URL แปลก ๆ */}
       <Route path="*" element={<Navigate to="/login" />} />
