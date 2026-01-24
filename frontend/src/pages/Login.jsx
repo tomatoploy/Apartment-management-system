@@ -1,10 +1,42 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Phone, Lock } from "lucide-react";
 import logo from "../assets/AMS-logo.png";
 import { useNavigate } from "react-router-dom";
+import { adminService } from "../api/AdminApi";
 
 const Login = () => {
   const navigate = useNavigate();  //ใช้ Router
+
+  const [formData, setFormData] = useState({
+    phone: "",
+    password: ""
+  });
+
+  const handleChange = ({ target: { name, value } }) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const payload = {
+        phone: formData.phone.replace(/\D/g, ""),
+        password: formData.password
+      };
+
+      console.log("login payload:", payload);
+      
+      const res = await adminService.loginAdmin(payload); //เรียก backend
+      console.log("login success:", res);
+
+      navigate("/dashboard");
+    } catch (err) {
+      console.log("login error:", err.response?.data);
+      alert("หมายเลขโทรศัพท์หรือรหัสผ่านไม่ถูกต้อง");
+    }
+  };
+
   return (
     // 1. พื้นหลัง
     <div className="min-h-screen w-full flex items-center justify-center bg-[#FFEDD5] p-4">
@@ -24,19 +56,16 @@ const Login = () => {
 
         {/* 4. ฟอร์มกรอกข้อมูล */}
         <form
-          className="w-full space-y-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            navigate("/dashboard"); // ไปหน้า Dashboard
-          }}
-        >
+          className="w-full space-y-4" onSubmit={handleSubmit}>
           {/* ช่องหมายเลขโทรศัพท์ */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Phone size={18} className="text-gray-400" />
             </div>
             <input
-              type="text"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
               className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-400 transition-all text-sm"
               placeholder="หมายเลขโทรศัพท์"
             />
@@ -48,7 +77,10 @@ const Login = () => {
               <Lock size={18} className="text-gray-400" />
             </div>
             <input
+              name="password"
               type="password"
+              value={formData.password}
+              onChange={handleChange}
               className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-400 transition-all text-sm"
               placeholder="รหัสผ่าน"
             />
