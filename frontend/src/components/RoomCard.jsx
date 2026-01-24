@@ -4,8 +4,6 @@ import { LogIn, LogOut, Wrench, Sparkles, Package, Clock } from 'lucide-react';
 const RoomCard = ({ roomNumber, building, tenantName, status, icons = [] }) => {
 
   const normalizedStatus = status? status.toString().toLowerCase(): "available";
-
-  console.log("Room:", building, roomNumber, "status:", status);
   
   // กำหนดสีตามสถานะจากดีไซน์ของคุณ
   const statusColors = {

@@ -11,7 +11,7 @@ public partial class Admin
     public uint Id { get; set; }
 
     /// <summary>
-    /// type in c# is boolean (1 = active, 0 = disabled)
+    /// type in c# is boolean (0 = active, 1 = disabled)
     /// </summary>
     public byte IsDisabled { get; set; }
 

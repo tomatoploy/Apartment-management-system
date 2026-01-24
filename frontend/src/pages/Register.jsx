@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from "react-router-dom";
+import { adminService } from "../api/AdminApi";
 
 const Register = () => {
   const navigate = useNavigate();
   // สร้าง State เพื่อเก็บข้อมูลจากฟอร์ม
   const [formData, setFormData] = useState({
-    prefix: '',
-    firstName: '',
-    lastName: '',
-    phone: '',
-    email: '',
-    password: ''
+    prefix: "",
+    firstName: "",
+    lastName: "",
+    phone: "",
+    email: "",
+    password: ""
   });
 
   const handleChange = (e) => {
@@ -18,18 +19,28 @@ const Register = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // ตรวจสอบข้อมูลเบื้องต้น (Validation)
-    if (!formData.firstName || !formData.lastName || !formData.phone || !formData.password) {
-      alert("กรุณากรอกข้อมูลในช่องที่มีเครื่องหมาย * ให้ครบถ้วน");
-      return;
-    }
 
-    console.log("บันทึกข้อมูลสำเร็จ:", formData);
-    alert("ลงทะเบียนสำเร็จ!");
-    navigate("/login"); // กลับไปหน้า Login
+    try {
+      const payload = {
+        title: formData.prefix,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone.replace(/\D/g, ""),
+        email: formData.email,
+        password: formData.password
+      };
+
+      console.log("payload:", payload);
+      await adminService.createAdmin(payload);
+
+      alert("ลงทะเบียนสำเร็จ!");
+      navigate("/login");
+    } catch (err) {
+      console.log("backend error:", err.response?.data);
+      alert("ลงทะเบียนไม่สำเร็จ");
+    }
   };
 
   // คอมโพเนนต์จิ๋วสำหรับ Label ที่มี * สีแดง
@@ -51,12 +62,13 @@ const Register = () => {
               <select 
                 name="prefix"
                 value={formData.prefix}
+                required
                 onChange={handleChange}
                 className="w-full p-2 bg-white border border-gray-400 rounded-xl outline-none text-m focus:ring-2 focus:ring-orange-400"
               >
-                <option>นาย</option>
-                <option>นาง</option>
-                <option>นางสาว</option>
+                <option value="นาย">นาย</option>
+                <option value="นาง">นาง</option>
+                <option value="นางสาว">นางสาว</option>
               </select>
             </div>
             <div>
@@ -64,7 +76,8 @@ const Register = () => {
               <input 
                 name="firstName"
                 required
-                type="text" 
+                type="text"
+                value={formData.firstName} 
                 onChange={handleChange}
                 className="w-full p-2 bg-white border border-gray-400 rounded-xl outline-none text-sm focus:ring-2 focus:ring-orange-400" 
               />
@@ -76,7 +89,8 @@ const Register = () => {
             <input 
               name="lastName"
               required
-              type="text" 
+              type="text"
+              value={formData.lastName}
               onChange={handleChange}
               className="w-full p-2 bg-white border border-gray-400 rounded-xl outline-none text-sm focus:ring-2 focus:ring-orange-400" 
             />
@@ -87,7 +101,7 @@ const Register = () => {
             <input 
               name="phone"
               required
-              type="tel" 
+              value={formData.phone}
               onChange={handleChange}
               className="w-full p-2 bg-white border border-gray-400 rounded-xl outline-none text-sm focus:ring-2 focus:ring-orange-400" 
             />
@@ -97,7 +111,8 @@ const Register = () => {
             <label className="block text-[14px] font-bold mb-1 text-gray-700">อีเมล</label>
             <input 
               name="email"
-              type="email" 
+              type="email"
+              value={formData.email}
               onChange={handleChange}
               className="w-full p-2 bg-white border border-gray-400 rounded-xl outline-none text-sm focus:ring-2 focus:ring-orange-400" 
             />
@@ -107,8 +122,9 @@ const Register = () => {
             <RequiredLabel text="รหัสผ่าน" />
             <input 
               name="password"
+              type="password"
               required
-              type="password" 
+              value={formData.password}
               onChange={handleChange}
               className="w-full p-2 bg-white border border-gray-400 rounded-xl outline-none text-sm focus:ring-2 focus:ring-orange-400" 
             />
@@ -118,14 +134,15 @@ const Register = () => {
           <div className="pt-6 space-y-3">
             <button 
               type="submit"
-              className="w-full bg-[#f3a638] hover:bg-[#e29528] text-black font-bold py-3 rounded-xl shadow-md transition-all text-md"
+              className="mx-auto block w-1/1 bg-[#f3a638] hover:bg-[#e29528] 
+                        text-black font-bold py-3 rounded-xl shadow-md transition-all text-md"
             >
               ลงทะเบียน
             </button>
             <button 
               type="button"
               onClick={() => navigate("/login")}
-              className="w-full bg-[#eec58a] hover:bg-[#ddb479] text-[#7a4e1d] font-bold py-3 rounded-xl transition-all text-md"
+              className="mx-auto block w-1/1 bg-[#eec58a] hover:bg-[#ddb479] text-[#7a4e1d] font-bold py-3 rounded-xl transition-all text-md"
             >
               กลับ
             </button>
