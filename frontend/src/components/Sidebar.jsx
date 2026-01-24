@@ -10,18 +10,25 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
-const MenuItem = ({ icon: Icon, text, onClick, active = false, collapsed }) => (
-  <div
-    onClick={onClick}
-    className={`flex items-center gap-3 p-3 cursor-pointer transition-colors ease-in-out duration-200${
-      active ? "bg-[#FFEDD5]" : "hover:bg-[#FFEDD5]"
-    }`}
+const MenuItem = ({ icon: Icon, text, to, collapsed }) => (
+  <NavLink
+    to={to}
+    className={({ isActive }) => `
+      flex items-center gap-3 p-3 cursor-pointer transition-all duration-200
+      ${isActive 
+        ? "bg-[#fedeb8] border-r-4 border-[#8e5f12]" // สีเมื่อ Active (เข้มขึ้น)
+        : "hover:bg-[#FFEDD5]" // สีเมื่อ Hover
+      }
+    `}
   >
+    {/* ไอคอนเปลี่ยนสีตามสถานะได้ถ้าต้องการ */}
     <Icon size={20} className="text-black" />
-    {!collapsed && <span className="text-[18px]  text-black">{text}</span>}
-  </div>
+    {!collapsed && (
+      <span className="text-[18px] text-black font-medium">{text}</span>
+    )}
+  </NavLink>
 );
 
 const Sidebar = ({
@@ -80,24 +87,26 @@ const Sidebar = ({
             icon={LayoutDashboard}
             text="Dashboard"
             active
+            to="/dashboard"
             collapsed={isCollapsed}
-            onClick={() => navigate("/dashboard")}
+    
           />
           <MenuItem
             icon={Building2}
             text="ผังห้อง"
             collapsed={isCollapsed}
-            onClick={() => navigate("/rooms")}
+            to="/rooms"
           />
           <MenuItem
             icon={Droplets}
             text="มิเตอร์น้ำ-ไฟ"
             collapsed={isCollapsed}
+            to="/meters"
           />
-          <MenuItem icon={Receipt} text="สร้างบิล" collapsed={isCollapsed} />
-          <MenuItem icon={Package} text="พัสดุ" collapsed={isCollapsed} />
-          <MenuItem icon={BellRing} text="การแจ้ง" collapsed={isCollapsed} />
-          <MenuItem icon={Settings} text="การตั้งค่า" collapsed={isCollapsed} />
+          <MenuItem icon={Receipt} text="สร้างบิล" collapsed={isCollapsed} to="/billing" />
+          <MenuItem icon={Package} text="พัสดุ" collapsed={isCollapsed} to="/parcels"/>
+          <MenuItem icon={BellRing} text="การแจ้ง" collapsed={isCollapsed} to="/request" />
+          <MenuItem icon={Settings} text="การตั้งค่า" collapsed={isCollapsed} to="/settings" />
         </nav>
       </div>
 

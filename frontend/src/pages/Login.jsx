@@ -110,7 +110,7 @@ const Login = () => {
             </button>
             <button
               type="button"
-              onClick={() => navigate("/register")}
+              onClick={() => navigate("/adminregister")}
               className="w-full bg-[#eec58a] hover:bg-[#ddb479] text-[#7a4e1d] font-bold py-3 rounded-xl transition-all text-sm"
             >
               ลงทะเบียน
