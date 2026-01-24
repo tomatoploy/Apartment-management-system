@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Search,
   Filter as FilterIcon,
@@ -13,6 +13,17 @@ import {
 } from "lucide-react";
 import RoomCard from "../components/RoomCard";
 import FilterButton from "../components/FliterButton";
+import { roomService } from '../api/RoomApi';
+
+// ใน useEffect หรือฟังก์ชันกดปุ่ม
+const loadRooms = async () => {
+    try {
+        const data = await roomService.getAllRooms();
+        setRoomsData(data); // เอาข้อมูลที่ได้ไปเก็บใน State
+    } catch (error) {
+        console.error("เรียกข้อมูลไม่สำเร็จ:", error.response?.data || error.message);
+    }
+};
 
 const Rooms = () => {
   const [showLegend, setShowLegend] = useState(false);
@@ -234,7 +245,7 @@ const Rooms = () => {
                 {[
                   { id: "occupied", label: "มีผู้เช่า" },
                   { id: "overdue", label: "ค้างชำระ" },
-                  { id: "reserved", label: "ติดจอง" },
+                  { id: "reserved", label: "จอง" },
                   { id: "vacant", label: "ว่าง" },
                   { id: "maintenance", label: "ปิดปรับปรุง" },
                 ].map((item) => (

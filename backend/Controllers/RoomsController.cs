@@ -1,9 +1,7 @@
-
 using Microsoft.AspNetCore.Mvc;
 using Dormitory.DormitoryModels;
 using Microsoft.EntityFrameworkCore;
-
-// using Dormitory.DTOs;
+using Dormitory.DTOs;
 
 namespace Dormitory.Controllers;
 
@@ -82,6 +80,52 @@ public class RoomsController : ControllerBase
         {
             return NoContent();
         }
+
+        return Ok(rooms);
+    }
+
+    [HttpGet("overview")]
+    public async Task<ActionResult<List<RoomOverviewDto>>> GetRoomOverview()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+
+        var rooms = await _db.Room
+            .Include(r => r.Contract)
+                .ThenInclude(c => c.Tenant)
+            .Include(r => r.Contract)
+                .ThenInclude(c => c.Payment)
+            .Select(r => new RoomOverviewDto
+            {
+                RoomId = r.Id,
+                RoomBuilding = r.Building,
+                RoomFloor = r.Floor,
+                RoomNumber = r.Number,
+                RoomStatus = r.Status,
+                RoomNote = r.Note,
+
+                TenantFirstName = r.Contract
+                    .Where(c => c.Status != "Terminated" && c.Status != "Expired")
+                    .Select(c => c.Tenant != null ? c.Tenant.FirstName : null)
+                    .FirstOrDefault(),
+
+                ContractStartDate = r.Contract
+                    .Where(c => c.Status != "Terminated" && c.Status != "Expired")
+                    .Select(c => c.StartDate)
+                    .FirstOrDefault(),
+
+                ContractEndDate = r.Contract
+                    .Where(c => c.Status != "Terminated" && c.Status != "Expired")
+                    .Select(c => c.EndDate)
+                    .FirstOrDefault(),
+
+                IsOverdue = r.Contract
+                    .Where(c => c.Status != "Terminated" && c.Status != "Expired")
+                    .SelectMany(c => c.Payment)
+                    .Any(p => p.Status != "paid"),
+                
+                Icons = new List<string>()
+            })
+            .ToListAsync();
 
         return Ok(rooms);
     }
