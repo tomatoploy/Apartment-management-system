@@ -1,16 +1,14 @@
-import { useState } from 'react';
-import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import Login from './pages/Login';
-import AdminRegister from './pages/AdminRegister';
-import Rooms from './pages/Rooms';
-import BuildingRegister from './pages/BuildingRegister';
 import { Routes, Route, Navigate } from "react-router-dom";
-
+import { useState } from "react";
+import Layout from "./components/Layout";
+import Dashboard from "./pages/Dashboard";
+import Login from "./pages/Login";
+import AdminRegister from "./pages/AdminRegister";
+import Rooms from "./pages/Rooms";
+import BuildingRegister from "./pages/BuildingRegister";
+import Settings from "./pages/Setting";
 
 function App() {
-  
-
   const userData = {
     name: "XXX",
     profileImage:
@@ -23,7 +21,7 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/adminregister" element={<AdminRegister />} />
       <Route path="/buildingregister" element={<BuildingRegister />} />
-      
+
       {/* หน้า private (มี Layout) */}
       <Route
         path="/dashboard"
@@ -39,6 +37,23 @@ function App() {
         element={
           <Layout userProfileImage={userData.profileImage}>
             <Rooms />
+          </Layout>
+        }
+      />
+
+      <Route
+        path="/settings"
+        element={
+          <Layout userProfileImage={userData.profileImage}>
+            <Settings />
+          </Layout>
+        }
+      />
+      <Route
+        path="/settings/building-edit"
+        element={
+          <Layout userProfileImage={userData.profileImage}>
+            <BuildingRegister isEditMode={true} />
           </Layout>
         }
       />
