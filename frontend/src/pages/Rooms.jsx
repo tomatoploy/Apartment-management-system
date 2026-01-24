@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Search,
-  Filter as FilterIcon,
+  Filter,
   HelpCircle,
   X,
   LogIn,
@@ -15,16 +15,6 @@ import RoomCard from "../components/RoomCard";
 import FilterButton from "../components/FliterButton";
 import { roomService } from '../api/RoomApi';
 
-// ใน useEffect หรือฟังก์ชันกดปุ่ม
-const loadRooms = async () => {
-    try {
-        const data = await roomService.getAllRooms();
-        setRoomsData(data); // เอาข้อมูลที่ได้ไปเก็บใน State
-    } catch (error) {
-        console.error("เรียกข้อมูลไม่สำเร็จ:", error.response?.data || error.message);
-    }
-};
-
 const Rooms = () => {
   const [showLegend, setShowLegend] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -34,66 +24,126 @@ const Rooms = () => {
   const [activeStatusFilters, setActiveStatusFilters] = useState([]); // กรองสี
   const [activeIconFilters, setActiveIconFilters] = useState([]); // กรองไอคอน
 
-  const roomsData = [
-    {
-      roomNumber: "101",
-      floor: 1,
-      status: "reserved",
-      icons: ["moveIn", "clean"],
-      tenantName: "แอปเปิ้ล",
-    },
-    {
-      roomNumber: "102",
-      floor: 1,
-      status: "overdue",
-      icons: ["moveOut"],
-      tenantName: "มิ้น",
-    },
-    {
-      roomNumber: "104",
-      floor: 1,
-      status: "occupied",
-      icons: ["package"],
-      tenantName: "กวาง",
-    },
-    {
-      roomNumber: "202",
-      floor: 2,
-      status: "occupied",
-      icons: ["moveOut"],
-      tenantName: "การ์ตูน",
-    },
-    {
-      roomNumber: "206",
-      floor: 2,
-      status: "reserved",
-      icons: [],
-      tenantName: "",
-    },
-    {
-      roomNumber: "207",
-      floor: 2,
-      status: "overdue",
-      icons: [],
-      tenantName: "แพม",
-    },
-    {
-      roomNumber: "208",
-      floor: 2,
-      status: "maintenance",
-      icons: [],
-      tenantName: "",
-    },
-    {
-      roomNumber: "210",
-      floor: 2,
-      status: "occupied",
-      icons: ["clean"],
-      tenantName: "มาร์ค",
-    },
+  const [roomsData, setRoomsData] = useState([]);
+
+  const roomsByFloor = roomsData.reduce((acc, room) => {
+    const floor = String(room.roomFloor);
+    if (!acc[floor]) acc[floor] = [];
+    acc[floor].push(room);
+    return acc;
+  }, {});
+
+  const floors = [
+    ...new Set(roomsData.map(r => String(r.roomFloor)))
+  ].sort((a, b) => Number(a) - Number(b));
+
+  // const roomsData = [
+  //   {
+  //     roomNumber: "101",
+  //     floor: 1,
+  //     status: "reserved",
+  //     icons: ["moveIn", "clean"],
+  //     tenantName: "แอปเปิ้ล",
+  //   },
+  //   {
+  //     roomNumber: "102",
+  //     floor: 1,
+  //     status: "overdue",
+  //     icons: ["moveOut"],
+  //     tenantName: "มิ้น",
+  //   },
+  //   {
+  //     roomNumber: "104",
+  //     floor: 1,
+  //     status: "occupied",
+  //     icons: ["package"],
+  //     tenantName: "กวาง",
+  //   },
+  //   {
+  //     roomNumber: "202",
+  //     floor: 2,
+  //     status: "occupied",
+  //     icons: ["moveOut"],
+  //     tenantName: "การ์ตูน",
+  //   },
+  //   {
+  //     roomNumber: "206",
+  //     floor: 2,
+  //     status: "reserved",
+  //     icons: [],
+  //     tenantName: "",
+  //   },
+  //   {
+  //     roomNumber: "207",
+  //     floor: 2,
+  //     status: "overdue",
+  //     icons: [],
+  //     tenantName: "แพม",
+  //   },
+  //   {
+  //     roomNumber: "208",
+  //     floor: 2,
+  //     status: "maintenance",
+  //     icons: [],
+  //     tenantName: "",
+  //   },
+  //   {
+  //     roomNumber: "210",
+  //     floor: 2,
+  //     status: "occupied",
+  //     icons: ["clean"],
+  //     tenantName: "มาร์ค",
+  //   },
+  // ];
+
+  //โหลดข้อมูลจาก backend (useEffect)
+useEffect(() => {
+  const loadRooms = async () => {
+      try {
+        const data = await roomService.getRoomOverview();
+        console.log("ROOM DATA RAW:", data);
+        console.log("IS ARRAY?", Array.isArray(data));
+        console.log("VALUES?", data?.$values);
+
+        setRoomsData(
+          Array.isArray(data) ? data : data?.$values ?? []
+        );
+      } catch (err) {
+        console.error("โหลดผังห้องไม่สำเร็จ", err);
+      }
+    };
+
+    loadRooms();
+  }, []);
+
+  const [activeBuilding, setActiveBuilding] = useState("ALL");
+
+  const buildings = [
+    "ALL",
+    ...new Set(roomsData.map(r => r.roomBuilding).filter(Boolean))
   ];
 
-  const floors = [1, 2, 3, 4, 5];
+    const buildIcons = (room) => {
+      const icons = [];
+      const today = new Date();
+
+      if (room.ContractStartDate) {
+        const start = new Date(room.ContractStartDate);
+        if (start <= today) icons.push("moveIn");
+      }
+
+      if (room.ContractEndDate) {
+        const end = new Date(room.ContractEndDate);
+        const diffDays = (end - today) / (1000 * 60 * 60 * 24);
+        if (diffDays <= 30) icons.push("urgent");
+      }
+
+      if (room.IsOverdue) {
+        icons.push("overdue");
+      }
+
+      return icons;
+    };
 
   // ฟังก์ชันปิดเมื่อกดพื้นหลัง
   const handleBackdropClick = (e, closeFunction) => {
@@ -126,7 +176,7 @@ const Rooms = () => {
         </h1>
 
         {/* --- แถบ Toolbar --- */}
-        <div className="flex flex-wrap justify-center gap-4 mb-10">
+        <div className="flex flex-wrap justify-center gap-4 mb-5">
           <div className="relative w-full max-w-md">
             <input
               type="text"
@@ -166,55 +216,76 @@ const Rooms = () => {
           </button>
         </div>
 
+        <div className="flex gap-2 flex-wrap justify-center mb-10">
+          {buildings.map((b) => (
+            <button
+              key={b}
+              onClick={() => setActiveBuilding(b)}
+              className={`px-3 py-2 rounded-xl font-bold transition-all
+                ${
+                  activeBuilding === b
+                    ? "bg-[#F5A623] text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+            >
+              อาคาร {b}
+            </button>
+          ))}
+        </div>
+        
+
         {/* --- ส่วนแสดงผังห้องแยกตามชั้น --- */}
         <div className="space-y-8">
           {floors.map((floor) => (
-            <div
-              key={floor}
-              className="bg-gray-100 p-6 rounded-[30px] shadow-sm border border-gray-200"
-            >
-              <h2 className="text-xl font-bold mb-6 text-gray-700">
-                ชั้น {floor}
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-y-6 justify-items-center">
-                {Array.from({ length: floor === 1 ? 5 : 15 }).map((_, idx) => {
-                  const roomNum = `${floor}${String(idx + 1).padStart(2, "0")}`;
-                  const roomInfo = roomsData.find(
-                    (r) => r.roomNumber === roomNum,
-                  ) || { status: "vacant", icons: [], tenantName: "" };
+            <div key={floor} className="bg-gray-100 p-6 rounded-3xl">
+            <h2 className="text-xl font-bold mb-6">ชั้น {floor}</h2>
 
-                  // Logic การค้นหา (Search)
-                  const matchesSearch =
-                    roomNum.includes(searchTerm) ||
-                    roomInfo.tenantName.includes(searchTerm);
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+            {roomsByFloor[String(floor)]
+              ?.filter((room) => {
+                const icons = buildIcons(room);
 
-                  // Logic การกรอง (Filter)
-                  const matchesStatus =
-                    activeStatusFilters.length === 0 ||
-                    activeStatusFilters.includes(roomInfo.status);
-                  const matchesIcon =
-                    activeIconFilters.length === 0 ||
-                    activeIconFilters.some((icon) =>
-                      roomInfo.icons.includes(icon),
-                    );
+                const matchesIcon =
+                  activeIconFilters.length === 0 ||
+                  activeIconFilters.some((icon) => icons.includes(icon));
 
-                  const isVisible =
-                    matchesSearch && matchesStatus && matchesIcon;
+                const matchesSearch =
+                  searchTerm === "" ||
+                  room.roomNumber?.toString().includes(searchTerm) ||
+                  room.tenantFirstName?.includes(searchTerm);
 
-                  return (
-                    <div
-                      key={roomNum}
-                      className={`transition-all duration-300 ${isVisible ? "opacity-100 scale-100" : "opacity-10 scale-90 pointer-events-none"}`}
-                    >
-                      <RoomCard
-                        roomNumber={roomNum}
-                        tenantName={roomInfo.tenantName}
-                        status={roomInfo.status}
-                        icons={roomInfo.icons}
-                      />
-                    </div>
-                  );
-                })}
+                const matchesStatus =
+                  activeStatusFilters.length === 0 ||
+                  activeStatusFilters.includes(room.roomStatus?.toLowerCase());
+
+                const matchesBuilding =
+                  activeBuilding === "ALL" ||
+                  room.roomBuilding === activeBuilding;
+
+                return (
+                  matchesIcon &&
+                  matchesSearch &&
+                  matchesStatus &&
+                  matchesBuilding
+                );
+              })
+              .sort((a, b) =>
+                a.roomNumber.localeCompare(b.roomNumber, "th", { numeric: true })
+              )
+              .map((room) => {
+                const icons = buildIcons(room);
+
+                return (
+                  <RoomCard
+                    key={room.roomId ?? `${room.roomBuilding}${room.roomNumber}`}
+                    roomNumber={room.roomNumber}
+                    building={room.roomBuilding}
+                    tenantName={room.tenantFirstName || ""}
+                    status={room.roomStatus}
+                    icons={icons}
+                  />
+                );
+              })}
               </div>
             </div>
           ))}
@@ -246,7 +317,7 @@ const Rooms = () => {
                   { id: "occupied", label: "มีผู้เช่า" },
                   { id: "overdue", label: "ค้างชำระ" },
                   { id: "reserved", label: "จอง" },
-                  { id: "vacant", label: "ว่าง" },
+                  { id: "available", label: "ว่าง" },
                   { id: "maintenance", label: "ปิดปรับปรุง" },
                 ].map((item) => (
                   <button
@@ -310,8 +381,7 @@ const Rooms = () => {
       {showLegend && <LegendModal onClose={() => setShowLegend(false)} />}
     </div>
   );
-};
-
+}
 // --- Component ย่อย (ปรับปรุงการรับส่งฟังก์ชัน) ---
 const LegendModal = ({ onClose }) => {
   // สร้างฟังก์ชันภายในคอมโพเนนต์เองเพื่อให้ทำงานได้

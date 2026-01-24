@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // ตั้งค่า URL พื้นฐานของ Backend (ปรับ port ให้ตรงกับที่รันใน VS code)
-const API_BASE_URL = 'https://localhost:5252'; 
+const API_BASE_URL = 'http://localhost:5252'; 
 
 const roomApi = axios.create({
     baseURL: API_BASE_URL,
@@ -21,6 +21,11 @@ export const roomService = {
     searchRooms: async (params) => {
         // params เช่น { keyword: '101', status: 'available' }
         const response = await roomApi.get('/Rooms/search', { params });
+        return response.data;
+    },
+
+    getRoomOverview: async () => {
+        const response = await roomApi.get('/Rooms/overview');
         return response.data;
     },
 
