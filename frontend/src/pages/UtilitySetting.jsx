@@ -3,7 +3,8 @@ import React, { useState } from "react";
 import { ChevronLeft, Zap, Droplets, CheckSquare, X } from "lucide-react";
 import SearchBar from "../components/SearchBar";
 import PriceSettingModal from "../components/PriceSettingModal";
-import FilterButton from "../components/FliterButton";
+import FilterButton from "../components/FilterButton";
+import FilterModal from "../components/FilterModal";
 
 const UtilitySetting = () => {
   const navigate = useNavigate();
@@ -34,13 +35,13 @@ const UtilitySetting = () => {
     { roomNumber: "210", status: "occupied", electricPrice: 5, waterPrice: 10 },
     {
       roomNumber: "202",
-      status: "vacant",
+      status: "available",
       electricPrice: null,
       waterPrice: null,
     },
     {
       roomNumber: "103",
-      status: "maintenance",
+      status: "close",
       electricPrice: null,
       waterPrice: null,
     },
@@ -191,7 +192,7 @@ const UtilitySetting = () => {
                     const roomNum = `${floor}${String(roomIdx + 1).padStart(2, "0")}`;
                     const roomInfo = roomsData.find(
                       (r) => r.roomNumber === roomNum,
-                    ) || { status: "vacant" };
+                    ) || { status: "available" };
                     const isSelected = selectedRooms.includes(roomNum);
 
                     // Logic Filter
@@ -206,8 +207,8 @@ const UtilitySetting = () => {
                       occupied: "bg-white border-[#10b981] shadow-green-100",
                       overdue: "bg-white border-[#fb7185] shadow-[#fb7185]/10",
                       reserved: "bg-white border-[#facc15] shadow-yellow-100",
-                      vacant: "bg-white border-gray-100",
-                      maintenance: "bg-gray-100 border-gray-300 ",
+                      available: "bg-white border-gray-100",
+                      close: "bg-gray-100 border-gray-300 ",
                     };
 
                     return (
@@ -251,67 +252,38 @@ const UtilitySetting = () => {
       </div>
 
       {/* Filter Modal (กรองได้มากกว่า 1) */}
-      {showFilterModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4"
-          onClick={() => setShowFilterModal(false)}
-        >
-          <div
-            className="bg-white p-8 rounded-[40px] shadow-2xl w-full max-w-xl animate-in zoom-in duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="relative flex items-center justify-center mb-8">
-              <h2 className="text-2xl font-bold  text-gray-800">สถานะห้อง</h2>
-              <button
-                onClick={() => setShowFilterModal(false)}
-                className="absolute p-2 right-0 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <X size={24} strokeWidth={3} />
-              </button>
-            </div>
-
-            <div className="mb-10">
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { id: "occupied", label: "มีผู้เช่า" },
-                  { id: "overdue", label: "ค้างชำระ" },
-                  { id: "reserved", label: "ติดจอง" },
-                  { id: "available", label: "ว่าง" },
-                  { id: "maintenance", label: "ปิดปรับปรุง" },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => toggleStatusFilter(item.id)}
-                    className={`py-4 rounded-2xl text-base font-bold border-2 transition-all 
-                    ${
-                      activeStatusFilters.includes(item.id)
-                        ? "border-[#F5A623] bg-[#FFF7ED] text-[#F5A623]"
-                        : "border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200"
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex gap-4 pt-6 border-t">
-              <button
-                onClick={() => setActiveStatusFilters([])}
-                className="flex-1 py-4 text-gray-400 font-bold  hover:bg-gray-50 rounded-2xl transition-all"
-              >
-                ล้างทั้งหมด
-              </button>
-              <button
-                onClick={() => setShowFilterModal(false)}
-                className="flex-1 bg-[#f3a638] text-white py-4 rounded-2xl font-bold shadow-lg shadow-orange-100 hover:brightness-95 transition-all"
-              >
-                ตกลง
-              </button>
-            </div>
-          </div>
+      <FilterModal
+        isOpen={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        title="สถานะห้อง"
+        onClear={() => setActiveStatusFilters([])}
+        onConfirm={() => setShowFilterModal(false)}
+        maxWidth="max-w-xl" // กำหนดความกว้างตามโครงเดิมของคุณ
+      >
+        {/* ส่วนเนื้อหาภายในที่ต้องการให้เป็น 2 คอลัมน์ */}
+        <div className="grid grid-cols-2 gap-4">
+          {[
+            { id: "occupied", label: "มีผู้เช่า" },
+            { id: "overdue", label: "ค้างชำระ" },
+            { id: "reserved", label: "ติดจอง" },
+            { id: "available", label: "ว่าง" }, 
+            { id: "close", label: "ปิดปรับปรุง" },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => toggleStatusFilter(item.id)}
+              className={`py-4 rounded-2xl text-base font-bold border-2 transition-all 
+          ${
+            activeStatusFilters.includes(item.id)
+              ? "border-[#F5A623] bg-[#FFF7ED] text-[#F5A623]"
+              : "border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200"
+          }`}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
-      )}
+      </FilterModal>
 
       {modalConfig && (
         <PriceSettingModal

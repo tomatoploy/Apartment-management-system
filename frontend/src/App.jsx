@@ -9,6 +9,7 @@ import BuildingRegister from "./pages/BuildingRegister";
 import Settings from "./pages/Setting";
 import UtilitySetting from "./pages/UtilitySetting";
 import RoomRateSetting from "./pages/RoomRateSetting";
+import Request from "./pages/Request";
 
 function App() {
   const userData = {
@@ -72,6 +73,14 @@ function App() {
         element={
           <Layout userProfileImage={userData.profileImage}>
             <RoomRateSetting />
+          </Layout>
+        }
+      />
+      <Route
+        path="/request"
+        element={
+          <Layout userProfileImage={userData.profileImage}>
+            <Request />
           </Layout>
         }
       />

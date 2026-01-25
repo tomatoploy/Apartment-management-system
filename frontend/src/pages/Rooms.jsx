@@ -12,7 +12,8 @@ import {
   Clock,
 } from "lucide-react";
 import RoomCard from "../components/RoomCard";
-import FilterButton from "../components/FliterButton";
+import FilterButton from "../components/FilterButton";
+import FilterModal from "../components/FilterModal";
 
 const Rooms = () => {
   const [showLegend, setShowLegend] = useState(false);
@@ -69,7 +70,7 @@ const Rooms = () => {
     {
       roomNumber: "208",
       floor: 2,
-      status: "maintenance",
+      status: "close",
       icons: [],
       tenantName: "",
     },
@@ -106,7 +107,6 @@ const Rooms = () => {
     );
   };
 
-
   return (
     <div className="bg-white min-h-screen">
       <div className="max-w-7xl mx-auto bg-white rounded-3xl p-6 shadow-lg border border-gray-200">
@@ -134,18 +134,6 @@ const Rooms = () => {
             onClick={() => setShowFilterModal(true)}
             activeCount={activeStatusFilters.length + activeIconFilters.length}
           />
-          {/* ปุ่มฟิลเตอร์เดิม แต่ย้ายไปสร้าง componentแทน */}
-          {/* <button 
-            onClick={() => setShowFilterModal(true)}
-            className="bg-[#F5A623] text-white px-20 py-2 rounded-xl font-bold hover:bg-[#e29528] flex items-center gap-2 shadow-md transition-all"
-          >
-            <FilterIcon size={18} /> Filter
-            {(activeStatusFilters.length > 0 || activeIconFilters.length > 0) && (
-              <span className="bg-white text-[#F5A623] w-5 h-5 rounded-full text-xs flex items-center justify-center">
-                {activeStatusFilters.length + activeIconFilters.length}
-              </span>
-            )}
-          </button> */}
 
           <button
             onClick={() => setShowLegend(true)}
@@ -170,7 +158,7 @@ const Rooms = () => {
                   const roomNum = `${floor}${String(idx + 1).padStart(2, "0")}`;
                   const roomInfo = roomsData.find(
                     (r) => r.roomNumber === roomNum,
-                  ) || { status: "vacant", icons: [], tenantName: "" };
+                  ) || { status: "available", icons: [], tenantName: "" };
 
                   // Logic การค้นหา (Search)
                   const matchesSearch =
@@ -211,89 +199,74 @@ const Rooms = () => {
       </div>
 
       {/* --- Filter Modal --- */}
-      {showFilterModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4"
-          onClick={(e) => handleBackdropClick(e, setShowFilterModal)}
-        >
-          <div className="bg-white p-8 rounded-[30px] shadow-2xl w-full max-w-2xl border border-gray-100 animate-in zoom-in duration-200">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">ตัวกรองผังห้อง</h2>
+      <FilterModal
+        isOpen={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        title="ตัวกรองผังห้อง"
+        onConfirm={() => setShowFilterModal(false)}
+        onClear={() => {
+          setActiveStatusFilters([]);
+          setActiveIconFilters([]);
+        }}
+        maxWidth="max-w-2xl" // ขยายขนาดเพื่อให้รองรับ 3 คอลัมน์
+      >
+        {/* หมวดหมู่ 1: กรองตามสถานะ (อ้างอิงจากตาราง Room และ Payment) */}
+        <div className="mb-8">
+          <p className="text-lg font-bold text-gray-600 mb-4">สถานะห้อง</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {[
+              { id: "occupied", label: "มีผู้เช่า" },
+              { id: "overdue", label: "ค้างชำระ" },
+              { id: "reserved", label: "ติดจอง" },
+              { id: "available", label: "ว่าง" },
+              { id: "close", label: "ปิดปรับปรุง" },
+            ].map((item) => (
               <button
-                onClick={() => setShowFilterModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                key={item.id}
+                onClick={() => toggleStatusFilter(item.id)}
+                className={`py-3 rounded-xl text-base font-bold transition-all border-2 
+            ${
+              activeStatusFilters.includes(item.id)
+                ? "border-[#F5A623] bg-[#FFF7ED] text-[#F5A623]"
+                : "border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200"
+            }`}
               >
-                <X size={24} />
+                {item.label}
               </button>
-            </div>
-
-            {/* หมวดหมู่ 1: กรองตามสถานะ (สี) */}
-            <div className="mb-8">
-              <p className="text-lg font-bold text-gray-600 mb-4">สถานะห้อง</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {[
-                  { id: "occupied", label: "มีผู้เช่า" },
-                  { id: "overdue", label: "ค้างชำระ" },
-                  { id: "reserved", label: "ติดจอง" },
-                  { id: "vacant", label: "ว่าง" },
-                  { id: "maintenance", label: "ปิดปรับปรุง" },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => toggleStatusFilter(item.id)}
-                    className={`py-3 rounded-xl text-base font-bold transition-all border-2 ${activeStatusFilters.includes(item.id) ? "border-[#F5A623] bg-[#FFF7ED] text-[#F5A623]" : "border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200"}`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* หมวดหมู่ 2: กรองตามกิจกรรม (Icon) */}
-            <div className="mb-8">
-              <p className="text-lg font-bold text-gray-600 mb-4">
-                กิจกรรม/การแจ้งเตือน
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {[
-                  { id: "moveIn", label: "ย้ายเข้า" },
-                  { id: "moveOut", label: "ย้ายออก" },
-                  { id: "repair", label: "แจ้งซ่อม" },
-                  { id: "clean", label: "ทำความสะอาด" },
-                  { id: "package", label: "ค้างรับพัสดุ" },
-                  { id: "urgent", label: "ใกล้ครบสัญญา" },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => toggleIconFilter(item.id)}
-                    className={`py-3 rounded-xl text-base font-bold transition-all border-2 ${activeIconFilters.includes(item.id) ? "border-[#F5A623] bg-[#FFF7ED] text-[#F5A623]" : "border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200"}`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex gap-4 pt-4 border-t">
-              <button
-                onClick={() => {
-                  setActiveStatusFilters([]);
-                  setActiveIconFilters([]);
-                }}
-                className="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-50 rounded-xl transition-all"
-              >
-                ล้างทั้งหมด
-              </button>
-              <button
-                onClick={() => setShowFilterModal(false)}
-                className="flex-2 bg-[#F5A623] text-white py-3 rounded-xl font-bold shadow-lg hover:shadow-orange-200 transition-all"
-              >
-                ตกลง
-              </button>
-            </div>
+            ))}
           </div>
         </div>
-      )}
+
+        {/* หมวดหมู่ 2: กรองตามกิจกรรม (Icon กิจกรรมต่างๆ) */}
+        <div className="mb-2">
+          <p className="text-lg font-bold text-gray-600 mb-4">
+            กิจกรรม/การแจ้งเตือน
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {[
+              { id: "moveIn", label: "ย้ายเข้า" },
+              { id: "moveOut", label: "ย้ายออก" },
+              { id: "repair", label: "แจ้งซ่อม" },
+              { id: "clean", label: "ทำความสะอาด" },
+              { id: "package", label: "ค้างรับพัสดุ" },
+              { id: "urgent", label: "ใกล้ครบสัญญา" },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => toggleIconFilter(item.id)}
+                className={`py-3 rounded-xl text-base font-bold transition-all border-2 
+            ${
+              activeIconFilters.includes(item.id)
+                ? "border-[#F5A623] bg-[#FFF7ED] text-[#F5A623]"
+                : "border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200"
+            }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </FilterModal>
 
       {/* --- Modal คำอธิบาย --- */}
       {showLegend && <LegendModal onClose={() => setShowLegend(false)} />}
