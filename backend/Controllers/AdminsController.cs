@@ -55,16 +55,23 @@ public class AdminsController : ControllerBase
             return BadRequest(ModelState);
 
         //เช็ก Email / Phone ซ้ำ
-        var existingAdmin = await _db.Admin
-            .FirstOrDefaultAsync(a => a.Phone == p.Phone || a.Email == p.Email);
+        var existingAdmin = await _db.Admin.FirstOrDefaultAsync(a => a.Phone == p.Phone || a.Email == p.Email);
+
+        // if (existingAdmin != null)
+        // {
+        //     //ซ้ำ = เปิดใช้งาน account เดิม
+        //     existingAdmin.IsDisabled = 0;
+
+        //     await _db.SaveChangesAsync();
+        //     return Ok(new {message = "Admin already exists, account re-activated",id = existingAdmin.Id});
+        // }
 
         if (existingAdmin != null)
         {
-            //ซ้ำ = เปิดใช้งาน account เดิม
-            existingAdmin.IsDisabled = 0;
+            if (existingAdmin.IsDisabled == 1)
+                return Conflict(new { message = "บัญชีนี้ถูกปิดใช้งาน กรุณาติดต่อผู้ดูแล" });
 
-            await _db.SaveChangesAsync();
-            return Ok(new {message = "Admin already exists, account re-activated",id = existingAdmin.Id});
+            return BadRequest(new { message = "เบอร์หรืออีเมลนี้ถูกใช้แล้ว" });
         }
 
         var (hash, salt) = HashPassword(p.Password);
