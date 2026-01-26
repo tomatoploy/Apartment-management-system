@@ -18,6 +18,21 @@ const RequestItem = ({ req, onClick }) => {
   const subject = subjectConfig[req.subject] || subjectConfig.other;
   const status = statusConfig[req.status] || statusConfig.pending;
 
+  // ฟังก์ชันแปลงวันที่เป็นรูปแบบไทย
+  const formatThaiDate = (dateString) => {
+    if (!dateString) return "-";
+    // ถ้าข้อมูลเดิมเป็นภาษาไทยอยู่แล้ว (จาก Mock Data เก่า) ให้คืนค่าเดิมกลับไปเลย
+    if (dateString.includes("พ.ศ.") || dateString.includes("พฤศจิกายน")) return dateString;
+
+    const [year, month, day] = dateString.split("-");
+    const thaiMonths = [
+      "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+      "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+    ];
+    const thaiYear = parseInt(year) + 543;
+    return `${parseInt(day)} ${thaiMonths[parseInt(month) - 1]} ${thaiYear}`;
+  };
+
   return (
     <div
       onClick={onClick}
@@ -48,7 +63,10 @@ const RequestItem = ({ req, onClick }) => {
 
         <div className="text-right">
           <p className="text-[10px] sm:text-[11px] text-gray-400 font-semibold tracking-wide uppercase">
-            แจ้งเมื่อ : {req.requestDate}
+            แจ้งเมื่อ : {formatThaiDate(req.requestDate)}
+          </p>
+          <p className="text-[10px] sm:text-[11px] text-gray-400 font-semibold tracking-wide uppercase">
+            นัดหมาย : {formatThaiDate(req.appointmentDate)}
           </p>
         </div>
       </div>

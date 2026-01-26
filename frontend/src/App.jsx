@@ -10,6 +10,7 @@ import Settings from "./pages/Setting";
 import UtilitySetting from "./pages/UtilitySetting";
 import RoomRateSetting from "./pages/RoomRateSetting";
 import Request from "./pages/Request";
+import Parcel from "./pages/Parcel";
 
 function App() {
   const userData = {
@@ -84,7 +85,14 @@ function App() {
           </Layout>
         }
       />
-      
+      <Route
+        path="/parcels"
+        element={
+          <Layout userProfileImage={userData.profileImage}>
+            <Parcel />
+          </Layout>
+        }
+      />
 
       {/* case กันคนพิมพ์ URL แปลก ๆ */}
       <Route path="*" element={<Navigate to="/login" />} />
