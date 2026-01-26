@@ -12,7 +12,9 @@ import {
 import SearchBar from "../components/SearchBar";
 import FilterButton from "../components/FilterButton";
 import FilterModal from "../components/FilterModal";
-import RequestModal from "../components/RequestModal";
+import RequestModal from "../components/AddRequestModal";
+import RequestItem from "../components/RequestItem";
+import EditRequestModal from "../components/EditRequestModal";
 
 const Request = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -21,6 +23,28 @@ const Request = () => {
   const [showFilterModal, setShowFilterModal] = useState(false);
 
   const [showRequestModal, setShowRequestModal] = useState(false);
+  //สำหรับ edit modal
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  // ฟังก์ชันเมื่อกดที่รายการ
+  const handleItemClick = (req) => {
+    setSelectedRequest(req);
+    setShowEditModal(true);
+  };
+
+  // ฟังก์ชันแก้ไขข้อมูล
+  const handleEditSave = (updatedData) => {
+    setRequests((prev) =>
+      prev.map((item) => (item.id === updatedData.id ? updatedData : item)),
+    );
+  };
+
+  // ฟังก์ชันลบข้อมูล
+  const handleDelete = (id) => {
+    setRequests((prev) => prev.filter((item) => item.id !== id));
+    setShowEditModal(false);
+  };
 
   // ฟังก์ชันสำหรับรับข้อมูลเมื่อกดบันทึก
   const handleSaveRequest = (newData) => {
@@ -34,11 +58,11 @@ const Request = () => {
     {
       id: 1,
       roomId: "201",
-      requestDate: "11 พฤศจิกายน 2568",
+      requestDate: "2025-11-11",
       subject: "fix",
       body: "ประตูห้องน้ำชำรุด",
       status: "finish",
-      appointmentDate: "12 พ.ย. 2568",
+      appointmentDate: "2025-11-12",
       isTenantCost: false,
       cost: 0,
       note: "เปลี่ยนลูกบิดใหม่",
@@ -46,7 +70,7 @@ const Request = () => {
     {
       id: 2,
       roomId: "411",
-      requestDate: "9 พฤศจิกายน 2568",
+      requestDate: "2025-11-09",
       subject: "clean",
       body: "ทำความสะอาดเฉพาะบริเวณระเบียง",
       status: "cancel",
@@ -58,11 +82,11 @@ const Request = () => {
     {
       id: 3,
       roomId: "307",
-      requestDate: "8 พฤศจิกายน 2568",
+      requestDate: "2025-11-08",
       subject: "leave",
       body: "ย้ายออกวันที่ 18 พ.ย. 2568",
       status: "pending",
-      appointmentDate: "18 พ.ย. 2568",
+      appointmentDate: "2025-11-18",
       isTenantCost: false,
       cost: 0,
       note: "",
@@ -70,11 +94,11 @@ const Request = () => {
     {
       id: 4,
       roomId: "407",
-      requestDate: "2 พฤศจิกายน 2568",
+      requestDate: "2025-11-02",
       subject: "other",
       body: "ขอเปลี่ยนรหัส Wi-Fi",
       status: "pending",
-      appointmentDate: "18 พ.ย. 2568",
+      appointmentDate: "2025-11-18",
       isTenantCost: false,
       cost: 0,
       note: "",
@@ -196,49 +220,21 @@ const Request = () => {
         {/* --- รายการคำร้อง --- */}
         <div className="space-y-4">
           {filteredRequests.map((req) => (
-            <div
+            <RequestItem
               key={req.id}
-              className="flex overflow-hidden max-w-3xl mx-auto items-center gap-6 bg-gray-50 border border-gray-300 p-5 rounded-[25px] hover:shadow-md transition-all cursor-pointer group"
-            >
-              {/* ไอคอนตามประเภทเรื่อง */}
-              <div
-                className={`p-4 rounded-2xl ${subjectConfig[req.subject].color} shrink-0`}
-              >
-                {subjectConfig[req.subject].icon}
-              </div>
-
-              {/* ข้อมูลเนื้อหา */}
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-1">
-                  {/* เลขห้อง */}
-                  <span className="text-2xl font-bold text-gray-800">
-                    {req.roomId}
-                  </span>
-                </div>
-                <p className="font-bold text-gray-700">
-                  {subjectConfig[req.subject].label}
-                </p>
-                <p className="text-sm text-gray-500 line-clamp-1">{req.body}</p>
-              </div>
-
-              <div className="flex flex-col justify-between items-end self-stretch min-w-30 sm:min-w-35">
-                <div className="flex flex-col items-end">
-                  <span
-                    className={`w-28 py-1.5 rounded-full text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-sm transition-transform group-hover:scale-105 ${statusConfig[req.status].color}`}
-                  >
-                    {statusConfig[req.status].icon}
-                    {statusConfig[req.status].label}
-                  </span>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-[10px] sm:text-[11px] text-gray-400 font-semibold tracking-wide uppercase">
-                    แจ้งเมื่อ : {req.requestDate}
-                  </p>
-                </div>
-              </div>
-            </div>
+              req={req}
+              onClick={() => handleItemClick(req)} // ส่งฟังก์ชันคลิกไป
+            />
           ))}
+          
+          {/* Modal สำหรับแก้ไข */}
+          <EditRequestModal
+            isOpen={showEditModal}
+            onClose={() => setShowEditModal(false)}
+            initialData={selectedRequest}
+            onSave={handleEditSave}
+            onDelete={handleDelete}
+          />
 
           {filteredRequests.length === 0 && (
             <div className="text-center py-20 text-gray-400 font-bold">

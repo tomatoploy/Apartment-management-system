@@ -16,7 +16,6 @@ import RoomCard from "../components/RoomCard";
 import FilterButton from "../components/FilterButton";
 import { roomService } from "../api/RoomApi";
 
-
 const Rooms = () => {
   const [showLegend, setShowLegend] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
