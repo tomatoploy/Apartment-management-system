@@ -2,11 +2,28 @@ import React, { useState, useEffect } from "react";
 import { X, ChevronRight, ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const BuildingRegister = ({ buildingId = null, onClose }) => {
+const BuildingRegister = ({ buildingId = null }) => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  const isEditMode = Boolean(buildingId);
-  //   const isEditMode = true; // ทดสอบโหมดแก้ไข แต่ยังไม่ได้ส่งข้อมูลใหม่กลับเมื่อบันทึก
+  // const isEditMode = Boolean(buildingId);
+  const isEditMode = true; // ทดสอบโหมดแก้ไข แต่ยังไม่ได้ส่งข้อมูลใหม่กลับเมื่อบันทึก + testในตั้งค่า
+
+  const handleClose = () => {
+    if (!isEditMode) {
+      // --- กรณีตั้งค่าครั้งแรก (First Time Setup) ---
+      const confirmExit = window.confirm(
+        "คุณยังไม่ได้ตั้งค่าหอพัก ข้อมูลที่กรอกจะหายไป ต้องการออกจากระบบหรือไม่?",
+      );
+      if (confirmExit) {
+        // ล้าง Token หรือ Session (ถ้ามี) แล้วกลับไป Login
+        localStorage.removeItem("token");
+        navigate("/login");
+      }
+    } else {
+      // --- กรณีแก้ไขข้อมูล (Edit Mode) ---
+      navigate("/settings");
+    }
+  };
 
   // State ข้อมูลตามตาราง Database
   const [formData, setFormData] = useState({
@@ -146,25 +163,29 @@ const BuildingRegister = ({ buildingId = null, onClose }) => {
     setStep(step + 1);
   };
 
-  // --- ปรับปรุงปุ่มบันทึก ---
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const error = validateStep();
-    if (error) {
-      alert(error);
-      return;
+  // --- ปุ่มบันทึกขั้นตอนสุดท้าย ---
+  const handleSubmit = async () => {
+    const error = validateStep(3); // ใช้ฟังก์ชันตรวจวันที่ 1-28 ที่เราทำไว้
+    if (error) return alert(error);
+
+    if (isEditMode) {
+      // Logic สำหรับการ Update ข้อมูลเดิม
+      console.log("Updating building data...", formData);
+      alert("แก้ไขข้อมูลสำเร็จ!");
+    } else {
+      // Logic สำหรับการลงทะเบียนใหม่ เสร็จแล้วควรไปหน้า Setting หรือ Dashboard
+      console.log("Creating new building...", formData);
+      alert("ลงทะเบียนสำเร็จ!");
     }
 
-    // การบันทึกข้อมูล
-    alert("บันทึกข้อมูลสำเร็จ!");
-    navigate("/dashboard");
+    navigate("/settings"); // เมื่อบันทึกเสร็จให้กลับไปหน้า Setting
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-linear-to-br from-[#2485cf] via-[#f0d49a] to-[#d65d2c]">
       <div className="bg-white/95 backdrop-blur-md w-full max-w-lg rounded-[40px] p-8 shadow-2xl relative flex flex-col max-h-[90vh]">
         <button
-          onClick={() => navigate("/login")}
+          onClick={handleClose}
           className="absolute right-6 top-6 text-gray-400 hover:text-black transition-colors"
         >
           <X size={24} strokeWidth={3} />

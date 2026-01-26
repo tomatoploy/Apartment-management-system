@@ -1,0 +1,394 @@
+import React, { useState } from "react";
+import {
+ Search,
+ Filter as FilterIcon,
+ HelpCircle,
+ X,
+ LogIn,
+ LogOut,
+ Wrench,
+ Sparkles,
+ Package,
+ Clock,
+} from "lucide-react";
+import RoomCard from "../components/RoomCard";
+import FilterButton from "../components/FilterButton";
+import FilterModal from "../components/FilterModal";
+
+
+const Rooms = () => {
+ const [showLegend, setShowLegend] = useState(false);
+ const [showFilterModal, setShowFilterModal] = useState(false);
+ const [searchTerm, setSearchTerm] = useState("");
+
+
+ // State สำหรับเก็บ Filter ทั้ง 2 แบบ
+ const [activeStatusFilters, setActiveStatusFilters] = useState([]); // กรองสี
+ const [activeIconFilters, setActiveIconFilters] = useState([]); // กรองไอคอน
+
+
+ const roomsData = [
+   {
+     roomNumber: "101",
+     floor: 1,
+     status: "reserved",
+     icons: ["moveIn", "clean"],
+     tenantName: "แอปเปิ้ล",
+   },
+   {
+     roomNumber: "102",
+     floor: 1,
+     status: "overdue",
+     icons: ["moveOut"],
+     tenantName: "มิ้น",
+   },
+   {
+     roomNumber: "104",
+     floor: 1,
+     status: "occupied",
+     icons: ["package"],
+     tenantName: "กวาง",
+   },
+   {
+     roomNumber: "202",
+     floor: 2,
+     status: "occupied",
+     icons: ["moveOut"],
+     tenantName: "การ์ตูน",
+   },
+   {
+     roomNumber: "206",
+     floor: 2,
+     status: "reserved",
+     icons: [],
+     tenantName: "",
+   },
+   {
+     roomNumber: "207",
+     floor: 2,
+     status: "overdue",
+     icons: [],
+     tenantName: "แพม",
+   },
+   {
+     roomNumber: "208",
+     floor: 2,
+     status: "close",
+     icons: [],
+     tenantName: "",
+   },
+   {
+     roomNumber: "210",
+     floor: 2,
+     status: "occupied",
+     icons: ["clean"],
+     tenantName: "มาร์ค",
+   },
+ ];
+
+
+ const floors = [1, 2, 3, 4, 5];
+
+
+ // ฟังก์ชันปิดเมื่อกดพื้นหลัง
+ const handleBackdropClick = (e, closeFunction) => {
+   if (e.target === e.currentTarget) {
+     closeFunction(false);
+   }
+ };
+
+
+ // ฟังก์ชันสลับการเลือก Filter
+ const toggleStatusFilter = (status) => {
+   setActiveStatusFilters((prev) =>
+     prev.includes(status)
+       ? prev.filter((s) => s !== status)
+       : [...prev, status],
+   );
+ };
+
+
+ const toggleIconFilter = (icon) => {
+   setActiveIconFilters((prev) =>
+     prev.includes(icon) ? prev.filter((i) => i !== icon) : [...prev, icon],
+   );
+ };
+
+
+ return (
+   <div className="bg-white min-h-screen">
+     <div className="max-w-7xl mx-auto bg-white rounded-3xl p-6 shadow-lg border border-gray-200">
+       <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
+         ผังห้อง
+       </h1>
+
+
+       {/* --- แถบ Toolbar --- */}
+       <div className="flex flex-wrap justify-center gap-4 mb-10">
+         <div className="relative w-full max-w-md">
+           <input
+             type="text"
+             placeholder="ค้นหาจากเลขห้องหรือชื่อ"
+             value={searchTerm}
+             onChange={(e) => setSearchTerm(e.target.value)}
+             className="w-full pl-10 pr-4 py-2 rounded-xl shadow-sm border border-gray-200 focus:ring-2 focus:ring-[#F5A623] outline-none transition-all"
+           />
+           <Search
+             className="absolute left-3 top-2.5 text-gray-400"
+             size={20}
+           />
+         </div>
+
+
+         <FilterButton
+           onClick={() => setShowFilterModal(true)}
+           activeCount={activeStatusFilters.length + activeIconFilters.length}
+         />
+
+
+         <button
+           onClick={() => setShowLegend(true)}
+           className="bg-[#f5d4ad] text-[#6e4a1f] px-6 py-2 rounded-xl font-bold flex items-center gap-2 shadow-md hover:bg-[#f0c594] transition-all"
+         >
+           คำอธิบาย <HelpCircle size={18} />
+         </button>
+       </div>
+
+
+       {/* --- ส่วนแสดงผังห้องแยกตามชั้น --- */}
+       <div className="space-y-8">
+         {floors.map((floor) => (
+           <div
+             key={floor}
+             className="bg-gray-100 p-6 rounded-[30px] shadow-sm border border-gray-200"
+           >
+             <h2 className="text-xl font-bold mb-6 text-gray-700">
+               ชั้น {floor}
+             </h2>
+             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-y-6 justify-items-center">
+               {Array.from({ length: floor === 1 ? 5 : 15 }).map((_, idx) => {
+                 const roomNum = `${floor}${String(idx + 1).padStart(2, "0")}`;
+                 const roomInfo = roomsData.find(
+                   (r) => r.roomNumber === roomNum,
+                 ) || { status: "available", icons: [], tenantName: "" };
+
+
+                 // Logic การค้นหา (Search)
+                 const matchesSearch =
+                   roomNum.includes(searchTerm) ||
+                   roomInfo.tenantName.includes(searchTerm);
+
+
+                 // Logic การกรอง (Filter)
+                 const matchesStatus =
+                   activeStatusFilters.length === 0 ||
+                   activeStatusFilters.includes(roomInfo.status);
+                 const matchesIcon =
+                   activeIconFilters.length === 0 ||
+                   activeIconFilters.some((icon) =>
+                     roomInfo.icons.includes(icon),
+                   );
+
+
+                 const isVisible =
+                   matchesSearch && matchesStatus && matchesIcon;
+
+
+                 return (
+                   <div
+                     key={roomNum}
+                     className={`transition-all duration-300 ${isVisible ? "opacity-100 scale-100" : "opacity-10 scale-90 pointer-events-none"}`}
+                   >
+                     <RoomCard
+                       roomNumber={roomNum}
+                       tenantName={roomInfo.tenantName}
+                       status={roomInfo.status}
+                       icons={roomInfo.icons}
+                     />
+                   </div>
+                 );
+               })}
+             </div>
+           </div>
+         ))}
+       </div>
+     </div>
+
+
+     {/* --- Filter Modal --- */}
+     <FilterModal
+       isOpen={showFilterModal}
+       onClose={() => setShowFilterModal(false)}
+       title="ตัวกรองผังห้อง"
+       onConfirm={() => setShowFilterModal(false)}
+       onClear={() => {
+         setActiveStatusFilters([]);
+         setActiveIconFilters([]);
+       }}
+       maxWidth="max-w-2xl" // ขยายขนาดเพื่อให้รองรับ 3 คอลัมน์
+     >
+       {/* หมวดหมู่ 1: กรองตามสถานะ (อ้างอิงจากตาราง Room และ Payment) */}
+       <div className="mb-8">
+         <p className="text-lg font-bold text-gray-600 mb-4">สถานะห้อง</p>
+         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+           {[
+             { id: "occupied", label: "มีผู้เช่า" },
+             { id: "overdue", label: "ค้างชำระ" },
+             { id: "reserved", label: "ติดจอง" },
+             { id: "available", label: "ว่าง" },
+             { id: "close", label: "ปิดปรับปรุง" },
+           ].map((item) => (
+             <button
+               key={item.id}
+               onClick={() => toggleStatusFilter(item.id)}
+               className={`py-3 rounded-xl text-base font-bold transition-all border-2
+           ${
+             activeStatusFilters.includes(item.id)
+               ? "border-[#F5A623] bg-[#FFF7ED] text-[#F5A623]"
+               : "border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200"
+           }`}
+             >
+               {item.label}
+             </button>
+           ))}
+         </div>
+       </div>
+
+
+       {/* หมวดหมู่ 2: กรองตามกิจกรรม (Icon กิจกรรมต่างๆ) */}
+       <div className="mb-2">
+         <p className="text-lg font-bold text-gray-600 mb-4">
+           กิจกรรม/การแจ้งเตือน
+         </p>
+         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+           {[
+             { id: "moveIn", label: "ย้ายเข้า" },
+             { id: "moveOut", label: "ย้ายออก" },
+             { id: "repair", label: "แจ้งซ่อม" },
+             { id: "clean", label: "ทำความสะอาด" },
+             { id: "package", label: "ค้างรับพัสดุ" },
+             { id: "urgent", label: "ใกล้ครบสัญญา" },
+           ].map((item) => (
+             <button
+               key={item.id}
+               onClick={() => toggleIconFilter(item.id)}
+               className={`py-3 rounded-xl text-base font-bold transition-all border-2
+           ${
+             activeIconFilters.includes(item.id)
+               ? "border-[#F5A623] bg-[#FFF7ED] text-[#F5A623]"
+               : "border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200"
+           }`}
+             >
+               {item.label}
+             </button>
+           ))}
+         </div>
+       </div>
+     </FilterModal>
+
+
+     {/* --- Modal คำอธิบาย --- */}
+     {showLegend && <LegendModal onClose={() => setShowLegend(false)} />}
+   </div>
+ );
+};
+
+
+// --- Component ย่อย (ปรับปรุงการรับส่งฟังก์ชัน) ---
+const LegendModal = ({ onClose }) => {
+ // สร้างฟังก์ชันภายในคอมโพเนนต์เองเพื่อให้ทำงานได้
+ const internalBackdropClick = (e) => {
+   if (e.target === e.currentTarget) {
+     onClose();
+   }
+ };
+
+
+ return (
+   <div
+     className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+     onClick={internalBackdropClick}
+   >
+     <div
+       className="bg-white rounded-[40px] w-full max-w-2xl p-8 relative shadow-2xl animate-in fade-in zoom-in duration-200"
+       onClick={(e) => e.stopPropagation()} // ป้องกันการปิดเมื่อคลิกข้างในกล่อง
+     >
+       <button
+         onClick={onClose}
+         className="absolute right-6 top-6 text-gray-400 hover:text-black"
+       >
+         <X size={24} strokeWidth={3} />
+       </button>
+       {/* ... (เนื้อหาข้างในเหมือนเดิม) ... */}
+       <h3 className="text-2xl font-bold text-center mb-10">
+         คำอธิบายสถานะห้อง
+       </h3>
+
+
+       <div className="grid grid-cols-5 gap-4 mb-12 text-center">
+         <LegendItem color="bg-[#10b981]" label="มีผู้เช่า" />
+         <LegendItem color="bg-[#fb7185]" label="ค้างชำระ" />
+         <LegendItem color="bg-[#facc15]" label="ติดจอง" />
+         <LegendItem color="bg-white border-2 border-gray-200" label="ว่าง" />
+         <LegendItem color="bg-[#4b5563]" label="ปิดปรับปรุง" />
+       </div>
+
+
+       <div className="grid grid-cols-2 gap-y-6 gap-x-8 px-4">
+         <IconDetail
+           icon={<LogIn className="text-green-600" />}
+           text="วันย้ายเข้า"
+         />
+         <IconDetail
+           icon={<Wrench className="text-blue-600" />}
+           text="แจ้งซ่อมบำรุง"
+         />
+         <IconDetail
+           icon={<LogOut className="text-red-600" />}
+           text="วันย้ายออก"
+         />
+         <IconDetail
+           icon={<Sparkles className="text-cyan-500" />}
+           text="แจ้งทำความสะอาด"
+         />
+         <div className="flex items-start gap-3">
+           <div className="p-1 bg-orange-100 rounded-md">
+             <Clock className="text-orange-500" size={26} />
+           </div>
+           <div>
+             <p className="font-bold text-[18px] ">ใกล้ครบสัญญา</p>
+             <p className="text-[14px] text-gray-500">
+               เหลือเวลาสัญญาน้อยกว่า 30 วัน
+             </p>
+           </div>
+         </div>
+         <IconDetail
+           icon={<Package className="text-amber-800" />}
+           text="ค้างรับพัสดุ"
+         />
+       </div>
+     </div>
+   </div>
+ );
+};
+
+
+const LegendItem = ({ color, label }) => (
+ <div className="flex flex-col items-center gap-2">
+   <div className={`w-18 h-18 rounded-xl ${color}`}></div>
+   <span className="text-[18px] text-gray-700 font-bold">{label}</span>
+ </div>
+);
+
+
+const IconDetail = ({ icon, text }) => (
+ <div className="flex items-center gap-3">
+   <div className="p-1 bg-gray-100 rounded-md">
+     {React.cloneElement(icon, { size: 26 })}
+   </div>
+   <span className="font-bold text-gray-700 text-[18px]">{text}</span>
+ </div>
+);
+
+
+export default Rooms;
