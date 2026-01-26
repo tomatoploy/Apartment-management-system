@@ -1,13 +1,16 @@
 import React from 'react';
 import { LogIn, LogOut, Wrench, Sparkles, Package, Clock } from 'lucide-react';
 
-const RoomCard = ({ roomNumber, tenantName, status, icons = [] }) => {
+const RoomCard = ({ roomNumber, building, tenantName, status, icons = [] }) => {
+
+  const normalizedStatus = status? status.toString().toLowerCase(): "available";
+  
   // กำหนดสีตามสถานะจากดีไซน์ของคุณ
   const statusColors = {
     occupied: 'bg-[#10b981]', // เขียว - มีผู้เช่า
     overdue: 'bg-[#fb7185]',  // แดง - ค้างชำระ
     reserved: 'bg-[#facc15]', // เหลือง - ติดจอง
-    vacant: 'bg-white border-2 border-gray-200', // ขาว - ว่าง
+    available: 'bg-white border-2 border-gray-200', // ขาว - ว่าง
     maintenance: 'bg-[#4b5563]', // เทาเข้ม - ปิดปรับปรุง
   };
 
@@ -23,7 +26,7 @@ const RoomCard = ({ roomNumber, tenantName, status, icons = [] }) => {
 
   return (
     <div className="flex flex-col items-center gap-1">
-      <div className={`w-20 h-20 sm:w-30 sm:h-30 rounded-xl shadow-sm relative flex items-center justify-center transition-transform hover:scale-105 cursor-pointer ${statusColors[status] || statusColors.vacant}`}>
+      <div className={`w-20 h-20 w-20 h-20 sm:w-28 sm:h-28 rounded-xl shadow-sm relative flex items-center justify-center transition-transform hover:scale-105 cursor-pointer ${statusColors[normalizedStatus] || statusColors.available}`}>
         
         {/* แสดงไอคอนที่มุมซ้ายบน (ถ้ามีข้อมูล) */}
         {icons.length > 0 && (
@@ -35,12 +38,15 @@ const RoomCard = ({ roomNumber, tenantName, status, icons = [] }) => {
         )}
 
         {/* กรณีห้องว่างให้โชว์เลขห้องข้างใน แต่ถ้ามีสีให้ไปโชว์ข้างล่างตามดีไซน์ */}
-        {status === 'vacant' && <span className="text-gray-400 text-xl font-bold">{roomNumber}</span>}
+        {status === 'available' && 
+        <span className={`text-xl font-bold ${normalizedStatus === "available"? "text-gray-400": "text-white"}`}>
+        {building}{roomNumber}
+</span>}
       </div>
       
       {/* เลขห้องและชื่อเล่นใต้กล่อง */}
       <div className="flex flex-col items-center leading-tight">
-        <span className="text-m font-bold text-gray-700">{roomNumber}</span>
+        <span className="text-m font-bold text-gray-700">{building}{roomNumber}</span>
         {tenantName && <span className="py-0.5 text-[14px] text-gray-500 truncate w-16 text-center">{tenantName}</span>}
       </div>
     </div>

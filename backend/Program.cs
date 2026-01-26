@@ -2,13 +2,25 @@ using Dormitory.DormitoryModels;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+//ลงทะเบียน CORS Service มาแก้ตรงนี้หลัง dev เสร็จ
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()   // อนุญาตทุก Domain (สะดวกตอนพัฒนา)
+              .AllowAnyMethod()   // อนุญาตทุก HTTP Method (GET, POST, PUT, DELETE)
+              .AllowAnyHeader();  // อนุญาตทุก Header
+    });
+});
 
 builder.Services.AddControllers();
 
 builder.Services.AddDbContext<DormitoryDbContext>(options =>
     options.UseMySql(
-        "server=localhost;database=dormitory;user=root;password=1234",
-        ServerVersion.AutoDetect("server=localhost;database=Dormitory;user=root;password=Surawee2545")
+        connectionString,
+        ServerVersion.AutoDetect(connectionString)
     )
 );
 
@@ -25,6 +37,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowAll"); //เรียกใช้งาน Middleware
 app.MapControllers();
 
 app.Run();
