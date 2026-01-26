@@ -13,8 +13,8 @@ import {
 } from "lucide-react";
 import RoomCard from "../components/RoomCard";
 
-import FilterButton from "../components/FliterButton";
-import { roomService } from '../api/RoomApi';
+import FilterButton from "../components/FilterButton";
+import { roomService } from "../api/RoomApi";
 
 
 const Rooms = () => {
