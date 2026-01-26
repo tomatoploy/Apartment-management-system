@@ -65,7 +65,7 @@ const RequestModal = ({ isOpen, onClose, onSave }) => {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="relative flex items-center justify-center mb-8">
+        <div className="relative flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-800">เพิ่มการแจ้ง</h2>
           <button onClick={onClose} className="absolute right-0 p-2 hover:bg-gray-100 rounded-full transition-colors">
             <X size={24} strokeWidth={3} />
@@ -128,8 +128,8 @@ const RequestModal = ({ isOpen, onClose, onSave }) => {
             </div>
           </div>
 
-          <div className="col-span-2">
-            <FieldLabel>หมายเหตุภายใน</FieldLabel>
+          <div className="col-span-2 ">
+            <FieldLabel>หมายเหตุ</FieldLabel>
             <InputField  type="text" name="note" value={formData.note} onChange={handleChange}   placeholder="บันทึกเพิ่มเติมสำหรับผู้ดูแล..." />
           </div>
         </div>

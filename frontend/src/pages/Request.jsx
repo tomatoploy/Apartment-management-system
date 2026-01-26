@@ -14,6 +14,7 @@ import FilterButton from "../components/FilterButton";
 import FilterModal from "../components/FilterModal";
 import RequestModal from "../components/AddRequestModal";
 import RequestItem from "../components/RequestItem";
+import EditRequestModal from "../components/EditRequestModal";
 
 const Request = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,6 +23,28 @@ const Request = () => {
   const [showFilterModal, setShowFilterModal] = useState(false);
 
   const [showRequestModal, setShowRequestModal] = useState(false);
+  //สำหรับ edit modal
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  // ฟังก์ชันเมื่อกดที่รายการ
+  const handleItemClick = (req) => {
+    setSelectedRequest(req);
+    setShowEditModal(true);
+  };
+
+  // ฟังก์ชันแก้ไขข้อมูล
+  const handleEditSave = (updatedData) => {
+    setRequests((prev) =>
+      prev.map((item) => (item.id === updatedData.id ? updatedData : item)),
+    );
+  };
+
+  // ฟังก์ชันลบข้อมูล
+  const handleDelete = (id) => {
+    setRequests((prev) => prev.filter((item) => item.id !== id));
+    setShowEditModal(false);
+  };
 
   // ฟังก์ชันสำหรับรับข้อมูลเมื่อกดบันทึก
   const handleSaveRequest = (newData) => {
@@ -200,9 +223,18 @@ const Request = () => {
             <RequestItem
               key={req.id}
               req={req}
-              onClick={() => console.log("คลิกที่รายการ:", req.id)}
+              onClick={() => handleItemClick(req)} // ส่งฟังก์ชันคลิกไป
             />
           ))}
+          
+          {/* Modal สำหรับแก้ไข */}
+          <EditRequestModal
+            isOpen={showEditModal}
+            onClose={() => setShowEditModal(false)}
+            initialData={selectedRequest}
+            onSave={handleEditSave}
+            onDelete={handleDelete}
+          />
 
           {filteredRequests.length === 0 && (
             <div className="text-center py-20 text-gray-400 font-bold">

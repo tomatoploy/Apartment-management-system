@@ -26,7 +26,7 @@ const RoomCard = ({ roomNumber, building, tenantName, status, icons = [] }) => {
 
   return (
     <div className="flex flex-col items-center gap-1">
-      <div className={`w-20 h-20 w-20 h-20 sm:w-28 sm:h-28 rounded-xl shadow-sm relative flex items-center justify-center transition-transform hover:scale-105 cursor-pointer ${statusColors[normalizedStatus] || statusColors.available}`}>
+      <div className={`w-20 h-20 sm:w-28 sm:h-28 rounded-xl shadow-sm relative flex items-center justify-center transition-transform hover:scale-105 cursor-pointer ${statusColors[normalizedStatus] || statusColors.available}`}>
         
         {/* แสดงไอคอนที่มุมซ้ายบน (ถ้ามีข้อมูล) */}
         {icons.length > 0 && (

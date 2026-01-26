@@ -1,4 +1,3 @@
-import React from "react";
 import { Wrench, Sparkles, LogOut, FileText, Clock, CheckCircle2, XCircle } from "lucide-react";
 
 const RequestItem = ({ req, onClick }) => {
@@ -39,7 +38,7 @@ const RequestItem = ({ req, onClick }) => {
       </div>
 
       {/* ส่วนสถานะและวันที่ (ฝั่งขวาสุด) */}
-      <div className="flex flex-col justify-between items-end self-stretch min-w-[120px] sm:min-w-[140px]">
+      <div className="flex flex-col justify-between items-end self-stretch min-w-30 sm:min-w-35">
         <span
           className={`w-28 py-1.5 rounded-full text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all group-hover:scale-105 ${status.color}`}
         >
