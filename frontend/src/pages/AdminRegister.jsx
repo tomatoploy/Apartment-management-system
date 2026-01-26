@@ -4,6 +4,9 @@ import { adminService } from "../api/AdminApi";
 
 const Register = () => {
   const navigate = useNavigate();
+
+  const [loading, setLoading] = useState(false);
+
   // สร้าง State เพื่อเก็บข้อมูลจากฟอร์ม
   const [formData, setFormData] = useState({
     prefix: "นาย",
@@ -14,6 +17,8 @@ const Register = () => {
     password: ""
   });
 
+  const isFormValid = formData.firstName && formData.lastName && formData.phone && formData.password;
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -21,7 +26,9 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
 
+    setLoading(true);
     try {
       const payload = {
         title: formData.prefix,
@@ -32,14 +39,14 @@ const Register = () => {
         password: formData.password
       };
 
-      console.log("payload:", payload);
       await adminService.createAdmin(payload);
-
       alert("ลงทะเบียนสำเร็จ!");
       navigate("/login");
     } catch (err) {
-      console.log("backend error:", err.response?.data);
-      alert("ลงทะเบียนไม่สำเร็จ");
+      const msg = err.response?.data?.message || "ลงทะเบียนไม่สำเร็จ";
+      alert(msg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -101,6 +108,8 @@ const Register = () => {
             <input 
               name="phone"
               required
+              type="tel"
+              inputMode="numeric"
               value={formData.phone}
               onChange={handleChange}
               className="w-full p-2 bg-white border border-gray-400 rounded-xl outline-none text-sm focus:ring-2 focus:ring-orange-400" 
@@ -130,14 +139,17 @@ const Register = () => {
             />
           </div>
           
-
           <div className="pt-6 space-y-3">
             <button 
               type="submit"
-              className="mx-auto block w-1/1 bg-[#f3a638] hover:bg-[#e29528] 
-                        text-black font-bold py-3 rounded-xl shadow-md transition-all text-md"
+              disabled={loading || !isFormValid}
+              className={`mx-auto block w-full font-bold py-3 rounded-xl shadow-md transition-all text-md
+                ${loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-[#f3a638] hover:bg-[#e29528] text-black"}
+              `}
             >
-              ลงทะเบียน
+              {loading ? "กำลังบันทึก..." : "ลงทะเบียน"}
             </button>
             <button 
               type="button"
