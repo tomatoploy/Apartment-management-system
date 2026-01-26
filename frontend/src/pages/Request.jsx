@@ -12,7 +12,8 @@ import {
 import SearchBar from "../components/SearchBar";
 import FilterButton from "../components/FilterButton";
 import FilterModal from "../components/FilterModal";
-import RequestModal from "../components/RequestModal";
+import RequestModal from "../components/AddRequestModal";
+import RequestItem from "../components/RequestItem";
 
 const Request = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -196,48 +197,11 @@ const Request = () => {
         {/* --- รายการคำร้อง --- */}
         <div className="space-y-4">
           {filteredRequests.map((req) => (
-            <div
+            <RequestItem
               key={req.id}
-              className="flex overflow-hidden max-w-3xl mx-auto items-center gap-6 bg-gray-50 border border-gray-300 p-5 rounded-[25px] hover:shadow-md transition-all cursor-pointer group"
-            >
-              {/* ไอคอนตามประเภทเรื่อง */}
-              <div
-                className={`p-4 rounded-2xl ${subjectConfig[req.subject].color} shrink-0`}
-              >
-                {subjectConfig[req.subject].icon}
-              </div>
-
-              {/* ข้อมูลเนื้อหา */}
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-1">
-                  {/* เลขห้อง */}
-                  <span className="text-2xl font-bold text-gray-800">
-                    {req.roomId}
-                  </span>
-                </div>
-                <p className="font-bold text-gray-700">
-                  {subjectConfig[req.subject].label}
-                </p>
-                <p className="text-sm text-gray-500 line-clamp-1">{req.body}</p>
-              </div>
-
-              <div className="flex flex-col justify-between items-end self-stretch min-w-30 sm:min-w-35">
-                <div className="flex flex-col items-end">
-                  <span
-                    className={`w-28 py-1.5 rounded-full text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-sm transition-transform group-hover:scale-105 ${statusConfig[req.status].color}`}
-                  >
-                    {statusConfig[req.status].icon}
-                    {statusConfig[req.status].label}
-                  </span>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-[10px] sm:text-[11px] text-gray-400 font-semibold tracking-wide uppercase">
-                    แจ้งเมื่อ : {req.requestDate}
-                  </p>
-                </div>
-              </div>
-            </div>
+              req={req}
+              onClick={() => console.log("คลิกที่รายการ:", req.id)}
+            />
           ))}
 
           {filteredRequests.length === 0 && (
