@@ -63,7 +63,7 @@ const RequestCalendar = ({ requests, subjectConfig, onItemClick }) => {
           const isToday = date && date.toDateString() === new Date().toDateString();
 
           return (
-            <div key={index} className={`min-h-[120px] bg-white p-2 flex flex-col gap-1 transition-colors hover:bg-gray-50 ${!date ? 'bg-gray-50/50' : ''}`}>
+            <div key={index} className={`min-h-30 bg-white p-2 flex flex-col gap-1 transition-colors hover:bg-gray-50 ${!date ? 'bg-gray-50/50' : ''}`}>
               {date && (
                 <>
                   <span className={`text-sm font-bold mb-1 w-7 h-7 flex items-center justify-center rounded-full ${isToday ? 'bg-[#f3a638] text-white' : 'text-gray-700'}`}>
@@ -71,7 +71,7 @@ const RequestCalendar = ({ requests, subjectConfig, onItemClick }) => {
                   </span>
                   
                   {/* รายการนัดหมาย */}
-                  <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[80px] no-scrollbar">
+                  <div className="flex flex-col gap-1.5 overflow-y-auto max-h-20 no-scrollbar">
                     {appointments.map(req => {
                       const subject = subjectConfig[req.subject] || subjectConfig.other;
                       
@@ -79,16 +79,13 @@ const RequestCalendar = ({ requests, subjectConfig, onItemClick }) => {
                         <div 
                           key={req.id}
                           onClick={() => onItemClick(req)}
-                          // ✨ ใช้สีจาก Config โดยตรง (subject.color) ✨
+                         
                           className={`
                             ${subject.color} 
                             text-[11px] px-2 py-1.5 rounded-lg cursor-pointer truncate font-bold shadow-sm 
-                            transition-all hover:scale-105 hover:brightness-95 flex items-center gap-1.5
+                            transition-all  hover:brightness-90 flex items-center gap-1.5
                           `}
                         >
-                          {/* จุดสีเล็กๆ ใช้สีเดียวกับตัวอักษร (currentColor) เพื่อให้เข้ากัน */}
-                          {/* <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60 shrink-0" /> */}
-                        
                           <span className="truncate">{req.roomId} : {subject.label}</span>
                         </div>
                       );
