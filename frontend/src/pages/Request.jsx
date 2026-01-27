@@ -8,6 +8,8 @@ import {
   XCircle,
   Clock,
   Plus,
+  LayoutList,   
+  CalendarDays,
 } from "lucide-react";
 import SearchBar from "../components/SearchBar";
 import FilterButton from "../components/FilterButton";
@@ -15,6 +17,7 @@ import FilterModal from "../components/FilterModal";
 import RequestModal from "../components/AddRequestModal";
 import RequestItem from "../components/RequestItem";
 import EditRequestModal from "../components/EditRequestModal";
+import RequestCalendar from "../components/RequestCalendar";
 
 const Request = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -26,6 +29,8 @@ const Request = () => {
   //สำหรับ edit modal
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  //สำหรับเปลี่ยนมุมมองปฏิทิน
+  const [viewMode, setViewMode] = useState("list");
 
   // ฟังก์ชันเมื่อกดที่รายการ
   const handleItemClick = (req) => {
@@ -53,7 +58,7 @@ const Request = () => {
     // setRequests([ { id: Date.now(), ...newData }, ...requests ]);
   };
 
-  // จำลองข้อมูลตาม Schema ที่ระบุ
+  // จำลองข้อมูลตาม Schema ที่ระบุ โดยเก็บวันที่เป็น String 'YYYY-MM-DD'
   const [requests, setRequests] = useState([
     {
       id: 1,
@@ -62,7 +67,7 @@ const Request = () => {
       subject: "fix",
       body: "ประตูห้องน้ำชำรุด",
       status: "finish",
-      appointmentDate: "2025-11-12",
+      appointmentDate: "2026-01-18",
       isTenantCost: false,
       cost: 0,
       note: "เปลี่ยนลูกบิดใหม่",
@@ -74,7 +79,7 @@ const Request = () => {
       subject: "clean",
       body: "ทำความสะอาดเฉพาะบริเวณระเบียง",
       status: "cancel",
-      appointmentDate: null,
+      appointmentDate: "2026-01-12",
       isTenantCost: true,
       cost: 100,
       note: "ผู้เช่ายกเลิกเนื่องจากติดธุระ",
@@ -86,7 +91,7 @@ const Request = () => {
       subject: "leave",
       body: "ย้ายออกวันที่ 18 พ.ย. 2568",
       status: "pending",
-      appointmentDate: "2025-11-18",
+      appointmentDate: "2026-01-18",
       isTenantCost: false,
       cost: 0,
       note: "",
@@ -98,7 +103,7 @@ const Request = () => {
       subject: "other",
       body: "ขอเปลี่ยนรหัส Wi-Fi",
       status: "pending",
-      appointmentDate: "2025-11-18",
+      appointmentDate: "2026-01-18",
       isTenantCost: false,
       cost: 0,
       note: "",
@@ -110,7 +115,8 @@ const Request = () => {
     fix: {
       label: "แจ้งซ่อม",
       icon: <Wrench size={40} />,
-      color: "bg-[#D8B4FE] text-[#6B21A8]",
+      color: "bg-[#E6D1F2] text-[#6B21A8]",
+
     },
     clean: {
       label: "ทำความสะอาด",
@@ -147,17 +153,37 @@ const Request = () => {
     },
   };
 
-  // Logic การกรองข้อมูล
+  // 1. Logic การกรองข้อมูลสำหรับ "List View" (กรองครบทุกอย่าง: Search + Subject + Status)
   const filteredRequests = requests.filter((req) => {
     const matchesSearch =
       req.roomId.includes(searchTerm) ||
       req.body.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // List ต้องกรองตาม Tab ที่เลือก
     const matchesSubject =
       activeSubject === "all" || req.subject === activeSubject;
+      
     const matchesStatus =
       activeStatusFilters.length === 0 ||
       activeStatusFilters.includes(req.status);
+
     return matchesSearch && matchesSubject && matchesStatus;
+  });
+  
+
+  // 2. [เพิ่มใหม่] Logic การกรองข้อมูลสำหรับ "Calendar View" 
+  // (ตัด matchesSubject ออก เพื่อให้โชว์ทุกหัวข้อเสมอ แต่ยังค้นหาเลขห้องได้)
+  const calendarRequests = requests.filter((req) => {
+    const matchesSearch =
+      req.roomId.includes(searchTerm) ||
+      req.body.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus =
+      activeStatusFilters.length === 0 ||
+      activeStatusFilters.includes(req.status);
+
+    // *สำคัญ* : ไม่กรอง matchesSubject ที่นี่
+    return matchesSearch && matchesStatus;
   });
 
   return (
@@ -178,10 +204,31 @@ const Request = () => {
               onClick={() => setShowFilterModal(true)}
               activeCount={activeStatusFilters.length}
             />
+            
+            {/* ปฏิทิน ปุ่มสลับมุมมอง Calendar กับ List request item */}
+            <div className="bg-gray-100 p-1 rounded-xl flex shrink-0">
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-2 rounded-lg transition-all ${viewMode === "list" ? "bg-white shadow text-[#f3a638]" : "text-gray-400 hover:text-gray-600"}`}
+              >
+                <LayoutList size={24} />
+              </button>
+              <button
+                onClick={() => setViewMode("calendar")}
+                className={`p-2 rounded-lg transition-all ${viewMode === "calendar" ? "bg-white shadow text-[#f3a638]" : "text-gray-400 hover:text-gray-600"}`}
+              >
+                <CalendarDays size={24} />
+              </button>
+            </div>
           </div>
+
+         
 
           {/* แถบ Filter(แถบยาว) ตามเรื่องที่ Request (Subject Tabs) */}
           <div className="max-w-3xl w-full flex flex-col gap-4 md-2">
+
+            {/* [แก้ไข] แสดงแถบ Filter เฉพาะตอนอยู่ในหน้า List */}
+            {viewMode === "list" && (
             <div className="flex bg-gray-100 p-1 rounded-2xl w-full overflow-x-auto no-scrollbar">
               <button
                 onClick={() => setActiveSubject("all")}
@@ -199,6 +246,8 @@ const Request = () => {
                 </button>
               ))}
             </div>
+            )}
+
 
             {/* ปุ่มจะชิดขวาของกรอบ 3xl ซึ่งจะตรงกับตำแหน่งปุ่มสุดท้ายของแถบด้านบนพอดี */}
             <button
@@ -210,22 +259,38 @@ const Request = () => {
           </div>
         </div>
 
-        {/* --- เรียกใช้ RequestModal --- */}
-        <RequestModal
-          isOpen={showRequestModal}
-          onClose={() => setShowRequestModal(false)}
-          onSave={handleSaveRequest}
-        />
+        {/* --- Content Area --- */}
+        {viewMode === "list" ? (
+          /* มุมมอง List: ใช้ filteredRequests (ตาม Tab) */
+          <div className="space-y-4">
+            {filteredRequests.map((req) => (
+              <RequestItem
+                key={req.id}
+                req={req}
+                onClick={() => handleItemClick(req)}
+              />
+            ))}
+            {filteredRequests.length === 0 && (
+              <div className="text-center py-20 text-gray-400 font-bold">
+                ไม่พบข้อมูลการแจ้ง
+              </div>
+            )}
+          </div>
+        ) : (
+          /* มุมมอง Calendar: ใช้ calendarRequests (โชว์ทุกหัวข้อที่แจ้ง) */
+          <RequestCalendar 
+            requests={calendarRequests}  
+            subjectConfig={subjectConfig}
+            onItemClick={handleItemClick}
+          />
+        )}
 
-        {/* --- รายการคำร้อง --- */}
-        <div className="space-y-4">
-          {filteredRequests.map((req) => (
-            <RequestItem
-              key={req.id}
-              req={req}
-              onClick={() => handleItemClick(req)} // ส่งฟังก์ชันคลิกไป
-            />
-          ))}
+          {/* --- เรียกใช้ RequestModal --- */}
+          <RequestModal
+            isOpen={showRequestModal}
+            onClose={() => setShowRequestModal(false)}
+            onSave={handleSaveRequest}
+          />
           
           {/* Modal สำหรับแก้ไข */}
           <EditRequestModal
@@ -236,14 +301,7 @@ const Request = () => {
             onDelete={handleDelete}
           />
 
-          {filteredRequests.length === 0 && (
-            <div className="text-center py-20 text-gray-400 font-bold">
-              ไม่พบข้อมูลการแจ้ง
-            </div>
-          )}
-        </div>
-      </div>
-
+      
       {/* --- Filter Modal สำหรับ Status --- */}
       <FilterModal
         isOpen={showFilterModal}
@@ -278,6 +336,7 @@ const Request = () => {
         </div>
       </FilterModal>
     </div>
+  </div>
   );
 };
 
