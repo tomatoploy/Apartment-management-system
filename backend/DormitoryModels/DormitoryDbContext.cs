@@ -42,8 +42,10 @@ public partial class DormitoryDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        //ploy
         => optionsBuilder.UseMySql("server=localhost;port=3306;user=root;password=Surawee2545;database=Dormitory", Microsoft.EntityFrameworkCore.ServerVersion.Parse("11.8.2-mariadb"));
-
+        //nn
+    //     => optionsBuilder.UseMySql("server=100.71.138.33;port=3306;user=nongnut;password=Password123!;database=Dormitory", Microsoft.EntityFrameworkCore.ServerVersion.Parse("11.8.2-mariadb"));
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder

@@ -35,7 +35,7 @@ const Register = () => {
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone.replace(/\D/g, ""),
-        email: formData.email,
+        email: formData.email.trim() === "" ? null : formData.email,
         password: formData.password
       };
 

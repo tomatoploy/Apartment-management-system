@@ -11,12 +11,13 @@ import UtilitySetting from "./pages/UtilitySetting";
 import RoomRateSetting from "./pages/RoomRateSetting";
 import Request from "./pages/Request";
 import Parcel from "./pages/Parcel";
+import Meter from "./pages/Meter";
 
 function App() {
   const userData = {
     name: "XXX",
-    profileImage:
-      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200",
+    // profileImage:
+    //   "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200",
   };
 
   return (
@@ -30,7 +31,7 @@ function App() {
       <Route
         path="/dashboard"
         element={
-          <Layout userProfileImage={userData.profileImage}>
+          <Layout>
             <Dashboard />
           </Layout>
         }
@@ -39,7 +40,7 @@ function App() {
       <Route
         path="/rooms"
         element={
-          <Layout userProfileImage={userData.profileImage}>
+          <Layout>
             <Rooms />
           </Layout>
         }
@@ -48,7 +49,7 @@ function App() {
       <Route
         path="/settings"
         element={
-          <Layout userProfileImage={userData.profileImage}>
+          <Layout>
             <Settings />
           </Layout>
         }
@@ -56,7 +57,7 @@ function App() {
       <Route
         path="/settings/building-edit"
         element={
-          <Layout userProfileImage={userData.profileImage}>
+          <Layout>
             <BuildingRegister isEditMode={true} />
           </Layout>
         }
@@ -64,7 +65,7 @@ function App() {
       <Route
         path="/settings/utility"
         element={
-          <Layout userProfileImage={userData.profileImage}>
+          <Layout>
             <UtilitySetting />
           </Layout>
         }
@@ -72,7 +73,7 @@ function App() {
       <Route
         path="/settings/roomrate"
         element={
-          <Layout userProfileImage={userData.profileImage}>
+          <Layout>
             <RoomRateSetting />
           </Layout>
         }
@@ -80,7 +81,7 @@ function App() {
       <Route
         path="/request"
         element={
-          <Layout userProfileImage={userData.profileImage}>
+          <Layout>
             <Request />
           </Layout>
         }
@@ -88,11 +89,20 @@ function App() {
       <Route
         path="/parcels"
         element={
-          <Layout userProfileImage={userData.profileImage}>
+          <Layout>
             <Parcel />
           </Layout>
         }
       />
+      <Route
+        path="/meters"
+        element={
+          <Layout>
+            <Meter />
+          </Layout>
+        }
+      />
+
 
       {/* case กันคนพิมพ์ URL แปลก ๆ */}
       <Route path="*" element={<Navigate to="/login" />} />

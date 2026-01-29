@@ -6,3 +6,34 @@ how to run
 - frontend
     cd frontend
     npm run dev
+
+- appsetting.json (nn)
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ConnectionStrings": {
+    "DefaultConnection": "server=100.71.138.33;port=3306;user=nongnut;password=Password123!;database=Dormitory"
+  }
+}
+
+(ploy)
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ConnectionStrings": {
+    "DefaultConnection": "server=localhost;database=Dormitory;user=root;password=Surawee2545"
+  }
+}
+
+อีกไฟล์ dornitorydbcontext.cs ใน folder models
+- แก้ที่ comment

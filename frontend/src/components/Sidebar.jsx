@@ -9,7 +9,8 @@ import {
   LogOut,
   ChevronLeft,
 } from "lucide-react";
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
 const MenuItem = ({ icon: Icon, text, to, collapsed }) => (
@@ -32,12 +33,40 @@ const MenuItem = ({ icon: Icon, text, to, collapsed }) => (
 );
 
 const Sidebar = ({
-  userProfileImage,
+ // userProfileImage, เลิก props
   isCollapsed,
   setIsCollapsed,
   onLogout,
 }) => {
   const navigate = useNavigate();
+
+  // 2. สร้าง State สำหรับเก็บรูปภาพ
+  const [profileImage, setProfileImage] = useState(null);
+
+  // 3. ใช้ useEffect เพื่อดึงข้อมูลเมื่อ Component ถูกโหลด
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        // --- ส่วนจำลองการดึงข้อมูล (API Call) ---
+        // const userId = localStorage.getItem('userId'); // ตัวอย่างการเอา ID
+        // const response = await fetch(`https://api.example.com/users/${userId}`);
+        // const data = await response.json();
+        // setProfileImage(data.imageUrl); 
+
+        // --- ตัวอย่าง Mock Data (ใช้ทดสอบได้เลย) ---
+        
+        // สมมติว่าดึงมาจาก DB แล้วได้ Link นี้มา
+        const mockDbImage = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200";
+        setProfileImage(mockDbImage);
+      
+      } catch (error) {
+        console.error("Error fetching user image:", error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
   return (
     <aside
       className={`${
@@ -57,19 +86,20 @@ const Sidebar = ({
       </button>
 
       <div>
-        {/* Profile Section - ปรับขนาดตามการย่อ */}
+       {/* Profile Section */}
         <div
           className={`flex justify-center pt-12 py-8 transition-all ${isCollapsed ? "scale-60" : ""}`}
         >
           <div className="w-24 h-24 bg-[#cbd5e1] rounded-full flex items-center justify-center overflow-hidden border-4 border-white shadow-md relative">
-            {userProfileImage ? (
+            {/* 4. ใช้ State profileImage แทน Props */}
+            {profileImage ? (
               <img
-                src={userProfileImage}
+                src={profileImage}
                 alt="Profile"
                 className="w-full h-full object-cover"
               />
             ) : (
-              // Default User Icon สีเทาเข้ม
+              // Default User Icon (แสดงระหว่างรอโหลด หรือถ้าไม่มีรูป)
               <svg
                 className="w-full h-full text-[#475569] mt-4"
                 fill="currentColor"
