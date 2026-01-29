@@ -55,8 +55,11 @@ public class AdminsController : ControllerBase
             return BadRequest(ModelState);
 
         //เช็ก Email / Phone ซ้ำ
-        var existingAdmin = await _db.Admin.FirstOrDefaultAsync(a => a.Phone == p.Phone || a.Email == p.Email);
-
+        var existingAdmin = await _db.Admin.FirstOrDefaultAsync(a =>
+            a.Phone == p.Phone ||
+            (p.Email != null && a.Email == p.Email)
+        );
+        
         // if (existingAdmin != null)
         // {
         //     //ซ้ำ = เปิดใช้งาน account เดิม
