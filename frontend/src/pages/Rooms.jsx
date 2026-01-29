@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Search,
   Filter,
@@ -27,16 +27,18 @@ const Rooms = () => {
 
   const [roomsData, setRoomsData] = useState([]);
 
-  const roomsByFloor = roomsData.reduce((acc, room) => {
-    const floor = String(room.roomFloor);
-    if (!acc[floor]) acc[floor] = [];
-    acc[floor].push(room);
-    return acc;
-  }, {});
+  const roomsByFloor = useMemo(() => {
+    return roomsData.reduce((acc, room) => {
+      if (!acc[room.floor]) acc[room.floor] = [];
+      acc[room.floor].push(room);
+      return acc;
+    }, {});
+  }, [roomsData]);
 
-  const floors = [
-    ...new Set(roomsData.map(r => String(r.roomFloor)))
-  ].sort((a, b) => Number(a) - Number(b));
+  const floors = useMemo(() => {
+    return [...new Set(roomsData.map(r => r.floor))]
+      .sort((a, b) => Number(a) - Number(b));
+  }, [roomsData]);
 
   // const roomsData = [
   //   {
@@ -99,16 +101,41 @@ const Rooms = () => {
 
   //โหลดข้อมูลจาก backend (useEffect)
 useEffect(() => {
-  const loadRooms = async () => {
+    const loadRooms = async () => {
       try {
         const data = await roomService.getRoomOverview();
-        console.log("ROOM DATA RAW:", data);
-        console.log("IS ARRAY?", Array.isArray(data));
-        console.log("VALUES?", data?.$values);
+        const rawRooms = Array.isArray(data) ? data : data?.$values ?? [];
 
-        setRoomsData(
-          Array.isArray(data) ? data : data?.$values ?? []
-        );
+        const today = new Date();
+
+        const normalized = rawRooms.map((room) => {
+          const icons = [];
+
+          if (room.ContractStartDate) {
+            if (new Date(room.ContractStartDate) <= today) {
+              icons.push("moveIn");
+            }
+          }
+
+          if (room.ContractEndDate) {
+            const diffDays =
+              (new Date(room.ContractEndDate) - today) /
+              (1000 * 60 * 60 * 24);
+            if (diffDays <= 30) icons.push("urgent");
+          }
+
+          if (room.IsOverdue) icons.push("overdue");
+
+          return {
+            ...room,
+            floor: String(room.roomFloor),
+            building: room.roomBuilding,
+            status: room.roomStatus?.toLowerCase(),
+            icons,
+          };
+        });
+
+        setRoomsData(normalized);
       } catch (err) {
         console.error("โหลดผังห้องไม่สำเร็จ", err);
       }
@@ -119,10 +146,54 @@ useEffect(() => {
 
   const [activeBuilding, setActiveBuilding] = useState("ALL");
 
-  const buildings = [
-    "ALL",
-    ...new Set(roomsData.map(r => r.roomBuilding).filter(Boolean))
-  ];
+    const filteredRoomsByFloor = useMemo(() => {
+    const result = {};
+
+    floors.forEach((floor) => {
+      result[floor] = (roomsByFloor[floor] || [])
+        .filter((room) => {
+          const matchesIcon =
+            activeIconFilters.length === 0 ||
+            activeIconFilters.some((i) => room.icons.includes(i));
+
+          const matchesStatus =
+            activeStatusFilters.length === 0 ||
+            activeStatusFilters.includes(room.status);
+
+          const matchesBuilding =
+            activeBuilding === "ALL" ||
+            room.building === activeBuilding;
+
+          const matchesSearch =
+            searchTerm === "" ||
+            room.roomNumber?.includes(searchTerm) ||
+            room.tenantFirstName?.includes(searchTerm);
+
+          return (
+            matchesIcon &&
+            matchesStatus &&
+            matchesBuilding &&
+            matchesSearch
+          );
+        })
+        .sort((a, b) =>
+          a.roomNumber.localeCompare(b.roomNumber, "th", { numeric: true })
+        );
+    });
+
+    return result;
+  }, [
+    floors,
+    roomsByFloor,
+    activeIconFilters,
+    activeStatusFilters,
+    activeBuilding,
+    searchTerm,
+  ]);
+
+  const buildings = useMemo(() => {
+    return ["ALL", ...new Set(roomsData.map(r => r.building).filter(Boolean))];
+  }, [roomsData]);
 
     const buildIcons = (room) => {
       const icons = [];
@@ -239,54 +310,19 @@ useEffect(() => {
         <div className="space-y-8">
           {floors.map((floor) => (
             <div key={floor} className="bg-gray-100 p-6 rounded-3xl">
-            <h2 className="text-xl font-bold mb-6">ชั้น {floor}</h2>
+              <h2 className="text-xl font-bold mb-6">ชั้น {floor}</h2>
 
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-            {roomsByFloor[String(floor)]
-              ?.filter((room) => {
-                const icons = buildIcons(room);
-
-                const matchesIcon =
-                  activeIconFilters.length === 0 ||
-                  activeIconFilters.some((icon) => icons.includes(icon));
-
-                const matchesSearch =
-                  searchTerm === "" ||
-                  room.roomNumber?.toString().includes(searchTerm) ||
-                  room.tenantFirstName?.includes(searchTerm);
-
-                const matchesStatus =
-                  activeStatusFilters.length === 0 ||
-                  activeStatusFilters.includes(room.roomStatus?.toLowerCase());
-
-                const matchesBuilding =
-                  activeBuilding === "ALL" ||
-                  room.roomBuilding === activeBuilding;
-
-                return (
-                  matchesIcon &&
-                  matchesSearch &&
-                  matchesStatus &&
-                  matchesBuilding
-                );
-              })
-              .sort((a, b) =>
-                a.roomNumber.localeCompare(b.roomNumber, "th", { numeric: true })
-              )
-              .map((room) => {
-                const icons = buildIcons(room);
-
-                return (
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+                {filteredRoomsByFloor[floor]?.map((room) => (
                   <RoomCard
-                    key={room.roomId ?? `${room.roomBuilding}${room.roomNumber}`}
+                    key={room.roomId}
                     roomNumber={room.roomNumber}
-                    building={room.roomBuilding}
+                    building={room.building}
                     tenantName={room.tenantFirstName || ""}
-                    status={room.roomStatus}
-                    icons={icons}
+                    status={room.status}
+                    icons={room.icons}
                   />
-                );
-              })}
+                ))}
               </div>
             </div>
           ))}
