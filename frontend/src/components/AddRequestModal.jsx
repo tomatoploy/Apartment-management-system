@@ -18,14 +18,14 @@ const InputField = ({ type = "text", ...props }) => (
  // สร้าง State สำหรับเก็บข้อมูลตาม Schema ที่กำหนด
 const RequestModal = ({ isOpen, onClose, onSave }) => {
   const [formData, setFormData] = useState({
-    roomId: "",
+    roomNumber: "",
     requestDate: new Date().toISOString().split("T")[0],
     subject: "fix",
     body: "",
     status: "pending",
     appointmentDate: "",
     isTenantCost: false,
-    cost: 0,
+    cost: "",
     note: "",
   });
 
@@ -40,18 +40,20 @@ const RequestModal = ({ isOpen, onClose, onSave }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-      // ตรวจสอบข้อมูล Required (roomId)
+      // ตรวจสอบข้อมูล Required (roomNumber)
   const handleSubmit = () => {
-    if (!formData.roomId) {
+    if (!formData.roomNumber) {
       alert("กรุณาระบุเลขห้อง");
       return;
     }
+    console.log("FORM DATA:", formData);
     onSave(formData);
     onClose();
   };
@@ -76,7 +78,7 @@ const RequestModal = ({ isOpen, onClose, onSave }) => {
         <div className="grid grid-cols-2 gap-4 text-left">
           <div className="col-span-1">
             <FieldLabel required>เลขห้อง</FieldLabel>
-            <InputField name="roomId" value={formData.roomId} onChange={handleChange}  />
+            <InputField name="roomNumber" value={formData.roomNumber} onChange={handleChange}  />
           </div>
 
           <div className="col-span-1">
