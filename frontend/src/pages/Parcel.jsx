@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { parcelService } from "../api/ParcelApi";
 import { Plus } from "lucide-react";
 import SearchBar from "../components/SearchBar";
 import FilterButton from "../components/FilterButton";
@@ -38,38 +39,30 @@ const Parcel = () => {
     { id: "other", label: "อื่นๆ" },
   ];
 
-  const [parcels, setParcels] = useState([
-    {
-      id: 1,
-      roomId: "101",
-      recipient: "สมชาย ใจดี",
-      trackingNumber: "",
-      type: "box",
-      shippingCompany: "thaipost",
-      arrivalDate: "2026-01-25",
-      pickupDate: null,
-    },
-    {
-      id: 2,
-      roomId: "205",
-      recipient: "สมหญิง มั่งมี",
-      trackingNumber: "KER78901",
-      type: "pack",
-      shippingCompany: "kerry",
-      arrivalDate: "2026-01-24",
-      pickupDate: "2026-01-25",
-    },
-    {
-      id: 3,
-      roomId: "307",
-      recipient: "นิลสิริ จันทร์ดี",
-      trackingNumber: "J&T12345",
-      type: "other",
-      shippingCompany: "j&t",
-      arrivalDate: "2026-01-23",
-      pickupDate: null,
-    },
-  ]);
+  const [parcels, setParcels] = useState([]);
+
+  useEffect(() => {
+    loadParcels();
+  }, []);
+
+  const loadParcels = async () => {
+    try {
+      const data = await parcelService.getParcels();
+      setParcels(data);
+    } catch (err) {
+      console.error("โหลดพัสดุไม่สำเร็จ", err);
+    }
+  };
+
+  const handleAddParcel = async (data) => {
+    try {
+      await parcelService.createParcel(data);
+      await loadParcels();
+      setShowAddModal(false);
+    } catch (err) {
+      console.error("เพิ่มพัสดุไม่สำเร็จ", err);
+    }
+  };
 
   //สำหรับ edit modal
   // เมื่อกดที่ Card รายการพัสดุ
@@ -79,44 +72,62 @@ const Parcel = () => {
   };
 
   // เมื่อบันทึกการแก้ไข
-  const handleSaveEdit = (updatedParcel) => {
-    setParcels((prev) =>
-      prev.map((p) => (p.id === updatedParcel.id ? updatedParcel : p)),
-    );
+  const handleSaveEdit = async (updatedParcel) => {
+    try {
+      await parcelService.updateParcel(updatedParcel.id, updatedParcel);
+      await loadParcels();
+      setShowEditModal(false);
+    } catch (err) {
+      console.error("แก้ไขพัสดุไม่สำเร็จ", err);
+    }
   };
 
   // เมื่อลบรายการ
-  const handleDeleteParcel = (id) => {
-    setParcels((prev) => prev.filter((p) => p.id !== id));
-    setShowEditModal(false);
+  const handleDeleteParcel = async (id) => {
+    try {
+      await parcelService.deleteParcel(id);
+      await loadParcels();
+      setShowEditModal(false);
+    } catch (err) {
+      console.error("ลบพัสดุไม่สำเร็จ", err);
+    }
   };
 
   // Logic การกรองข้อมูลที่ซับซ้อนขึ้น
-  const filteredParcels = parcels.filter((p) => {
-    const isReceived = p.pickupDate !== null;
+  const filteredParcels = useMemo(() => {
+    return parcels.filter((p) => {
+      const isReceived = p.pickupDate !== null;
 
-    // 1. กรองตาม Search
-    const matchesSearch =
-      p.roomId.includes(searchTerm) ||
-      p.recipient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase());
+      // 1. Search
+      const matchesSearch =
+        p.roomNumber?.includes(searchTerm) ||
+        p.recipient?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.trackingNumber?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // 2. กรองตาม Status (Tabs ด้านบน)
-    const matchesStatus =
-      activeStatus === "all" ||
-      (activeStatus === "received" ? isReceived : !isReceived);
+      // 2. Status
+      const matchesStatus =
+        activeStatus === "all" ||
+        (activeStatus === "received" ? isReceived : !isReceived);
 
-    // 3. กรองตาม Type (ถ้าใน Array ว่าง = ไม่กรอง คือเอาหมด)
-    const matchesType =
-      activeTypeFilters.length === 0 || activeTypeFilters.includes(p.type);
+      // 3. Type
+      const matchesType =
+        activeTypeFilters.length === 0 ||
+        activeTypeFilters.includes(p.type);
 
-    // 4. กรองตาม Company
-    const matchesCompany =
-      activeCompanyFilters.length === 0 ||
-      activeCompanyFilters.includes(p.shippingCompany);
+      // 4. Company
+      const matchesCompany =
+        activeCompanyFilters.length === 0 ||
+        activeCompanyFilters.includes(p.shippingCompany);
 
-    return matchesSearch && matchesStatus && matchesType && matchesCompany;
-  });
+      return matchesSearch && matchesStatus && matchesType && matchesCompany;
+    });
+  }, [
+    parcels,
+    searchTerm,
+    activeStatus,
+    activeTypeFilters,
+    activeCompanyFilters,
+  ]);
 
   // ฟังก์ชันสลับการเลือก Filter (Toggle)
   const toggleFilter = (list, setList, value) => {
@@ -209,7 +220,7 @@ const Parcel = () => {
       <AddParcelModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onSave={(data) => setParcels([{ id: Date.now(), ...data }, ...parcels])}
+        onSave={handleAddParcel}
       />
 
       {/* Filter Modal ที่ปรับปรุงใหม่ */}

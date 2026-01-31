@@ -146,45 +146,47 @@ useEffect(() => {
 
   const [activeBuilding, setActiveBuilding] = useState("ALL");
 
-    const filteredRoomsByFloor = useMemo(() => {
+  const filteredRoomsByFloor = useMemo(() => {
     const result = {};
 
-    floors.forEach((floor) => {
-      result[floor] = (roomsByFloor[floor] || [])
-        .filter((room) => {
-          const matchesIcon =
-            activeIconFilters.length === 0 ||
-            activeIconFilters.some((i) => room.icons.includes(i));
+    roomsData.forEach((room) => {
+      const matchesIcon =
+        activeIconFilters.length === 0 ||
+        activeIconFilters.some(i => room.icons.includes(i));
 
-          const matchesStatus =
-            activeStatusFilters.length === 0 ||
-            activeStatusFilters.includes(room.status);
+      const matchesStatus =
+        activeStatusFilters.length === 0 ||
+        activeStatusFilters.includes(room.status);
 
-          const matchesBuilding =
-            activeBuilding === "ALL" ||
-            room.building === activeBuilding;
+      const matchesBuilding =
+        activeBuilding === "ALL" || room.building === activeBuilding;
 
-          const matchesSearch =
-            searchTerm === "" ||
-            room.roomNumber?.includes(searchTerm) ||
-            room.tenantFirstName?.includes(searchTerm);
+      const matchesSearch =
+        searchTerm === "" ||
+        room.roomNumber?.includes(searchTerm) ||
+        room.tenantFirstName?.includes(searchTerm);
 
-          return (
-            matchesIcon &&
-            matchesStatus &&
-            matchesBuilding &&
-            matchesSearch
-          );
-        })
-        .sort((a, b) =>
-          a.roomNumber.localeCompare(b.roomNumber, "th", { numeric: true })
-        );
+      if (
+        matchesIcon &&
+        matchesStatus &&
+        matchesBuilding &&
+        matchesSearch
+      ) {
+        const floor = room.floor;
+        if (!result[floor]) result[floor] = [];
+        result[floor].push(room);
+      }
     });
+
+    Object.values(result).forEach(arr =>
+      arr.sort((a, b) =>
+        a.roomNumber.localeCompare(b.roomNumber, "th", { numeric: true })
+      )
+    );
 
     return result;
   }, [
-    floors,
-    roomsByFloor,
+    roomsData,
     activeIconFilters,
     activeStatusFilters,
     activeBuilding,
