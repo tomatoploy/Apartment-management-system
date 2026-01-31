@@ -282,4 +282,4 @@ const Request = () => {
   );
 };
 
-export default React.memo(RequestItem);
+export default Request;

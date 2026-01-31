@@ -512,4 +512,4 @@ const IconDetail = ({ icon, text }) => (
   </div>
 );
 
-export default React.memo(RoomCard);
+export default Rooms;

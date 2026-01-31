@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { parcelService } from "../api/ParcelApi";
 import { Plus } from "lucide-react";
 import SearchBar from "../components/SearchBar";
@@ -56,12 +56,8 @@ const Parcel = () => {
 
   const handleAddParcel = async (data) => {
     try {
-      const res = await parcelService.createParcel(data);
-
-      // สมมติ backend ส่ง parcel กลับมา
-      setParcels(prev => [res, ...prev]);
-
-      setShowAddModal(false);
+      await parcelService.createParcel(data);
+      await loadParcels();
       setShowAddModal(false);
     } catch (err) {
       console.error("เพิ่มพัสดุไม่สำเร็จ", err);
@@ -79,14 +75,7 @@ const Parcel = () => {
   const handleSaveEdit = async (updatedParcel) => {
     try {
       await parcelService.updateParcel(updatedParcel.id, updatedParcel);
-
-      setParcels(prev =>
-        prev.map(p =>
-          p.id === updatedParcel.id ? { ...p, ...updatedParcel } : p
-        )
-      );
-
-      setShowEditModal(false);
+      await loadParcels();
       setShowEditModal(false);
     } catch (err) {
       console.error("แก้ไขพัสดุไม่สำเร็จ", err);
@@ -97,8 +86,7 @@ const Parcel = () => {
   const handleDeleteParcel = async (id) => {
     try {
       await parcelService.deleteParcel(id);
-      setParcels(prev => prev.filter(p => p.id !== id));
-      setShowEditModal(false);
+      await loadParcels();
       setShowEditModal(false);
     } catch (err) {
       console.error("ลบพัสดุไม่สำเร็จ", err);
@@ -106,31 +94,40 @@ const Parcel = () => {
   };
 
   // Logic การกรองข้อมูลที่ซับซ้อนขึ้น
-  const filteredParcels = parcels.filter((p) => {
-    const isReceived = p.pickupDate !== null;
+  const filteredParcels = useMemo(() => {
+    return parcels.filter((p) => {
+      const isReceived = p.pickupDate !== null;
 
-    // 1. กรองตาม Search
-    const matchesSearch =
-      p.roomNumber.includes(searchTerm) ||
-      p.recipient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase());
+      // 1. Search
+      const matchesSearch =
+        p.roomNumber?.includes(searchTerm) ||
+        p.recipient?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.trackingNumber?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // 2. กรองตาม Status (Tabs ด้านบน)
-    const matchesStatus =
-      activeStatus === "all" ||
-      (activeStatus === "received" ? isReceived : !isReceived);
+      // 2. Status
+      const matchesStatus =
+        activeStatus === "all" ||
+        (activeStatus === "received" ? isReceived : !isReceived);
 
-    // 3. กรองตาม Type (ถ้าใน Array ว่าง = ไม่กรอง คือเอาหมด)
-    const matchesType =
-      activeTypeFilters.length === 0 || activeTypeFilters.includes(p.type);
+      // 3. Type
+      const matchesType =
+        activeTypeFilters.length === 0 ||
+        activeTypeFilters.includes(p.type);
 
-    // 4. กรองตาม Company
-    const matchesCompany =
-      activeCompanyFilters.length === 0 ||
-      activeCompanyFilters.includes(p.shippingCompany);
+      // 4. Company
+      const matchesCompany =
+        activeCompanyFilters.length === 0 ||
+        activeCompanyFilters.includes(p.shippingCompany);
 
-    return matchesSearch && matchesStatus && matchesType && matchesCompany;
-  });
+      return matchesSearch && matchesStatus && matchesType && matchesCompany;
+    });
+  }, [
+    parcels,
+    searchTerm,
+    activeStatus,
+    activeTypeFilters,
+    activeCompanyFilters,
+  ]);
 
   // ฟังก์ชันสลับการเลือก Filter (Toggle)
   const toggleFilter = (list, setList, value) => {
@@ -290,4 +287,4 @@ const Parcel = () => {
   );
 };
 
-export default React.memo(ParcelItem);
+export default Parcel;
