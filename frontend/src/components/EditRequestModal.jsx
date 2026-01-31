@@ -22,7 +22,18 @@ const EditRequestModal = ({ isOpen, onClose, onSave, onDelete, initialData }) =>
   // อัปเดตข้อมูลเมื่อมีการเลือกรายการใหม่
   useEffect(() => {
     if (initialData) {
-      setFormData(initialData);
+      setFormData({
+        id: initialData.id,
+        roomNumber: initialData.roomNumber,
+        requestDate: initialData.requestDate,
+        subject: initialData.subject,
+        body: initialData.body ?? "",
+        status: initialData.status,
+        appointmentDate: initialData.appointmentDate ?? "",
+        isTenantCost: initialData.isTenantCost ?? false,
+        cost: initialData.cost ?? "",
+        note: initialData.note ?? "",
+      });
     }
   }, [initialData, isOpen]);
 
@@ -35,7 +46,7 @@ const EditRequestModal = ({ isOpen, onClose, onSave, onDelete, initialData }) =>
   };
 
   const handleSubmit = () => {
-    if (!formData.roomId) {
+    if (!formData.roomNumber) {
       alert("กรุณาระบุเลขห้อง");
       return;
     }
@@ -71,7 +82,7 @@ const EditRequestModal = ({ isOpen, onClose, onSave, onDelete, initialData }) =>
         <div className="grid grid-cols-2 gap-4 text-left">
           <div className="col-span-1">
             <FieldLabel required>เลขห้อง</FieldLabel>
-            <InputField name="roomId" value={formData.roomId} onChange={handleChange} />
+            <InputField name="roomNumber" value={formData.roomNumber} onChange={handleChange} />
           </div>
 
           <div className="col-span-1">

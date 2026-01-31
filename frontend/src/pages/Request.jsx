@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { requestService } from "../api/RequestApi";
 import {
   Wrench, Sparkles, LogOut, FileText, CheckCircle2, XCircle, Clock, Plus, LayoutList, CalendarDays,
 } from "lucide-react";
@@ -25,6 +26,8 @@ const STATUS_CONFIG = {
 };
 
 const Request = () => {
+  const [requests, setRequests] = useState([]);
+  
   // State
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSubject, setActiveSubject] = useState("all");
@@ -34,14 +37,21 @@ const Request = () => {
   // Modal States
   const [modals, setModals] = useState({ filter: false, add: false, edit: false });
   const [selectedRequest, setSelectedRequest] = useState(null);
+  
+  const fetchRequests = async () => {
+    try {
+      const data = await requestService.getRequests();
+      setRequests(data ?? []);
+    } catch (err) {
+      console.error("โหลดข้อมูลไม่สำเร็จ", err);
+    }
+  };
 
-  // Mock Data
-  const [requests, setRequests] = useState([
-    { id: 1, roomId: "201", requestDate: "2025-11-11", subject: "fix", body: "ประตูห้องน้ำชำรุด", status: "finish", appointmentDate: "2026-01-18", isTenantCost: false, cost: 0, note: "เปลี่ยนลูกบิดใหม่" },
-    { id: 2, roomId: "411", requestDate: "2025-11-09", subject: "clean", body: "ทำความสะอาดเฉพาะบริเวณระเบียง", status: "cancel", appointmentDate: "2026-01-12", isTenantCost: true, cost: 100, note: "ผู้เช่ายกเลิกเนื่องจากติดธุระ" },
-    { id: 3, roomId: "307", requestDate: "2025-11-08", subject: "leave", body: "ย้ายออกวันที่ 18 พ.ย. 2568", status: "pending", appointmentDate: "2026-01-18", isTenantCost: false, cost: 0, note: "" },
-    { id: 4, roomId: "407", requestDate: "2025-11-02", subject: "other", body: "ขอเปลี่ยนรหัส Wi-Fi", status: "pending", appointmentDate: "2026-01-18", isTenantCost: false, cost: 0, note: "" },
-  ]);
+  const keyword = searchTerm.toLowerCase();
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
 
   // Handlers (รวม State Modal ไว้จัดการง่ายขึ้น)
   const toggleModal = (name, value) => setModals(prev => ({ ...prev, [name]: value }));
@@ -51,25 +61,107 @@ const Request = () => {
     toggleModal('edit', true);
   };
 
-  const handleEditSave = (updatedData) => {
-    setRequests(prev => prev.map(item => item.id === updatedData.id ? updatedData : item));
+  const handleEditSave = async (formData) => {
+    try {
+      const payload = {
+        roomNumber: formData.roomNumber,
+        requestDate: formData.requestDate,
+        subject: formData.subject,
+        body: formData.body,
+        status: formData.status,
+        appointmentDate: formData.appointmentDate === "" ? null : formData.appointmentDate,
+        isTenantCost: formData.isTenantCost,
+        cost: formData.cost === "" ? null : Number(formData.cost),
+        note: formData.note === "" ? null : formData.note,
+      };
+
+      await requestService.updateRequest(formData.id, payload);
+      await fetchRequests();
+      toggleModal("edit", false);
+    } catch (err) {
+      console.error("แก้ไขไม่สำเร็จ", err);
+    }
   };
 
-  const handleDelete = (id) => {
-    setRequests(prev => prev.filter(item => item.id !== id));
-    toggleModal('edit', false);
+  const handleChangeStatus = async (id, newStatus) => {
+    try {
+      const current = requests.find(r => r.id === id);
+      if (!current) return;
+
+      const payload = {
+        roomNumber: current.roomNumber,
+        requestDate: current.requestDate,
+        subject: current.subject,
+        body: current.body,
+        status: newStatus,
+
+        appointmentDate:
+          current.appointmentDate === "" || current.appointmentDate == null
+            ? null
+            : current.appointmentDate,
+
+        isTenantCost: current.isTenantCost,
+        cost: current.cost,
+        note: current.note,
+      };
+
+      await requestService.updateRequest(id, payload);
+      await fetchRequests();
+    } catch (err) {
+      console.error("เปลี่ยนสถานะไม่สำเร็จ", err);
+    }
   };
 
-  const handleSaveRequest = (newData) => {
-    console.log("New Data:", newData);
-    toggleModal('add', false);
+  const handleDelete = async (id) => {
+    try {
+      await requestService.deleteRequest(id);
+      setRequests(prev => prev.filter(item => item.id !== id));
+      toggleModal("edit", false);
+    } catch (err) {
+      console.error("ลบไม่สำเร็จ", err);
+    }
+  };
+
+  const handleSaveRequest = async (formData) => {
+    try {
+      const payload = {
+        roomNumber: formData.roomNumber,
+        requestDate: formData.requestDate,
+        subject: formData.subject,
+        body: formData.body,
+        status: formData.status,
+
+        appointmentDate:
+          formData.appointmentDate === ""
+            ? null
+            : formData.appointmentDate,
+
+        isTenantCost: formData.isTenantCost,
+
+        cost:
+          formData.cost === ""
+            ? null
+            : Number(formData.cost),
+
+        note:
+          formData.note === ""
+            ? null
+            : formData.note,
+      };
+
+      await requestService.createRequest(payload);
+      await fetchRequests();
+      toggleModal("add", false);
+    } catch (err) {
+      console.error("เพิ่มการแจ้งไม่สำเร็จ", err);
+    }
   };
 
   // 2. รวม Logic การกรอง (Unified Filtering Logic)
   // ใช้ useMemo เพื่อไม่ให้คำนวณใหม่ทุกครั้งที่ render ถ้า dependency ไม่เปลี่ยน
   const baseFilteredRequests = useMemo(() => {
     return requests.filter((req) => {
-      const matchesSearch = req.roomId.includes(searchTerm) || req.body.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = req.roomNumber?.toLowerCase().includes(keyword) || req.body?.toLowerCase().includes(keyword);
       const matchesStatus = activeStatusFilters.length === 0 || activeStatusFilters.includes(req.status);
       return matchesSearch && matchesStatus;
     });
@@ -143,7 +235,7 @@ const Request = () => {
         {viewMode === "list" ? (
           <div className="space-y-4">
             {listRequests.map((req) => (
-              <RequestItem key={req.id} req={req} onClick={() => handleItemClick(req)} />
+              <RequestItem key={req.id} req={req} onClick={() => handleItemClick(req)} onChangeStatus={handleChangeStatus} />
             ))}
             {listRequests.length === 0 && (
               <div className="text-center py-20 text-gray-400 font-bold">ไม่พบข้อมูลการแจ้ง</div>
@@ -156,13 +248,15 @@ const Request = () => {
         {/* --- Modals --- */}
         <RequestModal isOpen={modals.add} onClose={() => toggleModal('add', false)} onSave={handleSaveRequest} />
         
-        <EditRequestModal 
-          isOpen={modals.edit} 
-          onClose={() => toggleModal('edit', false)} 
-          initialData={selectedRequest} 
-          onSave={handleEditSave} 
-          onDelete={handleDelete} 
-        />
+        {selectedRequest && (
+          <EditRequestModal
+            isOpen={modals.edit}
+            initialData={selectedRequest}
+            onClose={() => toggleModal("edit", false)}
+            onSave={handleEditSave}
+            onDelete={handleDelete}
+          />
+        )}
 
         <FilterModal
           isOpen={modals.filter}
