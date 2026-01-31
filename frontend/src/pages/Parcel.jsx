@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
+import { parcelService } from "../api/ParcelApi";
 import { Plus } from "lucide-react";
 import SearchBar from "../components/SearchBar";
 import FilterButton from "../components/FilterButton";
@@ -38,38 +39,34 @@ const Parcel = () => {
     { id: "other", label: "อื่นๆ" },
   ];
 
-  const [parcels, setParcels] = useState([
-    {
-      id: 1,
-      roomId: "101",
-      recipient: "สมชาย ใจดี",
-      trackingNumber: "",
-      type: "box",
-      shippingCompany: "thaipost",
-      arrivalDate: "2026-01-25",
-      pickupDate: null,
-    },
-    {
-      id: 2,
-      roomId: "205",
-      recipient: "สมหญิง มั่งมี",
-      trackingNumber: "KER78901",
-      type: "pack",
-      shippingCompany: "kerry",
-      arrivalDate: "2026-01-24",
-      pickupDate: "2026-01-25",
-    },
-    {
-      id: 3,
-      roomId: "307",
-      recipient: "นิลสิริ จันทร์ดี",
-      trackingNumber: "J&T12345",
-      type: "other",
-      shippingCompany: "j&t",
-      arrivalDate: "2026-01-23",
-      pickupDate: null,
-    },
-  ]);
+  const [parcels, setParcels] = useState([]);
+
+  useEffect(() => {
+    loadParcels();
+  }, []);
+
+  const loadParcels = async () => {
+    try {
+      const data = await parcelService.getParcels();
+      setParcels(data);
+    } catch (err) {
+      console.error("โหลดพัสดุไม่สำเร็จ", err);
+    }
+  };
+
+  const handleAddParcel = async (data) => {
+    try {
+      const res = await parcelService.createParcel(data);
+
+      // สมมติ backend ส่ง parcel กลับมา
+      setParcels(prev => [res, ...prev]);
+
+      setShowAddModal(false);
+      setShowAddModal(false);
+    } catch (err) {
+      console.error("เพิ่มพัสดุไม่สำเร็จ", err);
+    }
+  };
 
   //สำหรับ edit modal
   // เมื่อกดที่ Card รายการพัสดุ
@@ -79,16 +76,33 @@ const Parcel = () => {
   };
 
   // เมื่อบันทึกการแก้ไข
-  const handleSaveEdit = (updatedParcel) => {
-    setParcels((prev) =>
-      prev.map((p) => (p.id === updatedParcel.id ? updatedParcel : p)),
-    );
+  const handleSaveEdit = async (updatedParcel) => {
+    try {
+      await parcelService.updateParcel(updatedParcel.id, updatedParcel);
+
+      setParcels(prev =>
+        prev.map(p =>
+          p.id === updatedParcel.id ? { ...p, ...updatedParcel } : p
+        )
+      );
+
+      setShowEditModal(false);
+      setShowEditModal(false);
+    } catch (err) {
+      console.error("แก้ไขพัสดุไม่สำเร็จ", err);
+    }
   };
 
   // เมื่อลบรายการ
-  const handleDeleteParcel = (id) => {
-    setParcels((prev) => prev.filter((p) => p.id !== id));
-    setShowEditModal(false);
+  const handleDeleteParcel = async (id) => {
+    try {
+      await parcelService.deleteParcel(id);
+      setParcels(prev => prev.filter(p => p.id !== id));
+      setShowEditModal(false);
+      setShowEditModal(false);
+    } catch (err) {
+      console.error("ลบพัสดุไม่สำเร็จ", err);
+    }
   };
 
   // Logic การกรองข้อมูลที่ซับซ้อนขึ้น
@@ -97,7 +111,7 @@ const Parcel = () => {
 
     // 1. กรองตาม Search
     const matchesSearch =
-      p.roomId.includes(searchTerm) ||
+      p.roomNumber.includes(searchTerm) ||
       p.recipient.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -209,7 +223,7 @@ const Parcel = () => {
       <AddParcelModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onSave={(data) => setParcels([{ id: Date.now(), ...data }, ...parcels])}
+        onSave={handleAddParcel}
       />
 
       {/* Filter Modal ที่ปรับปรุงใหม่ */}
@@ -276,4 +290,4 @@ const Parcel = () => {
   );
 };
 
-export default Parcel;
+export default React.memo(ParcelItem);

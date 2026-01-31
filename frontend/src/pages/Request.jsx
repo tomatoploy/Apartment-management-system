@@ -76,7 +76,9 @@ const Request = () => {
       };
 
       await requestService.updateRequest(formData.id, payload);
-      await fetchRequests();
+      setRequests(prev =>
+        prev.map(r => (r.id === formData.id ? { ...r, ...payload } : r))
+      );
       toggleModal("edit", false);
     } catch (err) {
       console.error("แก้ไขไม่สำเร็จ", err);
@@ -84,31 +86,24 @@ const Request = () => {
   };
 
   const handleChangeStatus = async (id, newStatus) => {
+    // 1. update UI ทันที
+    setRequests(prev =>
+      prev.map(r =>
+        r.id === id ? { ...r, status: newStatus } : r
+      )
+    );
+
     try {
       const current = requests.find(r => r.id === id);
       if (!current) return;
 
-      const payload = {
-        roomNumber: current.roomNumber,
-        requestDate: current.requestDate,
-        subject: current.subject,
-        body: current.body,
+      await requestService.updateRequest(id, {
+        ...current,
         status: newStatus,
-
-        appointmentDate:
-          current.appointmentDate === "" || current.appointmentDate == null
-            ? null
-            : current.appointmentDate,
-
-        isTenantCost: current.isTenantCost,
-        cost: current.cost,
-        note: current.note,
-      };
-
-      await requestService.updateRequest(id, payload);
-      await fetchRequests();
+      });
     } catch (err) {
       console.error("เปลี่ยนสถานะไม่สำเร็จ", err);
+      fetchRequests(); // fallback กรณี error
     }
   };
 
@@ -150,7 +145,9 @@ const Request = () => {
       };
 
       await requestService.createRequest(payload);
-      await fetchRequests();
+      setRequests(prev =>
+        prev.map(r => (r.id === formData.id ? { ...r, ...payload } : r))
+      );
       toggleModal("add", false);
     } catch (err) {
       console.error("เพิ่มการแจ้งไม่สำเร็จ", err);
@@ -285,4 +282,4 @@ const Request = () => {
   );
 };
 
-export default Request;
+export default React.memo(RequestItem);
