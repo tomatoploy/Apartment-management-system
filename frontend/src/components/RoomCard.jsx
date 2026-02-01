@@ -12,6 +12,7 @@ const RoomCard = ({ roomNumber, building, tenantName, status, icons = [] }) => {
     reserved: 'bg-[#facc15]', // เหลือง - ติดจอง
     available: 'bg-white border-2 border-gray-200', // ขาว - ว่าง
     maintenance: 'bg-[#4b5563]', // เทาเข้ม - ปิดปรับปรุง
+   pending: 'bg-[#94a3b8]',  // เทาอ่อน - รอดำเนินการชำระเงิน ยังไม่จ่ายและยังไม่ค้าง ยังอยู่ในเวลาที่กำหนด
   };
 
   // Map ไอคอนจากข้อมูล

@@ -9,7 +9,7 @@ const FilterButton = ({ onClick, activeCount }) => {
         bg-[#F5A623] text-white font-bold rounded-xl shadow-md transition-all 
         hover:bg-[#e29528] flex items-center justify-center gap-2 relative
         /* ปรับระดับความกว้างและ Padding ตามขนาดจอ */
-        w-full sm:w-auto px-4 sm:px-10 md:px-20 py-2
+        w-full sm:w-auto px-4 sm:px-10 md:px-20 py-2.5
       "
     >
       <FilterIcon size={18} /> 

@@ -133,7 +133,7 @@ const Sidebar = ({
             collapsed={isCollapsed}
             to="/meters"
           />
-          <MenuItem icon={Receipt} text="สร้างบิล" collapsed={isCollapsed} to="/billing" />
+          <MenuItem icon={Receipt} text="สร้างบิล" collapsed={isCollapsed} to="/billings" />
           <MenuItem icon={Package} text="พัสดุ" collapsed={isCollapsed} to="/parcels"/>
           <MenuItem icon={BellRing} text="การแจ้ง" collapsed={isCollapsed} to="/request" />
           <MenuItem icon={Settings} text="การตั้งค่า" collapsed={isCollapsed} to="/settings" />

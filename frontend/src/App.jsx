@@ -12,6 +12,9 @@ import RoomRateSetting from "./pages/RoomRateSetting";
 import Request from "./pages/Request";
 import Parcel from "./pages/Parcel";
 import Meter from "./pages/Meter";
+import Billing from "./pages/Billing";
+
+// import RoomsFilter from "./pages/Rooms-filterModal";
 
 function App() {
   const userData = {
@@ -45,6 +48,15 @@ function App() {
           </Layout>
         }
       />
+
+      {/* <Route
+        path="/rooms-nodata"
+        element={
+          <Layout>
+            <Rooms-filterModal />
+          </Layout>
+        }
+      /> */}
 
       <Route
         path="/settings"
@@ -99,6 +111,15 @@ function App() {
         element={
           <Layout>
             <Meter />
+          </Layout>
+        }
+      />
+      
+        <Route
+        path="/billings"
+        element={
+          <Layout>
+            <Billing />
           </Layout>
         }
       />

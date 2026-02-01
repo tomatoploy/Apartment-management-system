@@ -5,6 +5,7 @@ import SearchBar from "../components/SearchBar";
 import PriceSettingModal from "../components/PriceSettingModal";
 import FilterButton from "../components/FilterButton";
 import FilterModal from "../components/FilterModal";
+import { SelectAllFloorButton, BlueButton } from "../components/ActionButtons";
 
 const UtilitySetting = () => {
   const navigate = useNavigate();
@@ -151,18 +152,8 @@ const UtilitySetting = () => {
               กำหนดค่าบริการอื่นๆ
             </button>
 
-            <button
-              onClick={selectAllRooms}
-              className="bg-[#AED6F1] text-[#2E86C1] px-6 py-2.5 rounded-2xl font-bold hover:bg-[#85C1E9] transition-all"
-            >
-              เลือกทั้งหมด
-            </button>
-            <button
-              onClick={() => setSelectedRooms([])}
-              className="bg-[#AED6F1] text-[#2E86C1] px-6 py-2.5 rounded-2xl font-bold hover:bg-[#85C1E9] transition-all"
-            >
-              ยกเลิก
-            </button>
+            <BlueButton label="เลือกทั้งหมด" onClick={selectAllRooms} />
+            <BlueButton label="ยกเลิก" onClick={() => setSelectedRooms([])} />
           </div>
         </div>
 
@@ -173,18 +164,16 @@ const UtilitySetting = () => {
             return (
               <div
                 key={floor}
-                className="bg-gray-50 p-6 rounded-[35px] border border-gray-100"
+                className="bg-gray-50 p-6 rounded-[35px] border border-gray-200"
               >
                 <div className="flex justify-between items-center mb-6 px-4">
                   <h2 className="text-xl font-bold text-gray-700">
                     ชั้น {floor}
                   </h2>
-                  <button
+                  <SelectAllFloorButton
+                    label="เลือกทั้งชั้น"
                     onClick={() => selectAllInFloor(floor, roomCount)}
-                    className="bg-[#AED6F1] text-[#2E86C1] px-4 py-1.5 rounded-xl font-bold text-sm hover:brightness-95"
-                  >
-                    เลือกทั้งชั้น
-                  </button>
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6 justify-items-center">
