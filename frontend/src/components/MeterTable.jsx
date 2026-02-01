@@ -1,6 +1,23 @@
-import React from "react";
+import { useState, useEffect } from "react";
 import { Settings } from "lucide-react";
 
+const calculateUsedUnit = (prev, curr) => {
+  if (prev == null || curr == null || curr === "") return 0;
+
+  const p = Number(prev);
+  const c = Number(curr);
+
+  if (isNaN(p) || isNaN(c)) return 0;
+
+  // กรณีมิเตอร์ไม่หมุนกลับ
+  if (c >= p) return c - p;
+
+  // กรณีมิเตอร์หมุน (เช่น 99999 -> 00010)
+  const length = p.toString().length;
+  const maxMeter = Number("9".repeat(length));
+
+  return (maxMeter - p) + c + 1;
+};
 
 const MeterTable = ({
  rooms,
@@ -10,13 +27,6 @@ const MeterTable = ({
  prevMonthLabel,
  currentMonthLabel
 }) => {
-  const calculateUsage = (current, previous) => {
-   if (current === "" || current === null) return "";
-   const usage = parseFloat(current) - parseFloat(previous);
-   return usage > 0 ? usage : 0;
- };
-
-
  // กำหนดสีหัวตารางตามประเภท (ฟ้า=น้ำ, ส้ม=ไฟ)
  const headerBg = meterType === "electricity" ? "bg-[#f17721]" : "bg-[#009CDE]";
 
@@ -27,7 +37,6 @@ const MeterTable = ({
    const regex = /^\d*\.?\d*$/;
    return regex.test(value);
  };
-
 
  return (
    <div className="overflow-hidden rounded-3xl border border-gray-300 shadow-sm bg-white">
@@ -64,23 +73,32 @@ const MeterTable = ({
          </thead>
          <tbody className="divide-y divide-gray-300">
            {rooms.map((room) => {
-              const prevVal = meterType === 'electricity' ? room.prevElec : room.prevWater;
-              const currVal = meterType === 'electricity' ? room.currElec : room.currWater;
-              const fieldName = meterType === 'electricity' ? 'currElec' : 'currWater';
+              const prevVal = meterType === "electricity"
+                ? room.prevElec
+                : room.prevWater;
 
+              const currVal = meterType === "electricity"
+                ? room.currElec
+                : room.currWater;
+
+              const fieldName = meterType === "electricity"
+                ? "currElec"
+                : "currWater";
+
+              const usedVal = calculateUsedUnit(prevVal, currVal);
 
               return (
-               <tr key={room.id} className="hover:bg-orange-50/30 transition-colors group">
+               <tr key={`${room.roomId}-${room.meterId ?? "new"}-${meterType}`}className="hover:bg-orange-50/30 transition-colors group">
                  {/* ห้อง + ปุ่มตั้งค่า */}
                  <td className="p-3 border-r border-gray-300 font-bold text-gray-700 relative">
-                   {room.roomId}
+                   {room.roomNumber}
                    <button
-                     onClick={() => onOpenChangeMeterModal(room, meterType)}
-                     className="absolute left-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 text-gray-500 hover:text-[#f3a638] transition-all"
-                     title="เปลี่ยนมิเตอร์"
-                   >
-                     <Settings size={14} />
-                   </button>
+                    onClick={() => onOpenChangeMeterModal(room, meterType)}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 text-gray-500 hover:text-[#f3a638] transition-all"
+                    title="เปลี่ยนมิเตอร์"
+                  >
+                    <Settings size={14} />
+                  </button>
                  </td>
                 
                  {/* เลขเดิม */}
@@ -99,7 +117,7 @@ const MeterTable = ({
                        const val = e.target.value;
                        // ตรวจสอบว่าค่าที่พิมพ์มาตรงตามเงื่อนไขหรือไม่
                        if (val === "" || validateNumberInput(val)) {
-                         onInputChange(room.id, fieldName, val);
+                         onInputChange(room.roomId, fieldName, val);
                        }
                      }}                     
                      className="w-full p-2.5 text-center bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#f3a638] focus:bg-white focus:ring-2 focus:ring-[#f3a638]/20 transition-all font-bold text-gray-800 placeholder:text-gray-300"
@@ -108,9 +126,15 @@ const MeterTable = ({
                  </td>
 
                  {/* ผลลัพธ์ */}
-                 <td className={`p-3 font-bold ${meterType === 'electricity' ? 'text-orange-700' : 'text-blue-700'}`}>
-                   {calculateUsage(currVal, prevVal)}
-                 </td>
+                 <td
+                  className={`p-3 font-bold ${
+                    meterType === "electricity"
+                      ? "text-orange-700"
+                      : "text-blue-700"
+                  }`}
+                >
+                  {usedVal}
+                </td>
                </tr>
              );
            })}

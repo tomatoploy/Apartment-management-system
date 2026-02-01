@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { utilityMeterService } from "../api/UtilityMeterApi";
 import { Zap, Droplets, LayoutList, Calendar as CalendarIcon } from "lucide-react";
 import MeterTable from "../components/MeterTable";
 import ChangeMeterModal from "../components/ChangeMeterModal";
@@ -18,10 +19,15 @@ const formatThaiMonth = (dateStr) => {
 
 const getPrevMonthStr = (dateStr) => {
   if (!dateStr) return "";
+
   const [year, month] = dateStr.split("-").map(Number);
-  const date = new Date(year, month - 1 - 1, 1);
+
+  const date = new Date(year, month - 1, 1);
+  date.setMonth(date.getMonth() - 1);
+
   const prevYear = date.getFullYear();
   const prevMonth = String(date.getMonth() + 1).padStart(2, "0");
+
   return `${prevYear}-${prevMonth}`;
 };
 
@@ -33,58 +39,143 @@ const Meter = () => {
   const [activeFloor, setActiveFloor] = useState("1");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRoomForModal, setSelectedRoomForModal] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const cacheRef = useRef({});
 
   // Mock Data
-  const [rooms, setRooms] = useState([
-    { id: 1, floor: "1", roomId: "101", prevWater: 120, prevElec: 450, currWater: "", currElec: "" },
-    { id: 2, floor: "1", roomId: "102", prevWater: 125, prevElec: 460, currWater: "", currElec: "" },
-    { id: 3, floor: "2", roomId: "201", prevWater: 130, prevElec: 470, currWater: "", currElec: "" },
-    { id: 4, floor: "2", roomId: "202", prevWater: 135, prevElec: 480, currWater: "", currElec: "" },
-  ]);
+  // const [rooms, setRooms] = useState([
+  //   { id: 1, floor: "1", roomId: "101", prevWater: 120, prevElec: 450, currWater: "", currElec: "" },
+  //   { id: 2, floor: "1", roomId: "102", prevWater: 125, prevElec: 460, currWater: "", currElec: "" },
+  //   { id: 3, floor: "2", roomId: "201", prevWater: 130, prevElec: 470, currWater: "", currElec: "" },
+  //   { id: 4, floor: "2", roomId: "202", prevWater: 135, prevElec: 480, currWater: "", currElec: "" },
+  // ]);
+  const [rooms, setRooms] = useState([]);
+
+  useEffect(() => {
+    if (cacheRef.current[selectedDate]) {
+      setRooms(cacheRef.current[selectedDate]);
+      return;
+    }
+    const fetchMeters = async () => {
+      try {
+        const [year, month] = selectedDate.split("-").map(Number);
+        const data = await utilityMeterService.getUtilityMetersByMonth(year, month);
+
+        const mappedRooms = data.map((m) => ({
+          // 🔑 id ของ utility meter (อาจเป็น null)
+          meterId: m.id ?? null,
+
+          roomId: m.roomId,
+          floor: String(m.floor),
+          roomNumber: m.roomNumber,
+
+          prevWater: m.prevWaterUnit,
+          prevElec: m.prevElectricityUnit,
+
+          currWater: m.waterUnit ?? "",
+          currElec: m.electricityUnit ?? "",
+
+          usedWater: m.waterUsed ?? 0,
+          usedElec: m.electricityUsed ?? 0,
+
+          changeWaterMeterStart: m.changeWaterMeterStart,
+          changeWaterMeterEnd: m.changeWaterMeterEnd,
+          changeElectricityMeterStart: m.changeElectricityMeterStart,
+          changeElectricityMeterEnd: m.changeElectricityMeterEnd,
+        }));
+
+        cacheRef.current[selectedDate] = mappedRooms;
+        setRooms(mappedRooms);
+      } catch (err) {
+        console.error("โหลดข้อมูลมิเตอร์ไม่สำเร็จ", err);
+      }
+    };
+    fetchMeters();
+  }, [selectedDate]);
 
   // --- Logic ---
   const floors = ["1", "2", "3", "4", "5"];
-  const filteredRooms = rooms.filter(r => r.floor === activeFloor);
+  const filteredRooms = useMemo(
+    () => rooms.filter(r => r.floor === activeFloor),
+    [rooms, activeFloor]
+  );
   const currentMonthLabel = formatThaiMonth(selectedDate);
   const prevMonthLabel = formatThaiMonth(getPrevMonthStr(selectedDate));
 
-  const handleInputChange = (id, field, value) => {
-    setRooms(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+  const handleInputChange = (roomId, field, value) => {
+    setRooms(prev =>
+      prev.map(r =>
+        r.roomId === roomId
+          ? { ...r, [field]: value }
+          : r
+      )
+    );
   };
 
-  const handleOpenModal = (room) => {
-    setSelectedRoomForModal(room);
+  const handleOpenModal = (room, type) => {
+    setSelectedRoomForModal({ ...room, meterType: type });
     setIsModalOpen(true);
   };
 
-   const handleSaveChangeMeter = (roomId, type, data) => {
-   console.log(`เปลี่ยนมิเตอร์ห้อง ${roomId} (${type}):`, data);
-   setRooms((prev) =>
-     prev.map((r) => {
-       if (r.id === roomId) {
-         if (type === "electricity") {
-           return {
-             ...r,
-             ChangeElectricityMeterStart: data.newMeterStart,
-             ChangeElectricityMeterEnd: data.oldMeterEnd,
-           };
-         } else {
-           return {
-             ...r,
-             ChangeWaterMeterStart: data.newMeterStart,
-             ChangeWaterMeteEnd: data.oldMeterEnd,
-           };
-         }
-       }
-       return r;
-     }),
-   );
-   alert("บันทึกการเปลี่ยนมิเตอร์เรียบร้อย");
- };
+  const handleSaveChangeMeter = (roomId, type, data) => {
+    setRooms((prev) =>
+      prev.map((r) => {
+        if (r.roomId === roomId) {
+          return type === "electricity"
+            ? {
+                ...r,
+                changeElectricityMeterStart: data.newMeterStart,
+                changeElectricityMeterEnd: data.oldMeterEnd,
+              }
+            : {
+                ...r,
+                changeWaterMeterStart: data.newMeterStart,
+                changeWaterMeterEnd: data.oldMeterEnd,
+              };
+        }
+        return r;
+      })
+    );
+  };
 
-  const handleMainSave = () => {
-    console.log("Saving...", { recordDate, rooms });
-    alert("บันทึกข้อมูลเรียบร้อย");
+  const handleMainSave = async () => {
+    try {
+      setIsSaving(true);
+      const payload = rooms
+        .filter(r =>
+          r.currElec !== "" ||
+          r.currWater !== "" ||
+          r.changeElectricityMeterStart != null ||
+          r.changeWaterMeterStart != null
+        )
+        .map((r) => ({
+          id: r.meterId,
+          roomId: r.roomId,
+          recordDate,
+
+          electricityUnit:
+            r.currElec === "" ? null : Number(r.currElec),
+
+          waterUnit:
+            r.currWater === "" ? null : Number(r.currWater),
+
+          changeElectricityMeterStart: r.changeElectricityMeterStart,
+          changeElectricityMeterEnd: r.changeElectricityMeterEnd,
+          changeWaterMeterStart: r.changeWaterMeterStart,
+          changeWaterMeterEnd: r.changeWaterMeterEnd,
+
+          note: "",
+        }));
+
+      await utilityMeterService.bulkUpsertUtilityMeters(payload);
+
+      alert("บันทึกข้อมูลเรียบร้อย");
+    } catch (err) {
+      console.error(err);
+      alert("บันทึกข้อมูลไม่สำเร็จ");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -203,8 +294,9 @@ const Meter = () => {
        <div className="max-w-7xl mx-auto px-6 flex justify-end">
           
        <SaveButton
-           onClick={handleMainSave}
-           className="w-35 py-2.5! px-10! text-base! sm:w-auto"
+          disabled={isSaving}
+          onClick={handleMainSave}
+          className="w-35 py-2.5! px-10! text-base! sm:w-auto"
          />
 
         </div>

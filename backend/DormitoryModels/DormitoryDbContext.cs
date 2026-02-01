@@ -343,7 +343,7 @@ public partial class DormitoryDbContext : DbContext
             entity.Property(e => e.RoomId).HasColumnType("int(10) unsigned");
             entity.Property(e => e.ChangeElectricityMeterEnd).HasColumnType("int(10) unsigned");
             entity.Property(e => e.ChangeElectricityMeterStart).HasColumnType("int(10) unsigned");
-            entity.Property(e => e.ChangeWaterMeteEnd).HasColumnType("int(10) unsigned");
+            entity.Property(e => e.ChangeWaterMeterEnd).HasColumnType("int(10) unsigned");
             entity.Property(e => e.ChangeWaterMeterStart).HasColumnType("int(10) unsigned");
             entity.Property(e => e.ElectricityUnit).HasColumnType("int(10) unsigned");
             entity.Property(e => e.WaterUnit).HasColumnType("int(10) unsigned");
