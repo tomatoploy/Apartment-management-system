@@ -14,6 +14,11 @@ public class UtilityMeterMonthlyDto
     public uint? PrevElectricityUnit { get; set; }
     public uint? PrevWaterUnit { get; set; }
 
-    public uint ElectricityUsed { get; set; }
-    public uint WaterUsed { get; set; }
+    public uint? ChangeElectricityMeterStart { get; set; }
+    public uint? ChangeElectricityMeterEnd { get; set; }
+    public uint? ChangeWaterMeterStart { get; set; }
+    public uint? ChangeWaterMeterEnd { get; set; }
+
+    public uint? ElectricityUsed { get; set; }
+    public uint? WaterUsed { get; set; }
 }

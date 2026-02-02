@@ -2,8 +2,7 @@ public class UtilityMeterBulkDto
 {
     public uint? Id { get; set; }
     public uint RoomId { get; set; }
-    public DateOnly RecordDate { get; set; }
-
+    public DateOnly? RecordDate { get; set; }
     public uint? ElectricityUnit { get; set; }
     public uint? WaterUnit { get; set; }
 

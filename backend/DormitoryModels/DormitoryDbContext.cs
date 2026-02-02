@@ -341,12 +341,31 @@ public partial class DormitoryDbContext : DbContext
 
             entity.Property(e => e.Id).HasColumnType("int(10) unsigned");
             entity.Property(e => e.RoomId).HasColumnType("int(10) unsigned");
-            entity.Property(e => e.ChangeElectricityMeterEnd).HasColumnType("int(10) unsigned");
-            entity.Property(e => e.ChangeElectricityMeterStart).HasColumnType("int(10) unsigned");
-            entity.Property(e => e.ChangeWaterMeterEnd).HasColumnType("int(10) unsigned");
-            entity.Property(e => e.ChangeWaterMeterStart).HasColumnType("int(10) unsigned");
-            entity.Property(e => e.ElectricityUnit).HasColumnType("int(10) unsigned");
-            entity.Property(e => e.WaterUnit).HasColumnType("int(10) unsigned");
+
+            entity.Property(e => e.ElectricityUnit)
+                .HasColumnType("int(10) unsigned")
+                .IsRequired(false);
+
+            entity.Property(e => e.WaterUnit)
+                .HasColumnType("int(10) unsigned")
+                .IsRequired(false);
+
+            entity.Property(e => e.ChangeElectricityMeterStart)
+                .HasColumnType("int(10) unsigned")
+                .IsRequired(false);
+
+            entity.Property(e => e.ChangeElectricityMeterEnd)
+                .HasColumnType("int(10) unsigned")
+                .IsRequired(false);
+
+            entity.Property(e => e.ChangeWaterMeterStart)
+                .HasColumnType("int(10) unsigned")
+                .IsRequired(false);
+
+            entity.Property(e => e.ChangeWaterMeterEnd)
+                .HasColumnType("int(10) unsigned")
+                .IsRequired(false);
+
             entity.Property(e => e.Note).HasColumnType("text");
 
             entity.HasOne(d => d.Room)

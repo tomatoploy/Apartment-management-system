@@ -10,20 +10,6 @@ namespace Dormitory.Controllers;
 [Route("[controller]")]
 public class UtilityMetersController : ControllerBase
 {
-    private static uint CalculateUsedUnit(uint? previous, uint? current)
-    {
-        if (!previous.HasValue || !current.HasValue)
-            return 0;
-
-        if (current.Value >= previous.Value)
-            return current.Value - previous.Value;
-
-        var length = previous.Value.ToString().Length;
-        var maxMeter = uint.Parse(new string('9', length));
-
-        return (maxMeter - previous.Value) + current.Value + 1;
-    }
-
     private readonly ILogger<UtilityMetersController> _logger;
     private readonly DormitoryDbContext _db;
 
@@ -44,6 +30,57 @@ public class UtilityMetersController : ControllerBase
             d.ChangeElectricityMeterEnd.HasValue ||
             d.ChangeWaterMeterStart.HasValue ||
             d.ChangeWaterMeterEnd.HasValue;
+    }
+
+    private static uint? CalculateUsedUnit(uint? previous, uint? current)
+    {
+        if (!previous.HasValue || !current.HasValue)
+            return null;
+
+        if (current.Value >= previous.Value)
+            return current.Value - previous.Value;
+
+        var length = previous.Value.ToString().Length;
+        var maxMeter = uint.Parse(new string('9', length));
+
+        return (maxMeter - previous.Value) + current.Value + 1;
+    }
+
+    private static uint? CalculateUsedWithMeterChange(
+        uint? prevMonthUnit,
+        uint? changeEnd,
+        uint? changeStart,
+        uint? currentNewUnit)
+    {
+        // ❌ ยังไม่มีมิเตอร์เดือนก่อน → ไม่คำนวณ
+        if (!prevMonthUnit.HasValue)
+            return null;
+
+        // ❌ ยังไม่กรอกอะไรเลย
+        if (!changeEnd.HasValue && !currentNewUnit.HasValue)
+            return null;
+
+        // 🔵 เปลี่ยนมิเตอร์ แต่ยังไม่กรอกตัวใหม่
+        if (changeEnd.HasValue && !currentNewUnit.HasValue)
+        {
+            return CalculateUsedUnit(prevMonthUnit, changeEnd);
+        }
+
+        // 🔵 เปลี่ยนมิเตอร์ครบ
+        if (changeEnd.HasValue && changeStart.HasValue && currentNewUnit.HasValue)
+        {
+            var usedOld = CalculateUsedUnit(prevMonthUnit, changeEnd);
+            var usedNew = CalculateUsedUnit(changeStart, currentNewUnit);
+            return usedOld + usedNew;
+        }
+
+        // 🟢 ไม่เปลี่ยนมิเตอร์
+        if (currentNewUnit.HasValue)
+        {
+            return CalculateUsedUnit(prevMonthUnit, currentNewUnit);
+        }
+
+        return null;
     }
 
     // GET /utilitymeters
@@ -100,7 +137,7 @@ public class UtilityMetersController : ControllerBase
         return Ok(meter);
     }
 
-    [HttpGet("by-month")]
+[HttpGet("by-month")]
     public async Task<ActionResult<IEnumerable<UtilityMeterMonthlyDto>>> GetByMonth(
         [FromQuery] int year,
         [FromQuery] int month)
@@ -115,23 +152,12 @@ public class UtilityMetersController : ControllerBase
                 r.Id,
                 r.Number,
                 r.Floor,
-
-                // current month
                 Current = _db.UtilityMeter
-                    .Where(m =>
-                        m.RoomId == r.Id &&
-                        m.RecordDate >= firstDay &&
-                        m.RecordDate <= lastDay
-                    )
+                    .Where(m => m.RoomId == r.Id && m.RecordDate >= firstDay && m.RecordDate <= lastDay)
                     .OrderByDescending(m => m.RecordDate)
                     .FirstOrDefault(),
-
-                // previous (ล่าสุดก่อนเดือนนี้)
                 Previous = _db.UtilityMeter
-                    .Where(m =>
-                        m.RoomId == r.Id &&
-                        m.RecordDate < firstDay
-                    )
+                    .Where(m => m.RoomId == r.Id && m.RecordDate < firstDay)
                     .OrderByDescending(m => m.RecordDate)
                     .FirstOrDefault()
             })
@@ -141,31 +167,34 @@ public class UtilityMetersController : ControllerBase
                 RoomNumber = x.Number,
                 Floor = x.Floor,
 
-                ElectricityUnit = x.Current != null
-                    ? x.Current.ElectricityUnit
-                    : null,
+                // ข้อมูลเดือนปัจจุบัน
+                ElectricityUnit = x.Current != null && x.Current.RecordDate >= firstDay ? x.Current.ElectricityUnit : null,
+                WaterUnit = x.Current != null && x.Current.RecordDate >= firstDay ? x.Current.WaterUnit : null,
 
-                WaterUnit = x.Current != null
-                    ? x.Current.WaterUnit
-                    : null,
+                // ข้อมูลเดือนก่อน
+                PrevElectricityUnit = x.Previous != null ? x.Previous.ElectricityUnit : null,
+                PrevWaterUnit = x.Previous != null ? x.Previous.WaterUnit : null,
 
-                PrevElectricityUnit = x.Previous != null
-                    ? x.Previous.ElectricityUnit
-                    : null,
+                // ✅ เพิ่มส่วนนี้: ส่งค่าเปลี่ยนมิเตอร์กลับไปด้วย
+                ChangeElectricityMeterStart = x.Current != null ? x.Current.ChangeElectricityMeterStart : null,
+                ChangeElectricityMeterEnd = x.Current != null ? x.Current.ChangeElectricityMeterEnd : null,
+                ChangeWaterMeterStart = x.Current != null ? x.Current.ChangeWaterMeterStart : null,
+                ChangeWaterMeterEnd = x.Current != null ? x.Current.ChangeWaterMeterEnd : null,
 
-                PrevWaterUnit = x.Previous != null
-                    ? x.Previous.WaterUnit
-                    : null,
-
-                ElectricityUsed = CalculateUsedUnit(
+                // คำนวณหน่วยที่ใช้
+                ElectricityUsed = CalculateUsedWithMeterChange(
                     x.Previous != null ? x.Previous.ElectricityUnit : null,
-                    x.Current != null ? x.Current.ElectricityUnit : null
+                    x.Current != null ? x.Current.ChangeElectricityMeterEnd : null,
+                    x.Current != null ? x.Current.ChangeElectricityMeterStart : null,
+                    x.Current != null && x.Current.RecordDate >= firstDay ? x.Current.ElectricityUnit : null
                 ),
 
-                WaterUsed = CalculateUsedUnit(
+                WaterUsed = CalculateUsedWithMeterChange(
                     x.Previous != null ? x.Previous.WaterUnit : null,
-                    x.Current != null ? x.Current.WaterUnit : null
-                )
+                    x.Current != null ? x.Current.ChangeWaterMeterEnd : null,
+                    x.Current != null ? x.Current.ChangeWaterMeterStart : null,
+                    x.Current != null && x.Current.RecordDate >= firstDay ? x.Current.WaterUnit : null
+                ),
             })
             .OrderBy(x => x.RoomNumber)
             .ToListAsync();
@@ -220,75 +249,91 @@ public class UtilityMetersController : ControllerBase
         return Ok();
     }
 
-    [HttpPost("bulk-upsert")]
+[HttpPost("bulk-upsert")]
     public async Task<IActionResult> BulkUpsert(
         [FromBody] List<UtilityMeterBulkDto> dtos)
     {
         if (dtos == null || !dtos.Any())
             return BadRequest("Empty payload");
 
-        // 👉 กรองเฉพาะอันที่มีการกรอกค่า
-        var validDtos = dtos
-            .Where(HasAnyInput)
-            .ToList();
+        var validDtos = dtos.Where(HasAnyInput).ToList();
 
         if (!validDtos.Any())
-            return Ok("No data to update or insert");
+            return Ok("No data");
 
-        // ---------------- UPDATE ----------------
-        var updateIds = validDtos
-            .Where(d => d.Id.HasValue)
-            .Select(d => d.Id!.Value)
-            .ToList();
-
-        var existingMeters = await _db.UtilityMeter
-            .Where(m => updateIds.Contains(m.Id))
-            .ToListAsync();
-
-        foreach (var meter in existingMeters)
+        foreach (var dto in validDtos)
         {
-            var dto = validDtos.First(d => d.Id == meter.Id);
+            // ใช้วันที่ที่ส่งมา หรือถ้าไม่มีใช้วันปัจจุบัน (DateOnly)
+            var recordDate = dto.RecordDate ?? DateOnly.FromDateTime(DateTime.Today);
 
-            if (dto.ElectricityUnit.HasValue)
-                meter.ElectricityUnit = dto.ElectricityUnit;
+            // 🔍 หา record ของ "ห้องนั้น" ใน "เดือนและปีเดียวกัน"
+            // เรียงลำดับเอาตัวล่าสุดมาเช็ค (เผื่อมีหลาย record ในเดือนเดียวจากเคสย้ายห้อง)
+            var existing = await _db.UtilityMeter
+                .Where(m =>
+                    m.RoomId == dto.RoomId &&
+                    m.RecordDate.Year == recordDate.Year &&
+                    m.RecordDate.Month == recordDate.Month
+                )
+                .OrderByDescending(m => m.Id) // เอาตัวล่าสุดที่เพิ่มเข้าไป
+                .FirstOrDefaultAsync();
 
-            if (dto.WaterUnit.HasValue)
-                meter.WaterUnit = dto.WaterUnit;
+            // --- Logic การจัดการ Note "*" (เคสย้ายห้อง) ---
+            // เช็คว่า record ล่าสุดถูกล็อคด้วย "*" หรือไม่
+            bool isLocked = existing != null && 
+                            !string.IsNullOrEmpty(existing.Note) && 
+                            existing.Note.Trim().StartsWith("*");
 
-            if (dto.ChangeElectricityMeterStart.HasValue)
-                meter.ChangeElectricityMeterStart = dto.ChangeElectricityMeterStart;
-
-            if (dto.ChangeElectricityMeterEnd.HasValue)
-                meter.ChangeElectricityMeterEnd = dto.ChangeElectricityMeterEnd;
-
-            if (dto.ChangeWaterMeterStart.HasValue)
-                meter.ChangeWaterMeterStart = dto.ChangeWaterMeterStart;
-
-            if (dto.ChangeWaterMeterEnd.HasValue)
-                meter.ChangeWaterMeterEnd = dto.ChangeWaterMeterEnd;
-
-            if (!string.IsNullOrWhiteSpace(dto.Note))
-                meter.Note = dto.Note;
-        }
-
-        // ---------------- INSERT ----------------
-        var newMeters = validDtos
-            .Where(d => !d.Id.HasValue)
-            .Select(d => new UtilityMeter
+            // ถ้าไม่มี record หรือ record ล่าสุดถูกล็อค (*) -> ให้สร้างใหม่ (INSERT)
+            if (existing == null || isLocked)
             {
-                RoomId = d.RoomId,
-                ElectricityUnit = d.ElectricityUnit ?? 0,
-                WaterUnit = d.WaterUnit ?? 0,
-                ChangeElectricityMeterStart = d.ChangeElectricityMeterStart,
-                ChangeElectricityMeterEnd = d.ChangeElectricityMeterEnd,
-                ChangeWaterMeterStart = d.ChangeWaterMeterStart,
-                ChangeWaterMeterEnd = d.ChangeWaterMeterEnd,
-                Note = d.Note
-            })
-            .ToList();
+                var newMeter = new UtilityMeter
+                {
+                    RoomId = dto.RoomId,
+                    RecordDate = recordDate,
+                    // ใส่ค่าเท่าที่มี ถ้าไม่มีให้เป็น null
+                    ElectricityUnit = dto.ElectricityUnit,
+                    WaterUnit = dto.WaterUnit,
+                    ChangeElectricityMeterStart = dto.ChangeElectricityMeterStart,
+                    ChangeElectricityMeterEnd = dto.ChangeElectricityMeterEnd,
+                    ChangeWaterMeterStart = dto.ChangeWaterMeterStart,
+                    ChangeWaterMeterEnd = dto.ChangeWaterMeterEnd,
+                    Note = dto.Note ?? ""
+                };
+                _db.UtilityMeter.Add(newMeter);
+            }
+            else
+            {
+                // 🟡 UPDATE (เขียนทับ record เดิม)
+                // ✅ แก้ไข: อัปเดตเฉพาะค่าที่ไม่เป็น null (Partial Update)
+                
+                // ฝั่งไฟฟ้า
+                if (dto.ElectricityUnit.HasValue) 
+                    existing.ElectricityUnit = dto.ElectricityUnit;
+                
+                if (dto.ChangeElectricityMeterStart.HasValue) 
+                    existing.ChangeElectricityMeterStart = dto.ChangeElectricityMeterStart;
+                
+                if (dto.ChangeElectricityMeterEnd.HasValue) 
+                    existing.ChangeElectricityMeterEnd = dto.ChangeElectricityMeterEnd;
 
-        if (newMeters.Any())
-            await _db.UtilityMeter.AddRangeAsync(newMeters);
+                // ฝั่งน้ำประปา
+                if (dto.WaterUnit.HasValue) 
+                    existing.WaterUnit = dto.WaterUnit;
+                
+                if (dto.ChangeWaterMeterStart.HasValue) 
+                    existing.ChangeWaterMeterStart = dto.ChangeWaterMeterStart;
+                
+                if (dto.ChangeWaterMeterEnd.HasValue) 
+                    existing.ChangeWaterMeterEnd = dto.ChangeWaterMeterEnd;
+
+                // อัปเดต Note (ถ้าส่งมาใหม่ค่อยแก้ หรือจะให้ต่อท้ายก็ได้ แล้วแต่ Business)
+                if (dto.Note != null) 
+                    existing.Note = dto.Note;
+
+                // อัปเดตวันที่จดเป็นวันล่าสุดที่มีการแก้ไข
+                existing.RecordDate = recordDate;
+            }
+        }
 
         await _db.SaveChangesAsync();
         return Ok();
@@ -318,60 +363,6 @@ public class UtilityMetersController : ControllerBase
         await _db.SaveChangesAsync();
 
         return Ok(new { message = "Updated successfully", id = meter.Id });
-    }
-
-    [HttpPut("bulk")]
-    public async Task<IActionResult> UpdateBulk(
-        [FromBody] List<UtilityMeterBulkDto> dtos)
-    {
-        if (dtos == null || !dtos.Any())
-            return BadRequest("Empty payload");
-
-        // 👉 เอาเฉพาะ dto ที่มี input จริง
-        var validDtos = dtos
-            .Where(d => d.Id.HasValue)
-            .Where(HasAnyInput)
-            .ToList();
-
-        if (!validDtos.Any())
-            return Ok("No data to update");
-
-        var ids = validDtos
-            .Select(d => d.Id!.Value)
-            .ToList();
-
-        var meters = await _db.UtilityMeter
-            .Where(m => ids.Contains(m.Id))
-            .ToListAsync();
-
-        foreach (var meter in meters)
-        {
-            var dto = validDtos.First(d => d.Id == meter.Id);
-
-            if (dto.ElectricityUnit.HasValue)
-                meter.ElectricityUnit = dto.ElectricityUnit;
-
-            if (dto.WaterUnit.HasValue)
-                meter.WaterUnit = dto.WaterUnit;
-
-            if (dto.ChangeElectricityMeterStart.HasValue)
-                meter.ChangeElectricityMeterStart = dto.ChangeElectricityMeterStart;
-
-            if (dto.ChangeElectricityMeterEnd.HasValue)
-                meter.ChangeElectricityMeterEnd = dto.ChangeElectricityMeterEnd;
-
-            if (dto.ChangeWaterMeterStart.HasValue)
-                meter.ChangeWaterMeterStart = dto.ChangeWaterMeterStart;
-
-            if (dto.ChangeWaterMeterEnd.HasValue)
-                meter.ChangeWaterMeterEnd = dto.ChangeWaterMeterEnd;
-
-            if (!string.IsNullOrWhiteSpace(dto.Note))
-                meter.Note = dto.Note;
-        }
-
-        await _db.SaveChangesAsync();
-        return Ok();
     }
 
     // DELETE /utilitymeters/{id}
