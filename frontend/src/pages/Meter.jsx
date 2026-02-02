@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { utilityMeterService } from "../api/UtilityMeterApi";
 import { Zap, Droplets, LayoutList, Calendar as CalendarIcon } from "lucide-react";
 import MeterTable from "../components/MeterTable";
 import ChangeMeterModal from "../components/ChangeMeterModal";
@@ -15,13 +16,22 @@ const formatThaiMonth = (dateStr) => {
   ];
   return `${monthNames[date.getMonth()]} ${date.getFullYear() + 543}`;
 };
-
+const toNumberOrNull = (v) => {
+  if (v === "" || v == null) return null;
+  const n = Number(v);
+  return isNaN(n) ? null : n;
+};
 const getPrevMonthStr = (dateStr) => {
   if (!dateStr) return "";
+
   const [year, month] = dateStr.split("-").map(Number);
-  const date = new Date(year, month - 1 - 1, 1);
+
+  const date = new Date(year, month - 1, 1);
+  date.setMonth(date.getMonth() - 1);
+
   const prevYear = date.getFullYear();
   const prevMonth = String(date.getMonth() + 1).padStart(2, "0");
+
   return `${prevYear}-${prevMonth}`;
 };
 
@@ -33,58 +43,211 @@ const Meter = () => {
   const [activeFloor, setActiveFloor] = useState("1");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRoomForModal, setSelectedRoomForModal] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const cacheRef = useRef({});
 
   // Mock Data
-  const [rooms, setRooms] = useState([
-    { id: 1, floor: "1", roomId: "101", prevWater: 120, prevElec: 450, currWater: "", currElec: "" },
-    { id: 2, floor: "1", roomId: "102", prevWater: 125, prevElec: 460, currWater: "", currElec: "" },
-    { id: 3, floor: "2", roomId: "201", prevWater: 130, prevElec: 470, currWater: "", currElec: "" },
-    { id: 4, floor: "2", roomId: "202", prevWater: 135, prevElec: 480, currWater: "", currElec: "" },
-  ]);
+  // const [rooms, setRooms] = useState([
+  //   { id: 1, floor: "1", roomId: "101", prevWater: 120, prevElec: 450, currWater: "", currElec: "" },
+  //   { id: 2, floor: "1", roomId: "102", prevWater: 125, prevElec: 460, currWater: "", currElec: "" },
+  //   { id: 3, floor: "2", roomId: "201", prevWater: 130, prevElec: 470, currWater: "", currElec: "" },
+  //   { id: 4, floor: "2", roomId: "202", prevWater: 135, prevElec: 480, currWater: "", currElec: "" },
+  // ]);
+  const [rooms, setRooms] = useState([]);
+
+  useEffect(() => {
+    if (!selectedDate) return;
+
+    // ใช้วันแรกของเดือนที่เลือก
+    setRecordDate(`${selectedDate}-01`);
+  }, [selectedDate]);
+
+  useEffect(() => {
+    if (cacheRef.current[selectedDate]) {
+      setRooms(cacheRef.current[selectedDate]);
+      return;
+    }
+    const fetchMeters = async () => {
+      try {
+        const [year, month] = selectedDate.split("-").map(Number);
+        const data = await utilityMeterService.getUtilityMetersByMonth(year, month);
+
+        const mappedRooms = data.map((m) => ({
+          meterId: m.id ?? null,
+
+          roomId: m.roomId,
+          floor: String(m.floor),
+          roomNumber: m.roomNumber,
+
+          prevWater: m.prevWaterUnit,
+          prevElec: m.prevElectricityUnit,
+
+          currWater: m.waterUnit ?? "",
+          currElec: m.electricityUnit ?? "",
+
+          usedWater: m.waterUsed ?? 0,
+          usedElec: m.electricityUsed ?? 0,
+
+          changeWaterMeterStart: m.changeWaterMeterStart,
+          changeWaterMeterEnd: m.changeWaterMeterEnd,
+          changeElectricityMeterStart: m.changeElectricityMeterStart,
+          changeElectricityMeterEnd: m.changeElectricityMeterEnd,
+        }));
+
+        cacheRef.current[selectedDate] = mappedRooms;
+        setRooms(mappedRooms);
+      } catch (err) {
+        console.error("โหลดข้อมูลมิเตอร์ไม่สำเร็จ", err);
+      }
+    };
+    fetchMeters();
+  }, [selectedDate]);
 
   // --- Logic ---
   const floors = ["1", "2", "3", "4", "5"];
-  const filteredRooms = rooms.filter(r => r.floor === activeFloor);
+  const filteredRooms = useMemo(
+    () => rooms.filter(r => r.floor === activeFloor),
+    [rooms, activeFloor]
+  );
   const currentMonthLabel = formatThaiMonth(selectedDate);
   const prevMonthLabel = formatThaiMonth(getPrevMonthStr(selectedDate));
 
-  const handleInputChange = (id, field, value) => {
-    setRooms(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+  const handleInputChange = (roomId, field, value) => {
+    setRooms(prev =>
+      prev.map(r =>
+        r.roomId === roomId
+          ? { ...r, [field]: value }
+          : r
+      )
+    );
   };
 
-  const handleOpenModal = (room) => {
-    setSelectedRoomForModal(room);
+  const handleOpenModal = (room, type) => {
+    setSelectedRoomForModal({ ...room, meterType: type });
     setIsModalOpen(true);
   };
 
-   const handleSaveChangeMeter = (roomId, type, data) => {
-   console.log(`เปลี่ยนมิเตอร์ห้อง ${roomId} (${type}):`, data);
-   setRooms((prev) =>
-     prev.map((r) => {
-       if (r.id === roomId) {
-         if (type === "electricity") {
-           return {
-             ...r,
-             ChangeElectricityMeterStart: data.newMeterStart,
-             ChangeElectricityMeterEnd: data.oldMeterEnd,
-           };
-         } else {
-           return {
-             ...r,
-             ChangeWaterMeterStart: data.newMeterStart,
-             ChangeWaterMeteEnd: data.oldMeterEnd,
-           };
-         }
-       }
-       return r;
-     }),
-   );
-   alert("บันทึกการเปลี่ยนมิเตอร์เรียบร้อย");
- };
+// Helper แปลงตัวเลข (วางไว้นอก Component หรือใน Component ก็ได้)
+  const toSafeInt = (val) => {
+    if (val === "" || val == null) return null;
+    const num = Number(val);
+    if (isNaN(num)) return null;
+    if (num < 0) return 0;
+    return Math.round(num);
+  };
 
-  const handleMainSave = () => {
-    console.log("Saving...", { recordDate, rooms });
-    alert("บันทึกข้อมูลเรียบร้อย");
+  // ✅ ฟังก์ชัน Save ฉบับแก้ไข (เช็ค ID แม่นยำ + Log ละเอียด)
+  const handleSaveChangeMeter = async (roomId, type, data) => {
+    try {
+      // 1. หาข้อมูลห้อง (แปลง ID เป็น String ทั้งคู่เพื่อความชัวร์)
+      const room = rooms.find((r) => String(r.roomId) === String(roomId));
+      
+      if (!room) {
+        return;
+      }
+
+      // 2. เตรียม Payload
+      const payload = {
+        roomId: room.roomId,
+        recordDate: recordDate,
+        electricityUnit: toSafeInt(room.currElec),
+        waterUnit: toSafeInt(room.currWater),
+
+        // ค่าใหม่จาก Modal
+        changeElectricityMeterStart: type === "electricity" ? toSafeInt(data.newMeterStart) : toSafeInt(room.changeElectricityMeterStart),
+        changeElectricityMeterEnd: type === "electricity" ? toSafeInt(data.oldMeterEnd) : toSafeInt(room.changeElectricityMeterEnd),
+        
+        changeWaterMeterStart: type === "water" ? toSafeInt(data.newMeterStart) : toSafeInt(room.changeWaterMeterStart),
+        changeWaterMeterEnd: type === "water" ? toSafeInt(data.oldMeterEnd) : toSafeInt(room.changeWaterMeterEnd),
+        
+        note: ""
+      };
+
+      if (room.meterId != null) payload.id = room.meterId;
+
+      // 3. ยิง API
+      await utilityMeterService.bulkUpsertUtilityMeters([payload]);
+
+      // 4. อัปเดต State หน้าจอ (จุดสำคัญ)
+      setRooms((prevRooms) => {
+        const updatedRooms = prevRooms.map((r) => {
+          // ใช้ String() เทียบ ID เพื่อความชัวร์
+          if (String(r.roomId) === String(roomId)) {
+            const newData = type === "electricity"
+              ? {
+                  ...r,
+                  changeElectricityMeterStart: data.newMeterStart, // เก็บค่าที่พิมพ์ลงไปเลย (ไม่ต้อง toSafeInt เพื่อให้แสดงผลตามที่พิมพ์)
+                  changeElectricityMeterEnd: data.oldMeterEnd,
+                }
+              : {
+                  ...r,
+                  changeWaterMeterStart: data.newMeterStart,
+                  changeWaterMeterEnd: data.oldMeterEnd,
+                };
+             return newData;
+          }
+          return r;
+        });
+
+        // อัปเดต Cache
+        if (cacheRef.current) {
+            cacheRef.current[selectedDate] = updatedRooms;
+        }
+
+        return updatedRooms;
+      });
+
+      setIsModalOpen(false);
+      alert("บันทึกข้อมูลเรียบร้อย ✅");
+
+    } catch (err) {
+      alert("เกิดข้อผิดพลาดในการบันทึก");
+    }
+  };
+
+  const handleMainSave = async () => {
+    try {
+      setIsSaving(true);
+      const payload = rooms
+      .filter(r => {
+        return [
+          r.currElec,
+          r.currWater,
+          r.changeElectricityMeterStart,
+          r.changeElectricityMeterEnd,
+          r.changeWaterMeterStart,
+          r.changeWaterMeterEnd,
+        ].some(v => v !== "" && v != null);
+      })
+      .map((r) => {
+        const payload = {
+          roomId: r.roomId,
+          recordDate,
+          electricityUnit: r.currElec === "" ? null : toNumberOrNull(r.currElec),
+          waterUnit: r.currWater === "" ? null : toNumberOrNull(r.currWater),
+          changeElectricityMeterStart: r.changeElectricityMeterStart,
+          changeElectricityMeterEnd: r.changeElectricityMeterEnd,
+          changeWaterMeterStart: r.changeWaterMeterStart,
+          changeWaterMeterEnd: r.changeWaterMeterEnd,
+          note: "",
+        };
+
+        if (r.meterId != null) {
+          payload.id = r.meterId;
+        }
+
+        return payload;
+      });
+
+      await utilityMeterService.bulkUpsertUtilityMeters(payload);
+
+      alert("บันทึกข้อมูลเรียบร้อย");
+    } catch (err) {
+      console.error(err);
+      alert("บันทึกข้อมูลไม่สำเร็จ");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -122,7 +285,9 @@ const Meter = () => {
               <input 
                 type="date" 
                 value={recordDate}
-                onChange={(e) => setRecordDate(e.target.value)}
+                onChange={(e) => { const newDate = e.target.value;
+                  if (newDate.startsWith(selectedDate)) {setRecordDate(newDate);}}
+                }
                 className="bg-transparent border-none outline-none text-gray-700 font-bold w-full cursor-pointer"
               />
             </div>
@@ -190,7 +355,9 @@ const Meter = () => {
             rooms={filteredRooms}
             meterType={meterType}
             onInputChange={handleInputChange}
-            onOpenChangeMeterModal={(room) => handleOpenModal(room)}
+            onOpenChangeMeterModal={(room, type) =>
+              handleOpenModal(room, type)
+            }
             prevMonthLabel={prevMonthLabel}
             currentMonthLabel={currentMonthLabel}
           />
@@ -203,8 +370,9 @@ const Meter = () => {
        <div className="max-w-7xl mx-auto px-6 flex justify-end">
           
        <SaveButton
-           onClick={handleMainSave}
-           className="w-35 py-2.5! px-10! text-base! sm:w-auto"
+          disabled={isSaving}
+          onClick={handleMainSave}
+          className="w-35 py-2.5! px-10! text-base! sm:w-auto"
          />
 
         </div>
