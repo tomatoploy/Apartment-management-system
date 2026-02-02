@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { utilityMeterService } from "../api/UtilityMeterApi";
 import { Zap, Droplets, LayoutList, Calendar as CalendarIcon } from "lucide-react";
 import MeterTable from "../components/MeterTable";
 import ChangeMeterModal from "../components/ChangeMeterModal";
 import { SaveButton, DownloadButton } from "../components/ActionButtons";
+import * as XLSX from "xlsx";
 
 // --- Helper Functions ---
 const formatThaiMonth = (dateStr) => {
@@ -46,13 +47,114 @@ const Meter = () => {
   const [isSaving, setIsSaving] = useState(false);
   const cacheRef = useRef({});
 
-  // Mock Data
-  // const [rooms, setRooms] = useState([
-  //   { id: 1, floor: "1", roomId: "101", prevWater: 120, prevElec: 450, currWater: "", currElec: "" },
-  //   { id: 2, floor: "1", roomId: "102", prevWater: 125, prevElec: 460, currWater: "", currElec: "" },
-  //   { id: 3, floor: "2", roomId: "201", prevWater: 130, prevElec: 470, currWater: "", currElec: "" },
-  //   { id: 4, floor: "2", roomId: "202", prevWater: 135, prevElec: 480, currWater: "", currElec: "" },
-  // ]);
+  // Export Excel (เฉพาะเดือนที่เลือก)
+  const handleDownload = async () => {
+    try {
+      const confirmDownload = window.confirm("ต้องการดาวน์โหลดข้อมูลมิเตอร์ประจำเดือนนี้ใช่หรือไม่?");
+      if (!confirmDownload) return;
+
+      const [year, month] = selectedDate.split("-").map(Number);
+      const thaiMonth = formatThaiMonth(selectedDate);
+
+      // 1. ดึงข้อมูล
+      let monthlyData = await utilityMeterService.getUtilityMetersByMonth(year, month);
+
+      if (!monthlyData || monthlyData.length === 0) {
+        alert(`ไม่พบข้อมูลของเดือน ${thaiMonth}`);
+        return;
+      }
+
+      // เรียงลำดับตาม RoomId
+      monthlyData.sort((a, b) => a.roomId - b.roomId);
+
+      // 2. เตรียมข้อมูลแบบ Array of Arrays (วิธีนี้ชัวร์ที่สุด)
+      
+      // 2.1 หัวข้อคอลัมน์ (Row 2)
+      const tableHeaders = [
+        "ห้อง", 
+        "ชั้น", 
+        "มิเตอร์ไฟ (เดือนก่อน)", 
+        "มิเตอร์ไฟ (เดือนนี้)", 
+        "ไฟที่ใช้ (หน่วย)", 
+        "เปลี่ยนมิเตอร์ไฟ (เก่า)", 
+        "เปลี่ยนมิเตอร์ไฟ (ใหม่)",
+        "มิเตอร์น้ำ (เดือนก่อน)", 
+        "มิเตอร์น้ำ (เดือนนี้)", 
+        "น้ำที่ใช้ (หน่วย)", 
+        "เปลี่ยนมิเตอร์น้ำ (เก่า)", 
+        "เปลี่ยนมิเตอร์น้ำ (ใหม่)",
+        "หมายเหตุ"
+      ];
+
+      // 2.2 ข้อมูลเนื้อหา (Row 3 เป็นต้นไป)
+      const dataRows = monthlyData.map((item) => [
+        item.roomNumber,                                // A
+        item.floor,                                     // B
+        item.prevElectricityUnit ?? "-",                // C
+        item.electricityUnit ?? "-",                    // D
+        item.electricityUsed ?? "0",                    // E
+        item.changeElectricityMeterEnd ?? "-",          // F
+        item.changeElectricityMeterStart ?? "-",        // G
+        item.prevWaterUnit ?? "-",                      // H
+        item.waterUnit ?? "-",                          // I
+        item.waterUsed ?? "0",                          // J
+        item.changeWaterMeterEnd ?? "-",                // K
+        item.changeWaterMeterStart ?? "-",              // L
+        item.note ?? ""                                 // M
+      ]);
+
+      // 2.3 รวมข้อมูลทั้งหมด: [ [Title], [Headers], ...[Data] ]
+      const finalData = [
+        [`รายงานมิเตอร์ประจำเดือน ${thaiMonth}`], // Row 1: Title
+        tableHeaders,                             // Row 2: Headers
+        ...dataRows                               // Row 3+: Data
+      ];
+
+      // 3. สร้าง Worksheet
+      const worksheet = XLSX.utils.aoa_to_sheet(finalData);
+
+      // --- จัดการ Layout ---
+
+      // Merge Title (A1 ถึง M1) -> (M คือ index 12)
+      worksheet["!merges"] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 12 } } 
+      ];
+
+      // ตั้งค่าความกว้างคอลัมน์
+      worksheet["!cols"] = [
+        { wch: 10 }, // A ห้อง
+        { wch: 5 },  // B ชั้น
+        { wch: 18 }, // C ไฟเก่า
+        { wch: 18 }, // D ไฟใหม่
+        { wch: 15 }, // E ไฟใช้
+        { wch: 20 }, // F เปลี่ยนไฟเก่า
+        { wch: 20 }, // G เปลี่ยนไฟใหม่
+        { wch: 18 }, // H น้ำเก่า
+        { wch: 18 }, // I น้ำใหม่
+        { wch: 15 }, // J น้ำใช้
+        { wch: 20 }, // K เปลี่ยนน้ำเก่า
+        { wch: 20 }, // L เปลี่ยนน้ำใหม่
+        { wch: 30 }, // M หมายเหตุ
+      ];
+
+      // ✅ Freeze Panes (ล็อค 2 แถวบน) - ใช้ !views เพื่อความชัวร์ใน Excel
+      worksheet["!views"] = [
+        { state: "frozen", xSplit: 0, ySplit: 2 }
+      ];
+
+      // 4. สร้าง Workbook และดาวน์โหลด
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Meter Report");
+
+      const fileName = `Meter_Report_${selectedDate}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+
+    } catch (err) {
+      console.error("Download Error:", err);
+      alert("เกิดข้อผิดพลาดในการดาวน์โหลด");
+    }
+  };
+
   const [rooms, setRooms] = useState([]);
 
   useEffect(() => {
@@ -294,7 +396,7 @@ const Meter = () => {
             
             {/* 3. Download Button */}
             <div className="flex-none">
-                <DownloadButton className="h-full px-6" onClick={() => console.log("Download")} />
+                <DownloadButton className="h-full px-6" onClick={() => handleDownload()} disabled={!rooms || rooms.length === 0}/>
             </div>
           </div>
 
