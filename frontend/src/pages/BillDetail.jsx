@@ -59,7 +59,7 @@ const getItemLabel = (item, selectedDate) => {
 /* ================= Component ================= */
 const BillDetail = () => {
   const navigate = useNavigate();
-  const { roomId } = useParams();
+  const { roomNumber } = useParams();
 
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().slice(0, 7),
@@ -158,7 +158,7 @@ const BillDetail = () => {
             <X size={26} strokeWidth={3} />
           </button>
           <h1 className="text-3xl font-bold mb-8 text-gray-800">
-            การออกบิล ห้อง {roomId}
+            การออกบิล ห้อง {roomNumber}
           </h1>
         </div>
 
