@@ -10,110 +10,61 @@ import {
   Sparkles,
   Package,
   Clock,
+  FileText // เพิ่มไอคอนสำหรับ 'other'
 } from "lucide-react";
 import RoomCard from "../components/RoomCard";
-
-import FilterButton from "../components/FilterButton";
+import FilterModal from "../components/FilterModal";
+import SearchBar from "../components/SearchBar";
+// Import Services
 import { roomService } from "../api/RoomApi";
+import { requestService } from "../api/RequestApi";
+import { parcelService } from "../api/ParcelApi";
 
 const Rooms = () => {
   const [showLegend, setShowLegend] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // State สำหรับเก็บ Filter ทั้ง 2 แบบ
-  const [activeStatusFilters, setActiveStatusFilters] = useState([]); // กรองสี
-  const [activeIconFilters, setActiveIconFilters] = useState([]); // กรองไอคอน
+  // State สำหรับเก็บ Filter
+  const [activeStatusFilters, setActiveStatusFilters] = useState([]); 
+  const [activeIconFilters, setActiveIconFilters] = useState([]);
 
   const [roomsData, setRoomsData] = useState([]);
+  const [activeBuilding, setActiveBuilding] = useState("ALL");
 
-  const roomsByFloor = useMemo(() => {
-    return roomsData.reduce((acc, room) => {
-      if (!acc[room.floor]) acc[room.floor] = [];
-      acc[room.floor].push(room);
-      return acc;
-    }, {});
-  }, [roomsData]);
-
-  const floors = useMemo(() => {
-    return [...new Set(roomsData.map(r => r.floor))]
-      .sort((a, b) => Number(a) - Number(b));
-  }, [roomsData]);
-
-  // const roomsData = [
-  //   {
-  //     roomNumber: "101",
-  //     floor: 1,
-  //     status: "reserved",
-  //     icons: ["moveIn", "clean"],
-  //     tenantName: "แอปเปิ้ล",
-  //   },
-  //   {
-  //     roomNumber: "102",
-  //     floor: 1,
-  //     status: "overdue",
-  //     icons: ["moveOut"],
-  //     tenantName: "มิ้น",
-  //   },
-  //   {
-  //     roomNumber: "104",
-  //     floor: 1,
-  //     status: "occupied",
-  //     icons: ["package"],
-  //     tenantName: "กวาง",
-  //   },
-  //   {
-  //     roomNumber: "202",
-  //     floor: 2,
-  //     status: "occupied",
-  //     icons: ["moveOut"],
-  //     tenantName: "การ์ตูน",
-  //   },
-  //   {
-  //     roomNumber: "206",
-  //     floor: 2,
-  //     status: "reserved",
-  //     icons: [],
-  //     tenantName: "",
-  //   },
-  //   {
-  //     roomNumber: "207",
-  //     floor: 2,
-  //     status: "overdue",
-  //     icons: [],
-  //     tenantName: "แพม",
-  //   },
-  //   {
-  //     roomNumber: "208",
-  //     floor: 2,
-  //     status: "maintenance",
-  //     icons: [],
-  //     tenantName: "",
-  //   },
-  //   {
-  //     roomNumber: "210",
-  //     floor: 2,
-  //     status: "occupied",
-  //     icons: ["clean"],
-  //     tenantName: "มาร์ค",
-  //   },
-  // ];
-
-  //โหลดข้อมูลจาก backend (useEffect)
-useEffect(() => {
-    const loadRooms = async () => {
+  useEffect(() => {
+    const loadAllData = async () => {
       try {
-        const data = await roomService.getRoomOverview();
-        const rawRooms = Array.isArray(data) ? data : data?.$values ?? [];
+        const [roomData, requestData, parcelData] = await Promise.all([
+          roomService.getRoomOverview(),
+          requestService.getRequests(),
+          parcelService.getParcels(),
+        ]);
+
+        const rawRooms = Array.isArray(roomData) ? roomData : roomData?.$values ?? [];
+        const rawRequests = Array.isArray(requestData) ? requestData : [];
+        const rawParcels = Array.isArray(parcelData) ? parcelData : [];
 
         const today = new Date();
 
+        // 1. Filter Requests: เอาเฉพาะที่ยังไม่เสร็จ และยังไม่ยกเลิก
+        const activeRequests = rawRequests.filter(
+            r => r.status !== 'finish' && r.status !== 'cancel'
+        );
+
+        // 2. Filter Parcels: เอาเฉพาะที่ยังไม่ได้รับ
+        const activeParcels = rawParcels.filter(
+            p => p.pickupDate === null || p.pickupDate === ""
+        );
+
+        // 3. Normalize Data
         const normalized = rawRooms.map((room) => {
           const icons = [];
 
+          // --- Logic 1: Contract Status ---
           if (room.ContractStartDate) {
             if (new Date(room.ContractStartDate) <= today) {
-              icons.push("moveIn");
+              icons.push("moveIn"); // ย้ายเข้า (สัญญาเริ่มแล้ว)
             }
           }
 
@@ -121,10 +72,28 @@ useEffect(() => {
             const diffDays =
               (new Date(room.ContractEndDate) - today) /
               (1000 * 60 * 60 * 24);
-            if (diffDays <= 30) icons.push("urgent");
+            if (diffDays <= 30) icons.push("urgent"); // ใกล้หมดสัญญา
           }
 
-          if (room.IsOverdue) icons.push("overdue");
+          if (room.IsOverdue) icons.push("overdue"); // ค้างชำระ
+
+          // --- Logic 2: Requests (ตาม Subject DB: fix, clean, leave, other) ---
+          // หา Request ของห้องนี้
+          const roomRequests = activeRequests.filter(req => req.roomNumber === room.roomNumber);
+          
+          roomRequests.forEach(req => {
+            const subject = req.subject?.toLowerCase();
+            if (subject === 'fix' && !icons.includes('fix')) icons.push('fix');
+            else if (subject === 'clean' && !icons.includes('clean')) icons.push('clean');
+            else if (subject === 'leave' && !icons.includes('leave')) icons.push('leave');
+            else if (subject === 'other' && !icons.includes('other')) icons.push('other');
+          });
+
+          // --- Logic 3: Parcels ---
+          const hasActiveParcel = activeParcels.some(parcel => parcel.roomNumber === room.roomNumber);
+          if (hasActiveParcel) {
+            icons.push("package");
+          }
 
           return {
             ...room,
@@ -137,15 +106,14 @@ useEffect(() => {
 
         setRoomsData(normalized);
       } catch (err) {
-        console.error("โหลดผังห้องไม่สำเร็จ", err);
+        console.error("โหลดข้อมูลไม่สำเร็จ", err);
       }
     };
 
-    loadRooms();
+    loadAllData();
   }, []);
 
-  const [activeBuilding, setActiveBuilding] = useState("ALL");
-
+  // --- Filtering Logic ---
   const filteredRoomsByFloor = useMemo(() => {
     const result = {};
 
@@ -166,12 +134,7 @@ useEffect(() => {
         room.roomNumber?.includes(searchTerm) ||
         room.tenantFirstName?.includes(searchTerm);
 
-      if (
-        matchesIcon &&
-        matchesStatus &&
-        matchesBuilding &&
-        matchesSearch
-      ) {
+      if (matchesIcon && matchesStatus && matchesBuilding && matchesSearch) {
         const floor = room.floor;
         if (!result[floor]) result[floor] = [];
         result[floor].push(room);
@@ -185,139 +148,81 @@ useEffect(() => {
     );
 
     return result;
-  }, [
-    roomsData,
-    activeIconFilters,
-    activeStatusFilters,
-    activeBuilding,
-    searchTerm,
-  ]);
+  }, [roomsData, activeIconFilters, activeStatusFilters, activeBuilding, searchTerm]);
 
-  const buildings = useMemo(() => {
-    return ["ALL", ...new Set(roomsData.map(r => r.building).filter(Boolean))];
-  }, [roomsData]);
+  const buildings = useMemo(() => ["ALL", ...new Set(roomsData.map(r => r.building).filter(Boolean))], [roomsData]);
+  const floors = useMemo(() => [...new Set(roomsData.map(r => r.floor))].sort((a, b) => Number(a) - Number(b)), [roomsData]);
 
-    const buildIcons = (room) => {
-      const icons = [];
-      const today = new Date();
-
-      if (room.ContractStartDate) {
-        const start = new Date(room.ContractStartDate);
-        if (start <= today) icons.push("moveIn");
-      }
-
-      if (room.ContractEndDate) {
-        const end = new Date(room.ContractEndDate);
-        const diffDays = (end - today) / (1000 * 60 * 60 * 24);
-        if (diffDays <= 30) icons.push("urgent");
-      }
-
-      if (room.IsOverdue) {
-        icons.push("overdue");
-      }
-
-      return icons;
-    };
-
-  // ฟังก์ชันปิดเมื่อกดพื้นหลัง
-  const handleBackdropClick = (e, closeFunction) => {
-    if (e.target === e.currentTarget) {
-      closeFunction(false);
-    }
-  };
-
-  // ฟังก์ชันสลับการเลือก Filter
+  // Handlers
   const toggleStatusFilter = (status) => {
-    setActiveStatusFilters((prev) =>
-      prev.includes(status)
-        ? prev.filter((s) => s !== status)
-        : [...prev, status],
-    );
+    setActiveStatusFilters((prev) => prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]);
   };
 
   const toggleIconFilter = (icon) => {
-    setActiveIconFilters((prev) =>
-      prev.includes(icon) ? prev.filter((i) => i !== icon) : [...prev, icon],
-    );
+    setActiveIconFilters((prev) => prev.includes(icon) ? prev.filter((i) => i !== icon) : [...prev, icon]);
   };
 
+  const activeFilterCount = activeStatusFilters.length + activeIconFilters.length;
 
   return (
     <div className="bg-white min-h-screen">
-      <div className="max-w-7xl mx-auto bg-white rounded-3xl p-6 shadow-lg border border-gray-200">
-        <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
-          ผังห้อง
-        </h1>
+      <div className="max-w-7xl mx-auto bg-white rounded-3xl p-6 shadow-lg border border-gray-200 min-h-[85vh]">
+        <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">ผังห้อง</h1>
 
-        {/* --- แถบ Toolbar --- */}
-        <div className="flex flex-wrap justify-center gap-4 mb-5">
-          <div className="relative w-full max-w-md">
-            <input
-              type="text"
-              placeholder="ค้นหาจากเลขห้องหรือชื่อ"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl shadow-sm border border-gray-200 focus:ring-2 focus:ring-[#F5A623] outline-none transition-all"
-            />
-            <Search
-              className="absolute left-3 top-2.5 text-gray-400"
-              size={20}
-            />
-          </div>
+        {/* Toolbar */}
+        <div className="flex flex-col gap-5 mb-8">
+            <div className="flex flex-wrap items-center justify-center gap-3 w-full">
+                <div className="w-full sm:w-72">
+                    <SearchBar value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                </div>
 
-          <FilterButton
-            onClick={() => setShowFilterModal(true)}
-            activeCount={activeStatusFilters.length + activeIconFilters.length}
-          />
-          {/* ปุ่มฟิลเตอร์เดิม แต่ย้ายไปสร้าง componentแทน */}
-          {/* <button 
-            onClick={() => setShowFilterModal(true)}
-            className="bg-[#F5A623] text-white px-20 py-2 rounded-xl font-bold hover:bg-[#e29528] flex items-center gap-2 shadow-md transition-all"
-          >
-            <FilterIcon size={18} /> Filter
-            {(activeStatusFilters.length > 0 || activeIconFilters.length > 0) && (
-              <span className="bg-white text-[#F5A623] w-5 h-5 rounded-full text-xs flex items-center justify-center">
-                {activeStatusFilters.length + activeIconFilters.length}
-              </span>
-            )}
-          </button> */}
+                <button
+                    onClick={() => setShowFilterModal(true)}
+                    className={`relative p-3 rounded-xl border transition-all flex items-center justify-center h-[48px] w-[48px] shrink-0
+                    ${activeFilterCount > 0 ? "bg-[#FFF7ED] border-[#F5A623] text-[#F5A623]" : "bg-white border-gray-200 text-gray-500 hover:border-[#f3a638] hover:text-[#f3a638]"}`}
+                >
+                    <Filter size={20} />
+                    {activeFilterCount > 0 && (
+                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white font-bold border-2 border-white">
+                            {activeFilterCount}
+                        </span>
+                    )}
+                </button>
 
-          <button
-            onClick={() => setShowLegend(true)}
-            className="bg-[#f5d4ad] text-[#6e4a1f] px-6 py-2 rounded-xl font-bold flex items-center gap-2 shadow-md hover:bg-[#f0c594] transition-all"
-          >
-            คำอธิบาย <HelpCircle size={18} />
-          </button>
+                <button
+                    onClick={() => setShowLegend(true)}
+                    className="h-[48px] px-4 rounded-xl border transition-all flex items-center gap-2 font-bold shrink-0 
+                    bg-white border-gray-200 text-gray-500 hover:border-[#f3a638] hover:text-[#f3a638]"
+                >
+                    คำอธิบาย <HelpCircle size={20} />
+                </button>
+            </div>
+
+            <div className="flex justify-center w-full flex-wrap gap-2">
+                {buildings.map((b) => (
+                    <button
+                    key={b}
+                    onClick={() => setActiveBuilding(b)}
+                    className={`px-4 py-2 rounded-xl font-bold transition-all shadow-sm ${activeBuilding === b ? "bg-[#F5A623] text-white shadow-md" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+                    >
+                    {b === "ALL" ? "ทุกอาคาร" : `อาคาร ${b}`}
+                    </button>
+                ))}
+            </div>
         </div>
 
-        <div className="flex gap-2 flex-wrap justify-center mb-10">
-          {buildings.map((b) => (
-            <button
-              key={b}
-              onClick={() => setActiveBuilding(b)}
-              className={`px-3 py-2 rounded-xl font-bold transition-all
-                ${
-                  activeBuilding === b
-                    ? "bg-[#F5A623] text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-            >
-              อาคาร {b}
-            </button>
-          ))}
-        </div>
-        
-
-        {/* --- ส่วนแสดงผังห้องแยกตามชั้น --- */}
+        {/* Room Grid */}
         <div className="space-y-8">
           {floors.map((floor) => (
-            <div key={floor} className="bg-gray-100 p-6 rounded-3xl">
-              <h2 className="text-xl font-bold mb-6">ชั้น {floor}</h2>
-
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+            <div key={floor} className="bg-gray-50 p-6 rounded-3xl border border-gray-100">
+              <h2 className="text-xl font-bold mb-6 text-gray-700 flex items-center gap-2">
+                <span className="bg-gray-200 text-gray-600 w-8 h-8 rounded-full flex items-center justify-center text-sm">{floor}</span>
+                ชั้น {floor}
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                 {filteredRoomsByFloor[floor]?.map((room) => (
                   <RoomCard
-                    key={room.roomId}
+                    key={room.roomId || room.id}
                     roomNumber={room.roomNumber}
                     building={room.building}
                     tenantName={room.tenantFirstName || ""}
@@ -331,25 +236,16 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* --- Filter Modal --- */}
-      {showFilterModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4"
-          onClick={(e) => handleBackdropClick(e, setShowFilterModal)}
-        >
-          <div className="bg-white p-8 rounded-[40px] shadow-2xl w-full max-w-2xl border border-gray-100 animate-in zoom-in duration-200">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">ตัวกรองผังห้อง</h2>
-              <button
-                onClick={() => setShowFilterModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <X size={24} />
-              </button>
-            </div>
-
-            {/* หมวดหมู่ 1: กรองตามสถานะ (สี) */}
-            <div className="mb-8">
+      {/* Filter Modal */}
+      <FilterModal
+        isOpen={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        title="ตัวกรองผังห้อง"
+        onClear={() => { setActiveStatusFilters([]); setActiveIconFilters([]); }}
+        onConfirm={() => setShowFilterModal(false)}
+        maxWidth="max-w-2xl"
+      >
+            <div className="mb-6">
               <p className="text-lg font-bold text-gray-600 mb-4">สถานะห้อง</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {[
@@ -370,18 +266,16 @@ useEffect(() => {
               </div>
             </div>
 
-            {/* หมวดหมู่ 2: กรองตามกิจกรรม (Icon) */}
-            <div className="mb-8">
-              <p className="text-lg font-bold text-gray-600 mb-4">
-                กิจกรรม/การแจ้งเตือน
-              </p>
+            <div className="mb-2">
+              <p className="text-lg font-bold text-gray-600 mb-4">กิจกรรม/การแจ้งเตือน</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {[
-                  { id: "moveIn", label: "ย้ายเข้า" },
-                  { id: "moveOut", label: "ย้ายออก" },
-                  { id: "repair", label: "แจ้งซ่อม" },
-                  { id: "clean", label: "ทำความสะอาด" },
+                  { id: "fix", label: "แจ้งซ่อม" },
+                  { id: "clean", label: "แจ้งทำความสะอาด" },
+                  { id: "leave", label: "แจ้งย้ายออก" },
+                  { id: "other", label: "อื่นๆ" },
                   { id: "package", label: "ค้างรับพัสดุ" },
+                  { id: "moveIn", label: "วันย้ายเข้า" },
                   { id: "urgent", label: "ใกล้ครบสัญญา" },
                 ].map((item) => (
                   <button
@@ -394,122 +288,75 @@ useEffect(() => {
                 ))}
               </div>
             </div>
+      </FilterModal>
 
-            <div className="flex gap-4 pt-4 border-t">
-              <button
-                onClick={() => {
-                  setActiveStatusFilters([]);
-                  setActiveIconFilters([]);
-                }}
-                className="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-50 rounded-xl transition-all"
-              >
-                ล้างทั้งหมด
-              </button>
-              <button
-                onClick={() => setShowFilterModal(false)}
-                className="flex-2 bg-[#F5A623] text-white py-3 rounded-xl font-bold shadow-lg hover:shadow-orange-200 transition-all"
-              >
-                ตกลง
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- Modal คำอธิบาย --- */}
+      {/* Legend Modal */}
       {showLegend && <LegendModal onClose={() => setShowLegend(false)} />}
-    </div>
-  );
-}
-// --- Component ย่อย (ปรับปรุงการรับส่งฟังก์ชัน) ---
-const LegendModal = ({ onClose }) => {
-  // สร้างฟังก์ชันภายในคอมโพเนนต์เองเพื่อให้ทำงานได้
-  const internalBackdropClick = (e) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-      onClick={internalBackdropClick}
-    >
-      <div
-        className="bg-white rounded-[40px] w-full max-w-2xl p-8 relative shadow-2xl animate-in fade-in zoom-in duration-200"
-        onClick={(e) => e.stopPropagation()} // ป้องกันการปิดเมื่อคลิกข้างในกล่อง
-      >
-        <button
-          onClick={onClose}
-          className="absolute right-6 top-6 text-gray-400 hover:text-black"
-        >
-          <X size={24} strokeWidth={3} />
-        </button>
-        {/* ... (เนื้อหาข้างในเหมือนเดิม) ... */}
-        <h3 className="text-2xl font-bold text-center mb-10">
-          คำอธิบายสถานะห้อง
-        </h3>
-
-        <div className="grid grid-cols-5 gap-4 mb-12 text-center">
-          <LegendItem color="bg-[#10b981]" label="มีผู้เช่า" />
-          <LegendItem color="bg-[#fb7185]" label="ค้างชำระ" />
-          <LegendItem color="bg-[#facc15]" label="ติดจอง" />
-          <LegendItem color="bg-white border-2 border-gray-200" label="ว่าง" />
-          <LegendItem color="bg-[#4b5563]" label="ปิดปรับปรุง" />
-        </div>
-
-        <div className="grid grid-cols-2 gap-y-6 gap-x-8 px-4">
-          <IconDetail
-            icon={<LogIn className="text-green-600" />}
-            text="วันย้ายเข้า"
-          />
-          <IconDetail
-            icon={<Wrench className="text-blue-600" />}
-            text="แจ้งซ่อมบำรุง"
-          />
-          <IconDetail
-            icon={<LogOut className="text-red-600" />}
-            text="วันย้ายออก"
-          />
-          <IconDetail
-            icon={<Sparkles className="text-cyan-500" />}
-            text="แจ้งทำความสะอาด"
-          />
-          <div className="flex items-start gap-3">
-            <div className="p-1 bg-orange-100 rounded-md">
-              <Clock className="text-orange-500" size={26} />
-            </div>
-            <div>
-              <p className="font-bold text-[18px] ">ใกล้ครบสัญญา</p>
-              <p className="text-[14px] text-gray-500">
-                เหลือเวลาสัญญาน้อยกว่า 30 วัน
-              </p>
-            </div>
-          </div>
-          <IconDetail
-            icon={<Package className="text-amber-800" />}
-            text="ค้างรับพัสดุ"
-          />
-        </div>
-      </div>
     </div>
   );
 };
 
+// --- Legend Component ---
+const LegendModal = ({ onClose }) => {
+    const internalBackdropClick = (e) => {
+        if (e.target === e.currentTarget) onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={internalBackdropClick}>
+            <div className="bg-white rounded-[40px] w-full max-w-3xl p-8 relative shadow-2xl animate-in fade-in zoom-in duration-200">
+                <button onClick={onClose} className="absolute right-6 top-6 text-gray-400 hover:text-black">
+                    <X size={24} strokeWidth={3} />
+                </button>
+                <h3 className="text-2xl font-bold text-center mb-10">คำอธิบายสถานะห้อง</h3>
+                
+                {/* สถานะหลัก (Colors) */}
+                <div className="grid grid-cols-5 gap-4 mb-10 text-center">
+                    <LegendItem color="bg-[#10b981]" label="มีผู้เช่า" />
+                    <LegendItem color="bg-[#fb7185]" label="ค้างชำระ" />
+                    <LegendItem color="bg-[#facc15]" label="ติดจอง" />
+                    <LegendItem color="bg-white border-2 border-gray-200" label="ว่าง" />
+                    <LegendItem color="bg-[#4b5563]" label="ปิดปรับปรุง" />
+                </div>
+
+                {/* ไอคอนแจ้งเตือน (Icons) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-12 px-2">
+                    {/* หมวด Requests */}
+                    <IconDetail icon={<Wrench className="text-[#6B21A8]" />} text="แจ้งซ่อม" />
+                    <IconDetail icon={<Sparkles className="text-[#0369A1]" />} text="แจ้งทำความสะอาด" />
+                    <IconDetail icon={<LogOut className="text-[#374151]" />} text="แจ้งย้ายออก" />
+                    <IconDetail icon={<FileText className="text-[#9A3412]" />} text="อื่น ๆ" />
+
+                    {/* หมวด System/Status */}
+                    <IconDetail icon={<Package className="text-amber-800" />} text="ค้างรับพัสดุ" />
+
+                    <IconDetail icon={<LogIn className="text-green-600" />} text="วันย้ายเข้า" />
+                    
+                    <div className="flex items-start gap-3 col-span-1 sm:col-span-2 mt-2">
+                        <div className="p-1 bg-orange-100 rounded-md"><Clock className="text-orange-500" size={26} /></div>
+                        <div>
+                            <p className="font-bold text-[18px] text-gray-700">ใกล้ครบสัญญา</p>
+                            <p className="text-[14px] text-gray-500">เหลือเวลาสัญญาน้อยกว่า 30 วัน</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const LegendItem = ({ color, label }) => (
-  <div className="flex flex-col items-center gap-2">
-    <div className={`w-18 h-18 rounded-xl ${color}`}></div>
-    <span className="text-[18px] text-gray-700 font-bold">{label}</span>
-  </div>
+    <div className="flex flex-col items-center gap-2">
+        <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl ${color}`}></div>
+        <span className="text-sm sm:text-base text-gray-700 font-bold">{label}</span>
+    </div>
 );
 
 const IconDetail = ({ icon, text }) => (
-  <div className="flex items-center gap-3">
-    <div className="p-1 bg-gray-100 rounded-md">
-      {React.cloneElement(icon, { size: 26 })}
+    <div className="flex items-center gap-3">
+        <div className="p-1.5 bg-gray-100 rounded-lg">{React.cloneElement(icon, { size: 24 })}</div>
+        <span className="font-bold text-gray-700 text-base">{text}</span>
     </div>
-    <span className="font-bold text-gray-700 text-[18px]">{text}</span>
-  </div>
 );
 
 export default Rooms;

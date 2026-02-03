@@ -24,16 +24,22 @@ const AddParcelModal = ({ isOpen, onClose, onSave }) => {
     trackingNumber: "",
     shippingCompany: "thaipost",
     type: "box",
-    arrivalDate: new Date().toISOString().split("T")[0],
+    arrivalDate: "",
     pickupDate: "",
   });
 
+  // ✅ Reset Form เมื่อเปิด Modal ใหม่
   useEffect(() => {
     if (isOpen) {
-      setFormData((prev) => ({
-        ...prev,
+      setFormData({
+        roomNumber: "",
+        recipient: "",
+        trackingNumber: "",
+        shippingCompany: "thaipost",
+        type: "box",
         arrivalDate: new Date().toISOString().split("T")[0],
-      }));
+        pickupDate: "",
+      });
     }
   }, [isOpen]);
 
@@ -43,8 +49,7 @@ const AddParcelModal = ({ isOpen, onClose, onSave }) => {
   };
 
   const handleSubmit = () => {
-    if (!formData.roomNumber)
-      return alert("กรุณาระบุเลขห้อง");
+    if (!formData.roomNumber) return alert("กรุณาระบุเลขห้อง");
 
     const payload = {
       roomNumber: formData.roomNumber,
@@ -53,13 +58,11 @@ const AddParcelModal = ({ isOpen, onClose, onSave }) => {
       shippingCompany: formData.shippingCompany,
       type: formData.type,
       arrivalDate: formData.arrivalDate,
-      pickupDate: formData.pickupDate
-        ? formData.pickupDate
-        : null,
+      pickupDate: formData.pickupDate === "" ? null : formData.pickupDate,
     };
 
     onSave(payload);
-    onClose();
+    // ไม่ต้อง onClose() ที่นี่ถ้า Parent จัดการแล้ว
   };
 
   if (!isOpen) return null;
@@ -72,7 +75,8 @@ const AddParcelModal = ({ isOpen, onClose, onSave }) => {
     >
       <div
         className="bg-white p-8 rounded-[40px] shadow-2xl
-        w-full max-w-2xl animate-in zoom-in duration-200"
+        w-full max-w-2xl animate-in zoom-in duration-200
+        max-h-[90vh] overflow-y-auto" // ✅ เพิ่ม Scroll
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative flex items-center justify-between mb-6">
@@ -95,6 +99,7 @@ const AddParcelModal = ({ isOpen, onClose, onSave }) => {
               name="roomNumber"
               value={formData.roomNumber}
               onChange={handleChange}
+              placeholder="ระบุเลขห้อง"
             />
           </div>
 
