@@ -24,13 +24,30 @@ const EditParcelModal = ({
   onDelete,
   initialData,
 }) => {
-  const [formData, setFormData] = useState(null);
+  const [formData, setFormData] = useState({
+    roomNumber: "",
+    recipient: "",
+    trackingNumber: "",
+    shippingCompany: "",
+    type: "",
+    arrivalDate: "",
+    pickupDate: "",
+  });
 
   useEffect(() => {
     if (initialData && isOpen) {
+      // ✅ FIX: แปลงวันที่จาก ISO String (มีเวลา) ให้เหลือแค่ YYYY-MM-DD
+      const formatDate = (dateString) => {
+        if (!dateString) return "";
+        return dateString.split("T")[0];
+      };
+
       setFormData({
         ...initialData,
-        pickupDate: initialData.pickupDate || "",
+        recipient: initialData.recipient || "", // ✅ ป้องกัน null
+        trackingNumber: initialData.trackingNumber || "", // ✅ ป้องกัน null
+        arrivalDate: formatDate(initialData.arrivalDate),
+        pickupDate: formatDate(initialData.pickupDate),
       });
     }
   }, [initialData, isOpen]);
@@ -41,8 +58,7 @@ const EditParcelModal = ({
   };
 
   const handleSubmit = () => {
-    if (!formData.roomNumber)
-      return alert("กรุณาระบุเลขห้อง");
+    if (!formData.roomNumber) return alert("กรุณาระบุเลขห้อง");
 
     const payload = {
       id: formData.id,
@@ -52,16 +68,15 @@ const EditParcelModal = ({
       shippingCompany: formData.shippingCompany,
       type: formData.type,
       arrivalDate: formData.arrivalDate,
-      pickupDate: formData.pickupDate
-        ? formData.pickupDate
-        : null,
+      // ✅ ถ้าเป็น string ว่าง ให้ส่ง null ไป backend
+      pickupDate: formData.pickupDate === "" ? null : formData.pickupDate,
     };
 
     onSave(payload);
-    onClose();
+    // ไม่ต้อง onClose() ที่นี่ เพราะ Parent Component มักจะจัดการปิดหลังจาก Save สำเร็จ
   };
 
-  if (!isOpen || !formData) return null;
+  if (!isOpen) return null;
 
   return (
     <div
@@ -71,7 +86,8 @@ const EditParcelModal = ({
     >
       <div
         className="bg-white p-8 rounded-[40px] shadow-2xl
-        w-full max-w-2xl animate-in zoom-in duration-200"
+        w-full max-w-2xl animate-in zoom-in duration-200
+        max-h-[90vh] overflow-y-auto" // ✅ เพิ่ม scroll กรณีจอเล็ก
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -82,11 +98,7 @@ const EditParcelModal = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
-                if (
-                  window.confirm(
-                    "คุณต้องการลบรายการพัสดุนี้ใช่หรือไม่?"
-                  )
-                )
+                if (window.confirm("คุณต้องการลบรายการพัสดุนี้ใช่หรือไม่?"))
                   onDelete(formData.id);
               }}
               className="p-2.5 text-red-500 hover:bg-red-50
@@ -120,7 +132,7 @@ const EditParcelModal = ({
             <FieldLabel>ชื่อผู้รับ</FieldLabel>
             <InputField
               name="recipient"
-              value={formData.recipient || ""}
+              value={formData.recipient}
               onChange={handleChange}
             />
           </div>
@@ -179,7 +191,7 @@ const EditParcelModal = ({
             <FieldLabel>หมายเลข Tracking</FieldLabel>
             <InputField
               name="trackingNumber"
-              value={formData.trackingNumber || ""}
+              value={formData.trackingNumber}
               onChange={handleChange}
             />
           </div>
@@ -201,6 +213,7 @@ const EditParcelModal = ({
               name="pickupDate"
               value={formData.pickupDate}
               onChange={handleChange}
+              placeholder="" // ช่วยให้ Browser แสดง UI วันที่ชัดขึ้น
             />
           </div>
         </div>
