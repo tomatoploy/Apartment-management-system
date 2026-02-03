@@ -13,6 +13,7 @@ import Request from "./pages/Request";
 import Parcel from "./pages/Parcel";
 import Meter from "./pages/Meter";
 import Billing from "./pages/Billing";
+import BillDetail from "./pages/BillDetail";
 
 // import RoomsFilter from "./pages/Rooms-filterModal";
 
@@ -123,7 +124,15 @@ function App() {
           </Layout>
         }
       />
-
+     
+        <Route
+  path="/billings/:roomNumber"
+  element={
+    <Layout>
+      <BillDetail />
+    </Layout>
+  }
+/>
 
       {/* case กันคนพิมพ์ URL แปลก ๆ */}
       <Route path="*" element={<Navigate to="/login" />} />

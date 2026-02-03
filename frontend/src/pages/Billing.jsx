@@ -22,6 +22,7 @@ import {
   DownloadButton,
   SelectAllFloorButton,
 } from "../components/ActionButtons";
+import { useNavigate } from "react-router-dom";
 
 const Billing = () => {
   const [selectedDate, setSelectedDate] = useState(
@@ -29,11 +30,13 @@ const Billing = () => {
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [showHelpModal, setShowHelpModal] = useState(false); // เพิ่ม State สำหรับ Modal คำอธิบาย
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [activeStatusFilters, setActiveStatusFilters] = useState([]);
   const [selectedRooms, setSelectedRooms] = useState([]);
+  const [isSelectMode, setIsSelectMode] = useState(false);
   const activeFilterCount = activeStatusFilters.length;
+  const navigate = useNavigate();
 
   //การทำงานแสดงเฉพาะห้องที่ไม่ว่าง เพื่อออกบิล
   // Mock Data
@@ -148,6 +151,7 @@ const Billing = () => {
     );
   };
 
+  // รับ Props มาจาก App.jsx
   return (
     <div className="bg-white min-h-screen">
       <div className="max-w-7xl mx-auto bg-white rounded-3xl p-6 shadow-lg border border-gray-200">
@@ -176,24 +180,23 @@ const Billing = () => {
             </div>
             <OrangeButton
               label="สร้างบิลใหม่"
-              icon={Plus}
+               onClick={() => {
+                  alert("สร้างบิลสำเร็จ!");}}
               className="shadow-md"
+              icon={Plus}
+              
             />
           </div>
 
           {/* ส่วนที่ 2: Search และ Filter (จัดกลางหน้า) */}
           <div className="flex flex-col px-4 w-full max-w-3xl mx-auto md:flex-row items-center gap-4">
             {/* Search Bar */}
-
             <div className="w-full md:flex-1">
               <SearchBar value={searchTerm} onChange={setSearchTerm} />
             </div>
 
             {/* กลุ่มปุ่ม Filter และ คำอธิบาย */}
-
             <div className="flex gap-3 w-full md:w-auto">
-              {/* ส่ง md:flex-1 ไปเพื่อทับ md:flex-none ใน BaseButton */}
-
               <FilterButton
                 label="Filter"
                 icon={FilterIcon}
@@ -213,39 +216,40 @@ const Billing = () => {
             </div>
           </div>
 
-          {/* ส่วนที่ 3: ปุ่ม Action (ขยายเต็มกรอบ 3xl) */}
-          <div className="mx-auto max-w-3xl flex flex-wrap justify-center gap-3 px-4 w-full">
-            <BlueButton
-              label="พิมพ์บิลค่าเช่า"
-              icon={Printer}
-              className="flex-1 min-w-40"
-            />
-            <BlueButton
-              label="พิมพ์ใบสรุปบิล"
-              icon={FileText}
-              className="flex-1 min-w-40"
-            />
-            <DownloadButton
-              label="ดาวน์โหลด Excel"
-              className="flex-1 min-w-40 shadow-sm"
-            />
+          <div className="mx-auto max-w-3xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 px-4 w-full">
+            <BlueButton label="พิมพ์บิลค่าเช่า" icon={Printer} />
+            <BlueButton label="พิมพ์ใบสรุปบิล" icon={FileText} />
+            <DownloadButton label="ดาวน์โหลด Excel" />
             <GreenButton
               label={`ส่งบิล (${selectedRooms.length})`}
               icon={Send}
               onClick={() => setShowSummary(true)}
-              className="flex-1 min-w-40"
             />
           </div>
 
-          {/* ส่วนที่ 4: เลือกทั้งหมด / ยกเลิก (ชิดขวากรอบ 3xl) */}
+          {/* ส่วนที่ 4: โหมดเลือกห้อง */}
           <div className="flex gap-3 w-full max-w-3xl mx-auto justify-end px-4">
-            <BlueButton
-              label="เลือกทั้งหมด"
-              onClick={() =>
-                setSelectedRooms(roomsData.map((r) => r.roomNumber))
-              }
-            />
-            <BlueButton label="ยกเลิก" onClick={() => setSelectedRooms([])} />
+            {!isSelectMode ? (
+              <BlueButton label="เลือกห้อง"
+              className="w-full px-20 md:w-auto" 
+              onClick={() => setIsSelectMode(true)} />
+              
+            ) : (
+              <>
+                <BlueButton
+                  label="เลือกทั้งหมด"
+                  onClick={() =>
+                    setSelectedRooms(roomsData.map((r) => r.roomNumber))
+                  }                />
+                <BlueButton
+                  label="ยกเลิก"
+                  onClick={() => {
+                    setSelectedRooms([]);
+                    setIsSelectMode(false);
+                  }}
+                />
+              </>
+            )}
           </div>
         </div>
 
@@ -269,15 +273,19 @@ const Billing = () => {
                   return (
                     <div
                       key={room.roomId}
-                      onClick={() => toggleRoomSelection(room.roomNumber)}
-                      className={`relative transition-all duration-300 cursor-pointer w-full-37.5
-                        ${isSelected ? "ring-4 ring-[#3498DB]/40 rounded-3xl scale-95" : "hover:scale-105"}`}
+                      onClick={() => {
+                        if (isSelectMode) {
+                          toggleRoomSelection(room.roomNumber);
+                        } else {
+                          navigate(`/billings/${room.roomNumber}`);
+                        }
+                      }}
+                      className="relative cursor-pointer hover:scale-105 transition-all"
                     >
                       <RoomCard
                         roomNumber={room.roomNumber}
                         tenantName={room.tenantFirstName || ""}
                         status={room.status}
-                        icons={room.icons || []}
                       />
 
                       {/* ยอดเงินในกราฟิก */}
@@ -444,7 +452,7 @@ const Billing = () => {
         isOpen={showFilterModal}
         onClose={() => setShowFilterModal(false)}
         title="สถานะการชำระเงิน"
-        activeCount={activeFilterCount} 
+        activeCount={activeFilterCount}
         onConfirm={() => setShowFilterModal(false)}
         onClear={() => setActiveStatusFilters([])}
         maxWidth="max-w-xl"
