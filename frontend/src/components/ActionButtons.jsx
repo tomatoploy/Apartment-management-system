@@ -99,3 +99,13 @@ export const SelectAllFloorButton = ({
     {label}
   </button>
 );
+
+export const WhiteButton = ({ label, icon: Icon, onClick, className = "" }) => (
+  <button
+    onClick={onClick} // ใช้ onClick จาก props
+    className={`h-12 px-4 rounded-xl border transition-all flex items-center justify-center gap-2 font-bold shrink-0 
+    bg-white border-gray-200 text-gray-500 hover:border-[#f3a638] hover:text-[#f3a638] ${className}`}
+  >
+    {label} {Icon && <Icon size={20} />} {/* ใช้ label และ Icon จาก props */}
+  </button>
+);

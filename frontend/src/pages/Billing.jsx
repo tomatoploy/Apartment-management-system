@@ -21,6 +21,7 @@ import {
   OrangeButton,
   DownloadButton,
   SelectAllFloorButton,
+  WhiteButton,
 } from "../components/ActionButtons";
 import { useNavigate } from "react-router-dom";
 
@@ -206,10 +207,9 @@ const Billing = () => {
               />
 
               <div className="flex-1 md:w-40">
-                <BlueButton
+                <WhiteButton
                   label="คำอธิบาย"
                   icon={HelpCircle}
-                  className="w-full bg-[#f5d4ad] text-[#6e4a1f] hover:bg-[#f0c594]"
                   onClick={() => setShowHelpModal(true)}
                 />
               </div>
@@ -217,8 +217,8 @@ const Billing = () => {
           </div>
 
           <div className="mx-auto max-w-3xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 px-4 w-full">
-            <BlueButton label="พิมพ์บิลค่าเช่า" icon={Printer} />
-            <BlueButton label="พิมพ์ใบสรุปบิล" icon={FileText} />
+            <WhiteButton label="พิมพ์บิลค่าเช่า" icon={Printer} />
+            <WhiteButton label="พิมพ์ใบสรุปบิล" icon={FileText} />
             <DownloadButton label="ดาวน์โหลด Excel" />
             <GreenButton
               label={`ส่งบิล (${selectedRooms.length})`}
