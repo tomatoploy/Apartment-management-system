@@ -1,0 +1,12 @@
+
+/* [ส่วนที่ 1] โครงสร้าง Desktop เขียนไว้บนสุด */
+.container { 
+  display: flex; 
+}
+
+/* [ส่วนที่ 2] Media Queries เขียนไว้ล่างสุด */
+@media (max-width: 768px) {
+  .container { 
+    flex-direction: column; 
+  }
+}

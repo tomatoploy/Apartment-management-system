@@ -3,6 +3,8 @@ import { Zap, Droplets, LayoutList, Calendar as CalendarIcon } from "lucide-reac
 import MeterTable from "../components/MeterTable";
 import ChangeMeterModal from "../components/ChangeMeterModal";
 import { SaveButton, DownloadButton } from "../components/ActionButtons";
+import * as XLSX from "xlsx";
+
 
 // --- Helper Functions ---
 const formatThaiMonth = (dateStr) => {
