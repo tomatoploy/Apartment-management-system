@@ -55,11 +55,8 @@ const RoomDetail = () => {
         vehicleNum1: "กข-1234",
         vehicleDetail1: "Honda Civic สีขาว",
         keyCard1: "KC-201-01",
-
         keyCard2: "KC-201-02",
-
         isLaundryService: true,
-
         internetDeviceCount: 2,
         note: "แพ้อาหารทะเล, จอดรถที่โซน A",
         outstandingBalance: 3550,
@@ -78,12 +75,21 @@ const RoomDetail = () => {
     }
   }, [roomNumber]);
 
+  // 1. เพิ่ม State สำหรับควบคุม Modal เพิ่มผู้เช่า
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const handleSaveTenant = (data) => {
+    console.log("ข้อมูลผู้เช่าใหม่:", data);
+    // Logic สำหรับส่งข้อมูลไป API
+    setIsAddModalOpen(false);
+  };
+
   return (
     <div>
       <RoomHeader roomNumber={roomNumber}>
         {tenant ? (
           /* --- กรณีมีผู้เช่า: แสดงข้อมูลทั้งหมด --- */
-          <div className="animate-in fade-in duration-500 space-y-8">
+          <div className="space-y-8">
             {/* 1 & 2: Banners ถ้ามีการแจ้งเตือนค้างก็จะแสดง */}
             {/* --- 1 & 2: Banners แจ้งเตือนและพัสดุ --- */}
             <div className="flex flex-col gap-4 max-w-4xl mx-auto">
@@ -126,7 +132,6 @@ const RoomDetail = () => {
                         </p>
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-white text-orange-600">
                           รอดำเนินการ
-                        
                         </span>
                       </div>
                     </div>
@@ -185,7 +190,7 @@ const RoomDetail = () => {
                       icon={ExternalLink}
                       className="flex-1  py-2! px-4! text-xs!"
                       onClick={() => setIsModalOpen(true)}
-                    />       
+                    />
                   </div>
                 </div>
 
@@ -235,15 +240,14 @@ const RoomDetail = () => {
               <section className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden h-full flex flex-col">
                 {/* Header: ดีไซน์ใหม่เน้นความโปร่ง */}
                 <div className="p-3 md:p-5 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50/20">
-                    {/* Icon ทรงมนที่ดูซอฟต์ลง */}
+                  {/* Icon ทรงมนที่ดูซอฟต์ลง */}
                   <h3 className="text-xl font-black text-gray-700 flex items-center gap-3">
                     <div className="w-10 h-10 bg-orange-50 rounded-2xl flex items-center justify-center text-[#f3a638] shrink-0 ">
                       <FileText size={24} />
                     </div>
-                        ไฟล์เอกสาร
-                      </h3>
-                    
-                  
+                    ไฟล์เอกสาร
+                  </h3>
+
                   <OrangeButton
                     label="เพิ่มไฟล์"
                     icon={Plus}
@@ -294,58 +298,53 @@ const RoomDetail = () => {
 
                 {/* Footer: หมายเหตุ (ถ้ามี) */}
                 {/* แสดงส่วนหมายเหตุเฉพาะในกรณีที่มีข้อมูลเท่านั้น */}
-{tenant.note && (
-  <div className="p-5 bg-orange-50/50 border-t border-orange-100">
-    <div className="flex items-center gap-2 mb-1">
-      <div className="w-1.5 h-1.5 bg-[#f3a638] rounded-full"></div>
-      <p className="text-[10px] font-black text-[#f3a638] uppercase tracking-widest">
-        หมายเหตุพิเศษ
-      </p>
-    </div>
-    <p className="text-sm font-bold text-gray-600 italic pl-3.5">
-      "{tenant.note}"
-    </p>
-  </div>
-)}
+                {tenant.note && (
+                  <div className="p-5 bg-orange-50/50 border-t border-orange-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-1.5 h-1.5 bg-[#f3a638] rounded-full"></div>
+                      <p className="text-[10px] font-black text-[#f3a638] uppercase tracking-widest">
+                        หมายเหตุพิเศษ
+                      </p>
+                    </div>
+                    <p className="text-sm font-bold text-gray-600 italic pl-3.5">
+                      "{tenant.note}"
+                    </p>
+                  </div>
+                )}
               </section>
             </div>
           </div>
         ) : (
           /* --- กรณีไม่มีผู้เช่า (ห้องว่าง) --- */
-          <div className="py-24 flex flex-col items-center justify-center text-center animate-in zoom-in duration-300">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center text-gray-300 mb-6 shadow-inner">
+          <div className="py-24 flex flex-col items-center justify-center text-center  bg-gray-50 rounded-3xl border border-gray-200">
+            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-gray-600 mb-6 border border-gray-200 shadow-inner">
               <UserPlus size={48} />
             </div>
-            <h3 className="text-2xl font-black text-gray-400 mb-2">
-              ยังไม่มีข้อมูลผู้เช่า
-            </h3>
-            <p className="text-gray-400 mb-10 max-w-xs font-bold">
-              ห้องนี้ว่างอยู่ คุณสามารถเพิ่มข้อมูลผู้เช่าใหม่เพื่อทำสัญญาได้
-            </p>
+            <h3 className="text-2xl text-gray-400 mb-2">ไม่มีข้อมูลผู้เช่า</h3>
             <OrangeButton
               label="เพิ่มผู้เช่าใหม่"
               icon={Plus}
+              // ส่ง roomNumber ไปกับ URL
               onClick={() => navigate(`/rooms/${roomNumber}/add-tenant`)}
-              className="px-10 py-4 shadow-lg shadow-orange-100"
             />
           </div>
         )}
       </RoomHeader>
 
-{/* แสดงข้อมูลผู้เช่า */}
+      {/* แสดงข้อมูลผู้เช่า */}
 
       {isModalOpen && (
-  <TenantInfoModal 
-  isOpen={isModalOpen}
-  onClose={() => setIsModalOpen(false)}
-  tenant={tenant}
-  onSave={(updatedData) => {
-    // ส่ง updatedData ไปที่ API หรืออัปเดต State หลัก
-    setTenant(updatedData);
-    console.log("บันทึกข้อมูลสำเร็จ:", updatedData);
-  }}
-/>
-)}
+        <TenantInfoModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          tenant={tenant}
+          onSave={(updatedData) => {
+            // ส่ง updatedData ไปที่ API หรืออัปเดต State หลัก
+            setTenant(updatedData);
+            console.log("บันทึกข้อมูลสำเร็จ:", updatedData);
+          }}
+        />
+      )}
     </div>
   );
 };

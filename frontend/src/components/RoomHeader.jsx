@@ -14,19 +14,28 @@ const RoomHeader = ({ roomNumber, children }) => {
   ];
 
   return (
-      <div className="bg-white min-h-screen">
+    <div className="bg-white min-h-screen">
       <div className="max-w-7xl mx-auto bg-white rounded-3xl p-6 shadow-lg border border-gray-200">
         <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
-        ห้อง {roomNumber}
-      </h1>
+          ห้อง {roomNumber}
+        </h1>
 
         {/*2 แถบเมนู (Tabs) */}
         <div className=" bg-gray-50/50 ">
           <div className="flex bg-gray-100 p-1 rounded-2xl w-full max-w-3xl mx-auto overflow-x-auto no-scrollbar">
+            {/* ส่วนที่วนลูป menuItems ในไฟล์ RoomHeader.jsx */}
             {menuItems.map((item) => {
-              // เช็ค Active จาก URL Path
-              const isActive = location.pathname === item.path;
-              
+              // 1. เช็คว่า Path ปัจจุบันคือหน้า Add Tenant หรือไม่
+              const isAddTenantPage = location.pathname.includes("add-tenant");
+
+              // 2. ปรับ Logic การเช็ค Active:
+              // - ถ้าเป็นเมนู main ให้สว่างเมื่ออยู่ที่ Path หลัก หรือหน้า Add Tenant
+              // - ถ้าเป็นเมนูอื่น ให้เช็คตาม Path ปกติ
+              const isActive =
+                item.id === "main"
+                  ? location.pathname === item.path || isAddTenantPage
+                  : location.pathname === item.path;
+
               return (
                 <button
                   key={item.id}
@@ -44,13 +53,9 @@ const RoomHeader = ({ roomNumber, children }) => {
           </div>
         </div>
 
-        {/* 3. จุดสำคัญ: ส่วนที่ใช้แสดงข้อมูลจาก RoomDetail (children) */}
-        <div className="p-6 md:p-10">
-          {children}
-        </div>
-
+        {/* 3. จุดสำคัญ: ส่วนที่ใช้แสดงข้อมูลจาก (children) */}
+        <div className="p-6 md:p-10">{children}</div>
       </div>
-    
     </div>
   );
 };

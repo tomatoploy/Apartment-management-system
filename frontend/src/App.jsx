@@ -15,7 +15,7 @@ import Meter from "./pages/Meter";
 import Billing from "./pages/Billing";
 import BillDetail from "./pages/BillDetail";
 import RoomDetail from "./pages/RoomDetail";
-import AddTenant from "./pages/RoomAddTenant";
+import AddTenant from "./pages/AddTenant";
 
 // import RoomsFilter from "./pages/Rooms-filterModal";
 

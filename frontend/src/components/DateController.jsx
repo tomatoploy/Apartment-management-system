@@ -27,49 +27,51 @@ export const toThaiMonth = (monthString) => {
   });
 };
 
+// แก้ไขส่วน FieldLabel ให้เป็นสไตล์เดียวกับหน้า AddTenant
 const FieldLabel = ({ children, required }) => (
-  <label className="text-[13px] font-bold text-gray-500 ml-1">
+  <label className="text-[13px] font-bold text-gray-500 mb-2 ml-1 block">
     {children} {required && <span className="text-red-500">*</span>}
   </label>
 );
 
-// --- 2. DateInput: ปฏิทินภาษาไทย 100% (สำหรับ Modal ต่างๆ) ---
-
-export const DateInput = ({
-  label,
-  name,
-  value,
-  onChange,
-  required,
-  className = "",
-}) => {
+// แก้ไขบรรทัดเริ่มต้นของ DateInput ให้ปลอดภัยขึ้น
+export const DateInput = ({ label, name, value, onChange, required, className = "" }) => {
   const [show, setShow] = useState(false);
   const containerRef = useRef(null);
-  const months = [
-    "ม.ค.",
-    "ก.พ.",
-    "มี.ค.",
-    "เม.ย.",
-    "พ.ค.",
-    "มิ.ย.",
-    "ก.ค.",
-    "ส.ค.",
-    "ก.ย.",
-    "ต.ค.",
-    "พ.ย.",
-    "ธ.ค.",
-  ];
+  const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+  const monthsFull = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+  
   const today = new Date();
-  const [viewDate, setViewDate] = useState(value ? new Date(value) : today);
+  const [viewDate, setViewDate] = useState(today);
+  const [yearInput, setYearInput] = useState("");
 
   useEffect(() => {
-    const clickOut = (e) =>
-      containerRef.current &&
-      !containerRef.current.contains(e.target) &&
-      setShow(false);
-    document.addEventListener("mousedown", clickOut);
-    return () => document.removeEventListener("mousedown", clickOut);
-  }, []);
+    if (value) {
+      const d = new Date(value);
+      if (!isNaN(d.getTime())) {
+        setViewDate(d);
+        setYearInput((d.getFullYear() + 543).toString());
+      }
+    } else {
+      setYearInput((today.getFullYear() + 543).toString());
+    }
+  }, [value, show]);
+
+  const handleYearChange = (e) => {
+    const val = e.target.value;
+    setYearInput(val);
+    if (val.length === 4) {
+      const adYear = parseInt(val) - 543;
+      if (adYear > 1900 && adYear < 2100) {
+        setViewDate(new Date(adYear, viewDate.getMonth(), 1));
+      }
+    }
+  };
+
+  const handleMonthChange = (e) => {
+    const newMonth = parseInt(e.target.value);
+    setViewDate(new Date(viewDate.getFullYear(), newMonth, 1));
+  };
 
   const handleDateClick = (day) => {
     const selected = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
@@ -89,106 +91,70 @@ export const DateInput = ({
         onClick={() => setShow(!show)}
         className="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-between font-bold text-gray-700 cursor-pointer hover:border-[#f3a638] transition-all min-h-12"
       >
-        <span>
-          {value ? (
-            toThaiDate(value)
-          ) : (
-            <span className="text-gray-400 font-normal">เลือกวันที่</span>
-          )}
+        <span className={value ? "" : "text-gray-400 font-normal"}>
+          {value ? toThaiDate(value) : ""}
         </span>
         <Calendar size={18} className="text-[#f3a638]" />
       </div>
 
       {show && (
-        <div className="absolute top-full left-0 mt-2 w-72 bg-white border border-gray-100 shadow-2xl rounded-[30px] p-5 z-100 animate-in fade-in zoom-in duration-200">
-          {/* --- ส่วน Header ปฏิทินที่แก้ไขให้เลือกปีได้ --- */}
-          <div className="flex items-center justify-between mb-4 bg-gray-50 p-2 rounded-2xl border border-gray-100/50">
+        <div className="absolute top-full left-0 mt-2 w-80 bg-white border border-gray-100 shadow-2xl rounded-[30px] p-5 z-100 ">
+          <div className="flex items-center justify-between mb-4 bg-gray-50 p-2 rounded-2xl border border-gray-100/50 gap-1">
             <button
               type="button"
-              onClick={() =>
-                setViewDate(
-                  new Date(viewDate.getFullYear(), viewDate.getMonth() - 1),
-                )
-              }
-              className="p-1.5 hover:bg-white hover:shadow-sm rounded-xl text-[#f3a638] transition-all active:scale-90"
+              onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1))}
+              className="p-1.5 hover:bg-white rounded-xl text-[#f3a638] active:scale-90 transition-all"
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={18} />
             </button>
 
-            <div className="flex gap-2 items-center font-black text-gray-700 text-sm">
-              {/* แสดงชื่อเดือน */}
-              <span className="min-w-11 text-center">
-                {months[viewDate.getMonth()]}
-              </span>
-
-              {/* ส่วนเลือกปี พ.ศ. */}
-              <div className="relative flex items-center bg-white px-2 py-1 rounded-lg shadow-sm border border-orange-100">
+            <div className="flex flex-1 gap-1 items-center justify-center">
+              {/* Dropdown เลือกเดือน */}
+              <div className="relative flex items-center bg-white px-2 py-1 rounded-lg shadow-sm border border-orange-50 flex-1">
                 <select
-                  value={viewDate.getFullYear()}
-                  onChange={(e) =>
-                    setViewDate(
-                      new Date(Number(e.target.value), viewDate.getMonth()),
-                    )
-                  }
-                  className="bg-transparent border-none focus:outline-none cursor-pointer text-[#f3a638] pr-1 font-black appearance-none"
+                  value={viewDate.getMonth()}
+                  onChange={handleMonthChange}
+                  className="w-full bg-transparent border-none focus:outline-none cursor-pointer text-[#f3a638] font-black text-xs appearance-none text-center"
                 >
-                  {/* วนลูปสร้างปี พ.ศ. ย้อนหลัง 10 ปี และล่วงหน้า 10 ปี */}
-                  {Array.from(
-                    { length: 21 },
-                    (_, i) => new Date().getFullYear() - 10 + i,
-                  ).map((y) => (
-                    <option
-                      key={y}
-                      value={y}
-                      className="text-gray-700 font-bold"
-                    >
-                      {y + 543}
-                    </option>
+                  {monthsFull.map((m, i) => (
+                    <option key={i} value={i}>{m}</option>
                   ))}
                 </select>
-                <ChevronDown
-                  size={12}
-                  className="text-orange-300 pointer-events-none"
+                <ChevronDown size={10} className="text-orange-300 pointer-events-none absolute right-1" />
+              </div>
+
+              {/* ช่องพิมพ์ปี พ.ศ. */}
+              <div className="relative flex items-center bg-white px-1 py-1 rounded-lg shadow-sm border border-orange-100 w-16">
+                <input
+                  type="number"
+                  value={yearInput}
+                  onChange={handleYearChange}
+                  className="w-full bg-transparent border-none focus:outline-none text-[#f3a638] font-black text-xs text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  placeholder="พ.ศ."
                 />
               </div>
             </div>
 
             <button
               type="button"
-              onClick={() =>
-                setViewDate(
-                  new Date(viewDate.getFullYear(), viewDate.getMonth() + 1),
-                )
-              }
-              className="p-1.5 hover:bg-white hover:shadow-sm rounded-xl text-[#f3a638] transition-all active:scale-90"
+              onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1))}
+              className="p-1.5 hover:bg-white rounded-xl text-[#f3a638] active:scale-90 transition-all"
             >
-              <ChevronRight size={20} />
+              <ChevronRight size={18} />
             </button>
           </div>
+
           <div className="grid grid-cols-7 mb-2 text-center text-[10px] font-bold text-gray-400">
-            {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((d) => (
-              <div key={d}>{d}</div>
-            ))}
+            {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((d) => <div key={d}>{d}</div>)}
           </div>
           <div className="grid grid-cols-7 gap-1">
-            {Array(firstDay(viewDate.getFullYear(), viewDate.getMonth()))
-              .fill(null)
-              .map((_, i) => (
-                <div key={i} />
-              ))}
-            {Array.from(
-              {
-                length: daysInMonth(
-                  viewDate.getFullYear(),
-                  viewDate.getMonth(),
-                ),
-              },
-              (_, i) => i + 1,
-            ).map((day) => (
+            {Array(firstDay(viewDate.getFullYear(), viewDate.getMonth())).fill(null).map((_, i) => <div key={i} />)}
+            {Array.from({ length: daysInMonth(viewDate.getFullYear(), viewDate.getMonth()) }, (_, i) => i + 1).map((day) => (
               <button
                 key={day}
+                type="button"
                 onClick={() => handleDateClick(day)}
-                className={`py-2 text-xs font-bold rounded-xl transition-all ${value && new Date(value).getDate() === day && new Date(value).getMonth() === viewDate.getMonth() ? "bg-[#f3a638] text-white" : "hover:bg-orange-50 text-gray-600"}`}
+                className={`py-2 text-xs font-bold rounded-xl transition-all ${value && new Date(value).getDate() === day && new Date(value).getMonth() === viewDate.getMonth() && new Date(value).getFullYear() === viewDate.getFullYear() ? "bg-[#f3a638] text-white" : "hover:bg-orange-50 text-gray-600"}`}
               >
                 {day}
               </button>
@@ -252,7 +218,7 @@ export const CustomMonthPicker = ({ value, onChange, className = "" }) => {
       </div>
 
       {show && (
-        <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-100 shadow-2xl rounded-[30px] p-5 z-100 animate-in fade-in zoom-in duration-200">
+        <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-100 shadow-2xl rounded-[30px] p-5 z-100 ">
           <div className="flex items-center justify-between mb-4 bg-orange-50/50 p-2 rounded-2xl">
             <span className="text-[10px] font-black text-[#f3a638] ml-2 uppercase">
               ปี พ.ศ.
