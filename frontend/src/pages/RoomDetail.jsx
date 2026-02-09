@@ -22,15 +22,23 @@ import {
   HeartPulse,
   UserPlus,
 } from "lucide-react";
+<<<<<<< Updated upstream
 import { OrangeButton, ExitButton } from "../components/ActionButtons";
 import RoomHeader from "../components/RoomHeader";
 import TenantInfoModal from "../components/TenantInfoModal";
+=======
+import { OrangeButton, BlueButton } from "../components/ActionButtons";
+import RoomHeader from "../components/RoomHeader";
+>>>>>>> Stashed changes
 
 const RoomDetail = () => {
   const { roomNumber } = useParams();
   const navigate = useNavigate();
   const [tenant, setTenant] = useState(null);
+<<<<<<< Updated upstream
   const [isModalOpen, setIsModalOpen] = useState(false);
+=======
+>>>>>>> Stashed changes
 
   // --- Mock Data Logic ---
   useEffect(() => {
@@ -53,10 +61,14 @@ const RoomDetail = () => {
         vehicleNum1: "กข-1234",
         vehicleDetail1: "Honda Civic สีขาว",
         keyCard1: "KC-201-01",
+<<<<<<< Updated upstream
         keyCard2: "KC-201-02",
 
         isLaundryService: true,
         InternetDeviceCount: 2,
+=======
+        isLaundryService: true,
+>>>>>>> Stashed changes
         note: "แพ้อาหารทะเล, จอดรถที่โซน A",
         outstandingBalance: 3550,
         checkInDate: "01/01/2025",
@@ -113,15 +125,24 @@ const RoomDetail = () => {
                           วันที่แจ้ง
                         </p>
                         <p className="text-md font-bold text-gray-700">
+<<<<<<< Updated upstream
                           02/02/2568
+=======
+                          02/02/2026
+>>>>>>> Stashed changes
                         </p>
                       </div>
                       <div className="flex flex-col items-start justify-center">
                         <p className="text-[12px] font-black text-red-400">
                           สถานะ
                         </p>
+<<<<<<< Updated upstream
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-white text-orange-600">
                           รอดำเนินการ
+=======
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-orange-100 text-orange-600">
+                          ● รอดำเนินการ
+>>>>>>> Stashed changes
                         </span>
                       </div>
                     </div>
@@ -175,6 +196,7 @@ const RoomDetail = () => {
                     ข้อมูลผู้เช่า
                   </h3>
                   <div className="flex gap-2 sm:w-auto">
+<<<<<<< Updated upstream
                     <OrangeButton
                       label="ดูข้อมูล"
                       icon={ExternalLink}
@@ -182,6 +204,18 @@ const RoomDetail = () => {
                       onClick={() => setIsModalOpen(true)}
                     />
                     
+=======
+                    <BlueButton
+                      label="ข้อมูลทั้งหมด"
+                      icon={ExternalLink}
+                      className="flex-1  py-2! px-4! text-xs!"
+                    />
+                    <OrangeButton
+                      label="แก้ไขข้อมูล"
+                      icon={Edit3}
+                      className="flex-1 py-2! px-4! text-xs!"
+                    />
+>>>>>>> Stashed changes
                   </div>
                 </div>
 
@@ -233,7 +267,11 @@ const RoomDetail = () => {
                 <div className="p-3 md:p-5 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50/20">
                     {/* Icon ทรงมนที่ดูซอฟต์ลง */}
                   <h3 className="text-xl font-black text-gray-700 flex items-center gap-3">
+<<<<<<< Updated upstream
                     <div className="w-10 h-10 bg-orange-50 rounded-2xl flex items-center justify-center text-[#f3a638] shrink-0 ">
+=======
+                    <div className="w-10 h-10 bg-orange-50 rounded-2xl flex items-center justify-center text-[#f3a638] shrink-0 border border-orange-200">
+>>>>>>> Stashed changes
                       <FileText size={24} />
                     </div>
                         ไฟล์เอกสาร
@@ -289,6 +327,7 @@ const RoomDetail = () => {
                 </div>
 
                 {/* Footer: หมายเหตุ (ถ้ามี) */}
+<<<<<<< Updated upstream
                 {/* แสดงส่วนหมายเหตุเฉพาะในกรณีที่มีข้อมูลเท่านั้น */}
 {tenant.note && (
   <div className="p-5 bg-orange-50/50 border-t border-orange-100">
@@ -303,6 +342,19 @@ const RoomDetail = () => {
     </p>
   </div>
 )}
+=======
+                <div className="p-5 bg-orange-50/50 border-t border-orange-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-1.5 h-1.5 bg-[#f3a638] rounded-full"></div>
+                    <p className="text-[10px] font-black text-[#f3a638] uppercase tracking-widest">
+                      หมายเหตุพิเศษ
+                    </p>
+                  </div>
+                  <p className="text-sm font-bold text-gray-600 italic pl-3.5">
+                    "{tenant.note || "ไม่มีข้อมูลเพิ่มเติม"}"
+                  </p>
+                </div>
+>>>>>>> Stashed changes
               </section>
             </div>
           </div>
@@ -327,6 +379,7 @@ const RoomDetail = () => {
           </div>
         )}
       </RoomHeader>
+<<<<<<< Updated upstream
 
 {/* แสดงข้อมูลผู้เช่า */}
 
@@ -342,6 +395,8 @@ const RoomDetail = () => {
   }}
 />
 )}
+=======
+>>>>>>> Stashed changes
     </div>
   );
 };
@@ -363,6 +418,9 @@ const InfoItem = ({ label, value, icon, valueClassName = "text-gray-800" }) => (
   </div>
 );
 
+<<<<<<< Updated upstream
 
 
+=======
+>>>>>>> Stashed changes
 export default RoomDetail;
