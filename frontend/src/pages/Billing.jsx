@@ -24,6 +24,8 @@ import {
   WhiteButton,
 } from "../components/ActionButtons";
 import { useNavigate } from "react-router-dom";
+import { CustomMonthPicker } from "../components/DateController"; 
+
 
 const Billing = () => {
   const [selectedDate, setSelectedDate] = useState(
@@ -163,31 +165,26 @@ const Billing = () => {
         {/* --- Toolbar & Action Buttons --- */}
         <div className="flex flex-col gap-6 mb-10">
           {/* ส่วนที่ 1: รอบบิล และ สร้างบิลใหม่ */}
-          <div className="flex flex-col md:flex-row items-center justify-center gap-4">
-            <div className="flex items-center gap-3 w-full md:w-auto">
-              <span className="font-bold text-gray-600">รอบบิล</span>
-              <div className="relative flex-1 md:w-64">
-                <CalendarIcon
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                  size={20}
-                />
-                <input
-                  type="month"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#f3a638] font-bold"
-                />
-              </div>
-            </div>
-            <OrangeButton
-              label="สร้างบิลใหม่"
-               onClick={() => {
-                  alert("สร้างบิลสำเร็จ!");}}
-              className="shadow-md"
-              icon={Plus}
-              
-            />
-          </div>
+          {/* --- ค้นหาบรรทัด "ส่วนที่ 1: รอบบิล" และแก้เป็นโค้ดนี้ --- */}
+<div className="flex flex-col md:flex-row items-center justify-center gap-4">
+  <div className="flex items-center gap-3 w-full md:w-auto">
+    <span className="font-bold text-gray-600 shrink-0">รอบบิล</span>
+    
+    {/* แทนที่ div relative เดิมด้วย Component ใหม่ */}
+    <CustomMonthPicker 
+      value={selectedDate}
+      onChange={(value) => setSelectedDate(value)}
+      className="w-full md:w-64" 
+    />
+  </div>
+  
+  <OrangeButton
+    label="สร้างบิลใหม่"
+    onClick={() => { alert("สร้างบิลสำเร็จ!"); }}
+    className="shadow-md w-full md:w-auto" // เพิ่ม w-full ในมือถือ
+    icon={Plus}
+  />
+</div>
 
           {/* ส่วนที่ 2: Search และ Filter (จัดกลางหน้า) */}
           <div className="flex flex-col px-4 w-full max-w-3xl mx-auto md:flex-row items-center gap-4">
