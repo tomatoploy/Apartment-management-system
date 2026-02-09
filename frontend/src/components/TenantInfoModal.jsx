@@ -129,44 +129,51 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
               </h2>
             </div>
           </div>
+{/* --- ส่วน Header (แก้ไขเฉพาะในกลุ่มปุ่มบันทึก/ยกเลิก) --- */}
+<div className="flex flex-row-reverse items-center gap-2 md:gap-3 shrink-0">
+  <ExitButton onClick={onClose} />
+  {!isEditMode ? (
+    <button
+      onClick={() => setIsEditMode(true)}
+      className="flex items-center gap-2 px-3 md:px-4 py-2.5 bg-orange-100 text-[#f3a638] rounded-2xl font-black hover:bg-orange-200 transition-all text-xs md:text-sm shadow-sm"
+    >
+      <Edit3 size={16} />
+      <span className="hidden sm:inline">แก้ไข</span>
+    </button>
+  ) : (
+    <div className="flex flex-row-reverse items-center gap-2">
+      {/* ปุ่มบันทึก: แสดง Icon บนมือถือ, แสดงข้อความบน Desktop */}
+      <button
+        onClick={handleSave}
+        className="flex items-center gap-2 px-3 md:px-4 py-2.5 bg-[#f3a638] text-white rounded-2xl font-black shadow-lg shadow-orange-100 hover:brightness-95 transition-all text-xs md:text-sm"
+        title="บันทึก"
+      >
+        <Save size={16} />
+        <span className="hidden sm:inline">บันทึก</span>
+      </button>
 
-          <div className="flex flex-row-reverse items-center gap-2 md:gap-3 shrink-0">
-            <ExitButton onClick={onClose} />
-            {!isEditMode ? (
-              <button
-                onClick={() => setIsEditMode(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-orange-100 text-[#f3a638] rounded-2xl font-black hover:bg-orange-200 transition-all text-xs md:text-sm shadow-sm"
-              >
-                <Edit3 size={16} />
-                <span className="hidden sm:inline">แก้ไข</span>
-              </button>
-            ) : (
-              <div className="flex flex-row-reverse items-center gap-2">
-                <button
-                  onClick={handleSave}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-[#f3a638] text-white rounded-2xl font-black shadow-lg shadow-orange-100 hover:brightness-95 transition-all text-xs md:text-sm"
-                >
-                  <span className="hidden sm:inline">บันทึก</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setIsEditMode(false);
-                    setFormData(tenant);
-                  }}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-500 rounded-2xl font-black hover:bg-gray-200 transition-all text-xs md:text-sm"
-                >
-                  <span className="hidden sm:inline">ยกเลิก</span>
-                </button>
-              </div>
-            )}
-          </div>
+      {/* ปุ่มยกเลิก: แสดง Icon บนมือถือ, แสดงข้อความบน Desktop */}
+      <button
+        onClick={() => {
+          setIsEditMode(false);
+          setFormData(tenant);
+        }}
+        className="flex items-center gap-2 px-3 md:px-4 py-2.5 bg-gray-100 text-gray-500 rounded-2xl font-black hover:bg-gray-200 transition-all text-xs md:text-sm"
+        title="ยกเลิก"
+      >
+        <RotateCcw size={16} />
+        <span className="hidden sm:inline">ยกเลิก</span>
+      </button>
+    </div>
+  )}
+</div>
         </div>
 
         {/* --- Body: ส่วนเนื้อหาที่ Scroll ได้ --- */}
         <div className="flex-1 overflow-y-auto p-6 md:py-4 md:px-10  bg-white">
-          <div className="flex flex-col lg:flex-row gap-10">
+          <div className="flex  flex-col lg:flex-row gap-10">
             {/* Sidebar: Photo & Quick Status */}
-            <div className="w-full lg:w-1/4 flex flex-col gap-5">
+            <div className="w-full max-w-50 mx-auto lg:mx-0 flex flex-col gap-5">
               <div className="w-full aspect-square bg-gray-50 rounded-[35px] border-4 border-white shadow-sm overflow-hidden flex items-center justify-center relative group transition-all duration-300 hover:shadow-md">
                 {formData.photo ? (
                   <img
