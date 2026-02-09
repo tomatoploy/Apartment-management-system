@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X } from "lucide-react";
-
+import { X, Loader2 } from "lucide-react";
 
 const ChangeMeterModal = ({ isOpen, onClose, onSave, room, meterType }) => {
  const [formData, setFormData] = useState({
@@ -8,16 +7,33 @@ const ChangeMeterModal = ({ isOpen, onClose, onSave, room, meterType }) => {
    newMeterStart: "",
  });
 
+ const [isSubmitting, setIsSubmitting] = useState(false);
 
  // Reset form เมื่อเปิด Modal ใหม่
- useEffect(() => {
-   if (isOpen) {
-     setFormData({
-       oldMeterEnd: room?.oldMeterEnd || "",
-       newMeterStart: room?.newMeterStart || "",
-     });
-   }
- }, [isOpen, room]);
+  useEffect(() => {
+    if (!isOpen || !room) return;
+
+    setIsSubmitting(false);
+
+    // ดึงค่าจาก room มาใส่ในฟอร์ม (Reset Form)
+    if (meterType === "electricity") {
+      const oldVal = room.changeElectricityMeterEnd;
+      const newVal = room.changeElectricityMeterStart;
+
+      setFormData({
+        oldMeterEnd: oldVal ?? "", // ถ้าเป็น null/undefined ให้เป็น ""
+        newMeterStart: newVal ?? "",
+      });
+    } else {
+      const oldVal = room.changeWaterMeterEnd;
+      const newVal = room.changeWaterMeterStart;
+
+      setFormData({
+        oldMeterEnd: oldVal ?? "",
+        newMeterStart: newVal ?? "",
+      });
+    }
+  }, [isOpen, room, meterType]);
 
  // ฟังก์ชัน Helper: ตรวจสอบ Regex (ให้พิมพ์ได้แค่ตัวเลขและจุดทศนิยม)
  const validateNumber = (val) => /^\d*\.?\d*$/.test(val);
@@ -29,10 +45,25 @@ const ChangeMeterModal = ({ isOpen, onClose, onSave, room, meterType }) => {
    }
  };
 
- const handleSubmit = () => {
-   onSave(room.id, meterType, formData);
-   onClose();
- };
+  const handleSubmit = async () => {
+    const oldVal = formData.oldMeterEnd === "" ? null : Number(formData.oldMeterEnd);
+    const newVal = formData.newMeterStart === "" ? null : Number(formData.newMeterStart);
+
+    if (oldVal != null && oldVal < 0) return;
+    if (newVal != null && newVal < 0) return;
+
+    // ✅ เปิด Loading
+    setIsSubmitting(true);
+
+    // ส่งข้อมูลกลับไปให้ Meter.jsx (ซึ่งตอนนี้เป็น async แล้ว)
+    await onSave(room.roomId, meterType, {
+      oldMeterEnd: oldVal,
+      newMeterStart: newVal,
+    });
+    
+    // ไม่ต้องสั่ง onClose() ที่นี่ เพราะ Meter.jsx จะสั่งปิดเมื่อเสร็จ
+    setIsSubmitting(false);
+  };
 
  // เช็คคลิกพื้นหลังเพื่อปิด
  const handleBackdropClick = (e) => {
@@ -41,14 +72,13 @@ const ChangeMeterModal = ({ isOpen, onClose, onSave, room, meterType }) => {
 
  if (!isOpen) return null;
 
-
  // Background Modal
  const modalBgColor = meterType === "water" ? "bg-[#E0F2FE]" : "bg-[#FFF7ED]";
-
 
  const meterLabel = meterType === "water" ? "มิเตอร์น้ำ" : "มิเตอร์ไฟ";
  // กำหนดสีหัวข้อตามประเภทมิเตอร์ (Optional: เพื่อความสวยงามแยกประเภท)
 
+const isInvalid = formData.oldMeterEnd === "" && formData.newMeterStart === "";
 
  return (
    <div
@@ -59,7 +89,7 @@ const ChangeMeterModal = ({ isOpen, onClose, onSave, room, meterType }) => {
        {/* Header */}
        <div className="relative flex items-center justify-center mb-8">
          <h2 className="text-xl font-bold text-gray-800">
-           เปลี่ยน<span className="text-gray-800">{meterLabel}</span> ห้อง {room?.roomId}
+           เปลี่ยน<span className="text-gray-800">{meterLabel}</span> ห้อง {room?.roomNumber}
          </h2>
          <button
            onClick={onClose}
@@ -82,12 +112,11 @@ const ChangeMeterModal = ({ isOpen, onClose, onSave, room, meterType }) => {
              type="text"
              inputMode="decimal"
              name="oldMeterEnd"
-             value={formData.oldMeterEnd}
+             value={formData.oldMeterEnd ?? ""}
              onChange={handleChange}
              className="w-1/2 p-2 bg-gray-50 border border-transparent focus:bg-white focus:border-[#f3a638] rounded-xl outline-none text-center font-bold text-lg shadow-sm transition-all text-gray-700"
            />
          </div>
-
 
          {/* Input 2: เลขใหม่ */}
          <div className="flex items-center justify-between gap-4">
@@ -98,7 +127,7 @@ const ChangeMeterModal = ({ isOpen, onClose, onSave, room, meterType }) => {
              type="text"
              inputMode="decimal"
              name="newMeterStart"
-             value={formData.newMeterStart}
+             value={formData.newMeterStart ?? ""}
              onChange={handleChange}
              className="w-1/2 p-2 bg-gray-50 border border-transparent focus:bg-white focus:border-[#46d39a] rounded-xl outline-none text-center font-bold text-lg shadow-sm transition-all text-gray-700"
            />
@@ -106,20 +135,44 @@ const ChangeMeterModal = ({ isOpen, onClose, onSave, room, meterType }) => {
        </div>
 
        {/* Footer Buttons */}
-       <div className="flex gap-4">
-         <button
-           onClick={onClose}
-           className="flex-1 py-2.5 bg-[#FF6B6B] hover:bg-[#e55a5a] text-white rounded-2xl font-bold shadow-md transition-all active:scale-95"
-         >
-           ยกเลิก
-         </button>
-         <button
-           onClick={handleSubmit}
-           className="flex-1 py-2.5 bg-[#46d39a] hover:bg-[#3fba89] text-white rounded-2xl font-bold shadow-md transition-all active:scale-95"
-         >
-           บันทึก
-         </button>
-       </div>
+       {/* Footer Buttons */}
+        <div className="flex gap-4 h-12"> {/* ✅ กำหนดความสูง h-12 ให้ Container เพื่อล็อคความสูง */}
+          
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            // ❌ ลบ active:scale-95 ออก เพื่อไม่ให้ปุ่มหด
+            className="flex-1 rounded-2xl font-bold shadow-md text-white bg-[#FF6B6B] hover:bg-[#e55a5a] disabled:opacity-50 transition-colors"
+          >
+            ยกเลิก
+          </button>
+
+          <button
+            onClick={handleSubmit}
+            disabled={isInvalid || isSubmitting}
+            // ❌ ลบ active:scale-95 ออก
+            // ✅ เพิ่ม relative เพื่อให้ icon หมุนๆ ลอยอยู่ตรงกลางได้โดยไม่ดัน text
+            className="flex-1 relative rounded-2xl font-bold shadow-md text-white bg-[#46d39a] hover:bg-[#3fba89] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {/* เทคนิค: 
+               1. ใส่ text "บันทึก" ไว้ตลอดเวลาเพื่อให้ปุ่มมีความกว้างเท่าเดิมเสมอ
+               2. ถ้า load อยู่ ให้ซ่อน text ด้วย opacity-0 (แต่พื้นที่ยังอยู่)
+            */}
+            <span className={`transition-opacity ${isSubmitting ? "opacity-0" : "opacity-100"}`}>
+              บันทึก
+            </span>
+
+            {/* เทคนิค:
+               3. เอาตัวหมุน (Loader) มาวางซ้อนทับตรงกลาง (absolute inset-0)
+            */}
+            {isSubmitting && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Loader2 className="animate-spin" size={20} />
+              </div>
+            )}
+          </button>
+
+        </div>
 
      </div>
    </div>

@@ -1,7 +1,11 @@
+import { useState } from "react";
+
 import { Wrench, Sparkles, LogOut, FileText, Clock, CheckCircle2, XCircle } from "lucide-react";
 
-const RequestItem = ({ req, onClick }) => {
+const RequestItem = ({ req, onClick, onChangeStatus }) => {
   // ย้าย Config มาไว้ที่นี่เพื่อให้ Item จัดการการแสดงผลด้วยตัวเอง
+  const [openStatus, setOpenStatus] = useState(false);
+
   const subjectConfig = {
     fix: { label: "แจ้งซ่อม", icon: <Wrench size={32} />, color: "bg-[#D8B4FE] text-[#6B21A8]" },
     clean: { label: "ทำความสะอาด", icon: <Sparkles size={32} />, color: "bg-[#BAE6FD] text-[#0369A1]" },
@@ -17,6 +21,7 @@ const RequestItem = ({ req, onClick }) => {
 
   const subject = subjectConfig[req.subject] || subjectConfig.other;
   const status = statusConfig[req.status] || statusConfig.pending;
+  
 
   // ฟังก์ชันแปลงวันที่เป็นรูปแบบไทย
   const formatThaiDate = (dateString) => {
@@ -36,7 +41,7 @@ const RequestItem = ({ req, onClick }) => {
   return (
     <div
       onClick={onClick}
-      className="flex overflow-hidden max-w-3xl mx-auto items-center gap-6 bg-gray-50 border border-gray-300 p-5 rounded-[25px] hover:shadow-md transition-all cursor-pointer group w-full"
+      className="flex overflow-visible max-w-3xl mx-auto items-center gap-6 bg-gray-50 border border-gray-300 p-5 rounded-[25px] hover:shadow-md transition-all cursor-pointer group w-full"
     >
       {/* ไอคอนตามประเภทเรื่อง */}
       <div className={`p-4 rounded-2xl ${subject.color} shrink-0 transition-transform group-hover:scale-110`}>
@@ -46,7 +51,7 @@ const RequestItem = ({ req, onClick }) => {
       {/* ข้อมูลเนื้อหา */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-3 mb-1">
-          <span className="text-2xl font-bold text-gray-800">{req.roomId}</span>
+          <span className="text-2xl font-bold text-gray-800">{req.roomNumber}</span>
         </div>
         <p className="font-bold text-gray-700">{subject.label}</p>
         <p className="text-sm text-gray-500 truncate">{req.body}</p>
@@ -54,12 +59,41 @@ const RequestItem = ({ req, onClick }) => {
 
       {/* ส่วนสถานะและวันที่ (ฝั่งขวาสุด) */}
       <div className="flex flex-col justify-between items-end self-stretch min-w-30 sm:min-w-35">
-        <span
-          className={`w-28 py-1.5 rounded-full text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all group-hover:scale-105 ${status.color}`}
-        >
-          {status.icon}
-          {status.label}
-        </span>
+        <div className="relative">
+<button
+  onClick={(e) => {
+    e.stopPropagation();
+    setOpenStatus((prev) => !prev);
+  }}
+  className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 ${status.color}`}
+>
+  {status.icon}
+  {status.label}
+</button>
+
+{openStatus && (
+  <div
+    className="absolute right-0 mt-2 w-36 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
+    onClick={(e) => e.stopPropagation()}
+  >
+    {Object.entries(statusConfig).map(([key, cfg]) => (
+      <button
+        key={key}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpenStatus(false);
+          onChangeStatus(req.id, key);
+        }}
+        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+      >
+        {cfg.icon}
+        {cfg.label}
+      </button>
+    ))}
+  </div>
+)}
+
+</div>
 
         <div className="text-right">
           <p className="text-[10px] sm:text-[11px] text-gray-400 font-semibold tracking-wide uppercase">
