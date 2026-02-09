@@ -40,6 +40,15 @@ const DisplayItem = ({ label, value, icon: Icon, isFullWidth }) => (
   </div>
 );
 
+// โหมดแก้ไข (Edit Mode)
+// --- Components ย่อยสำหรับการจัดการ Style ---
+
+const FieldLabel = ({ children, required }) => (
+  <label className="text-[13px] font-bold text-gray-500 ml-1">
+    {children} {required && <span className="text-red-500">*</span>}
+  </label>
+);
+
 const EditInput = ({
   label,
   name,
@@ -48,38 +57,38 @@ const EditInput = ({
   type = "text",
   isFullWidth,
   required,
+  placeholder,
 }) => {
-  // 1. สร้าง Ref เพื่ออ้างอิงถึงตัว input
   const inputRef = React.useRef(null);
 
-  // 2. ฟังก์ชันสั่งเปิด Picker เมื่อคลิกที่ช่อง
   const handleInputClick = () => {
     if (type === "date" && inputRef.current) {
       try {
-        // สั่งเปิดหน้าต่างเลือกวันที่ (สนับสนุนใน Chrome/Edge/Safari รุ่นใหม่)
         inputRef.current.showPicker();
       } catch (error) {
-        // Fallback สำหรับเบราว์เซอร์ที่ไม่รองรับ
         inputRef.current.focus();
       }
     }
   };
 
   return (
-    <div className={`${isFullWidth ? "md:col-span-2" : "col-span-1"} flex flex-col gap-1`}>
-      <label className="text-[13px] font-bold text-gray-600 ml-1">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
+    <div
+      className={`${isFullWidth ? "md:col-span-2" : "col-span-1"} flex flex-col`}
+    >
+      {label && <FieldLabel required={required}>{label}</FieldLabel>}
+
       <input
-        ref={inputRef} // เชื่อม Ref เข้ากับ input
+        ref={inputRef}
         type={type}
         name={name}
         value={value || ""}
         onChange={onChange}
-        onClick={handleInputClick} // เพิ่ม event onClick
-        className={`w-full p-3 bg-white border-2 border-orange-100 rounded-2xl focus:outline-none focus:border-[#f3a638] transition-all font-medium text-gray-700 shadow-sm ${
-          type === "date" ? "cursor-pointer" : ""
-        }`}
+        onClick={handleInputClick}
+        placeholder={placeholder}
+        className={`w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl 
+          focus:outline-none focus:border-[#f3a638] transition-all 
+          placeholder:text-gray-400 font-medium text-gray-700
+          ${type === "date" ? "cursor-pointer" : ""}`}
       />
     </div>
   );
@@ -129,44 +138,44 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
               </h2>
             </div>
           </div>
-{/* --- ส่วน Header (แก้ไขเฉพาะในกลุ่มปุ่มบันทึก/ยกเลิก) --- */}
-<div className="flex flex-row-reverse items-center gap-2 md:gap-3 shrink-0">
-  <ExitButton onClick={onClose} />
-  {!isEditMode ? (
-    <button
-      onClick={() => setIsEditMode(true)}
-      className="flex items-center gap-2 px-3 md:px-4 py-2.5 bg-orange-100 text-[#f3a638] rounded-2xl font-black hover:bg-orange-200 transition-all text-xs md:text-sm shadow-sm"
-    >
-      <Edit3 size={16} />
-      <span className="hidden sm:inline">แก้ไข</span>
-    </button>
-  ) : (
-    <div className="flex flex-row-reverse items-center gap-2">
-      {/* ปุ่มบันทึก: แสดง Icon บนมือถือ, แสดงข้อความบน Desktop */}
-      <button
-        onClick={handleSave}
-        className="flex items-center gap-2 px-3 md:px-4 py-2.5 bg-[#f3a638] text-white rounded-2xl font-black shadow-lg shadow-orange-100 hover:brightness-95 transition-all text-xs md:text-sm"
-        title="บันทึก"
-      >
-        <Save size={16} />
-        <span className="hidden sm:inline">บันทึก</span>
-      </button>
+          {/* --- ส่วน Header (แก้ไขเฉพาะในกลุ่มปุ่มบันทึก/ยกเลิก) --- */}
+          <div className="flex flex-row-reverse items-center gap-2 md:gap-3 shrink-0">
+            <ExitButton onClick={onClose} />
+            {!isEditMode ? (
+              <button
+                onClick={() => setIsEditMode(true)}
+                className="flex items-center gap-2 px-3 md:px-4 py-2.5 bg-orange-100 text-[#f3a638] rounded-2xl font-black hover:bg-orange-200 transition-all text-xs md:text-sm shadow-sm"
+              >
+                <Edit3 size={16} />
+                <span className="hidden sm:inline">แก้ไข</span>
+              </button>
+            ) : (
+              <div className="flex flex-row-reverse items-center gap-2">
+                {/* ปุ่มบันทึก: แสดง Icon บนมือถือ, แสดงข้อความบน Desktop */}
+                <button
+                  onClick={handleSave}
+                  className="flex items-center gap-2 px-3 md:px-4 py-2.5 bg-[#f3a638] text-white rounded-2xl font-black shadow-lg shadow-orange-100 hover:brightness-95 transition-all text-xs md:text-sm"
+                  title="บันทึก"
+                >
+                  <Save size={16} />
+                  <span className="hidden sm:inline">บันทึก</span>
+                </button>
 
-      {/* ปุ่มยกเลิก: แสดง Icon บนมือถือ, แสดงข้อความบน Desktop */}
-      <button
-        onClick={() => {
-          setIsEditMode(false);
-          setFormData(tenant);
-        }}
-        className="flex items-center gap-2 px-3 md:px-4 py-2.5 bg-gray-100 text-gray-500 rounded-2xl font-black hover:bg-gray-200 transition-all text-xs md:text-sm"
-        title="ยกเลิก"
-      >
-        <RotateCcw size={16} />
-        <span className="hidden sm:inline">ยกเลิก</span>
-      </button>
-    </div>
-  )}
-</div>
+                {/* ปุ่มยกเลิก: แสดง Icon บนมือถือ, แสดงข้อความบน Desktop */}
+                <button
+                  onClick={() => {
+                    setIsEditMode(false);
+                    setFormData(tenant);
+                  }}
+                  className="flex items-center gap-2 px-3 md:px-4 py-2.5 bg-gray-100 text-gray-500 rounded-2xl font-black hover:bg-gray-200 transition-all text-xs md:text-sm"
+                  title="ยกเลิก"
+                >
+                  <RotateCcw size={16} />
+                  <span className="hidden sm:inline">ยกเลิก</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* --- Body: ส่วนเนื้อหาที่ Scroll ได้ --- */}
@@ -264,15 +273,15 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
               <SectionHeader title="ข้อมูลส่วนบุคคล" icon={Info} />
               {isEditMode ? (
                 <>
-                  <div className="col-span-1 flex flex-col gap-1">
-                    <label className="text-[13px] font-bold text-gray-600 ml-1">
+                  <div className="col-span-1 flex flex-col ">
+                    <label className="text-[13px] font-bold text-gray-500 ml-1">
                       คำนำหน้า
                     </label>
                     <select
                       name="title"
                       value={formData.title}
                       onChange={handleChange}
-                      className="w-full p-3 bg-white border-2 border-orange-100 rounded-2xl focus:outline-none focus:border-[#f3a638] font-medium text-gray-700 shadow-sm"
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#f3a638] transition-all font-medium text-gray-700 cursor-pointer"
                     >
                       <option value="นาย">นาย</option>
                       <option value="นางสาว">นางสาว</option>
@@ -305,10 +314,12 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                     value={formData.nin}
                     onChange={handleChange}
                   />
-                  <DateInput label="วันเกิด" 
-                  name="birthDate" 
-                  value={formData.birthDate} 
-                  onChange={handleChange} />
+                  <DateInput
+                    label="วันเกิด"
+                    name="birthDate"
+                    value={formData.birthDate}
+                    onChange={handleChange}
+                  />
                 </>
               ) : (
                 <>
@@ -324,8 +335,11 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                     icon={CreditCard}
                   />
                   <DisplayItem label="ชื่อเล่น" value={formData.nickName} />
-                  <DisplayItem label="วันเกิด" value={toThaiDate(formData.birthDate)} icon={Calendar} />
-                  
+                  <DisplayItem
+                    label="วันเกิด"
+                    value={toThaiDate(formData.birthDate)}
+                    icon={Calendar}
+                  />
                 </>
               )}
 
@@ -351,15 +365,15 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                     onChange={handleChange}
                     isFullWidth
                   />
-                  <div className="col-span-1 md:col-span-2 flex flex-col gap-1">
-                    <label className="text-[13px] font-bold text-gray-600 ml-1">
-                      ที่อยู่
-                    </label>
+                  <div className="col-span-1 md:col-span-2 flex flex-col">
+                    <FieldLabel>ที่อยู่</FieldLabel>
                     <textarea
                       name="address"
                       value={formData.address}
                       onChange={handleChange}
-                      className="w-full p-3 bg-white border-2 border-orange-100 rounded-2xl min-h-20 focus:outline-none focus:border-[#f3a638] font-medium text-gray-700 shadow-sm"
+                      rows="2"
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl min-h-20 focus:outline-none focus:border-[#f3a638] transition-all font-medium text-gray-700"
+                      placeholder="กรอกที่อยู่ปัจจุบัน..."
                     />
                   </div>
                 </>
@@ -435,7 +449,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                     value={formData.vehicleDetail2}
                     onChange={handleChange}
                   />
-                  <div className="col-span-1 md:col-span-2 grid grid-cols-3 gap-3 mt-2">
+                  <div className="col-span-1 md:col-span-2 grid grid-cols-3 gap-3 ">
                     <EditInput
                       label="คีย์การ์ด 1"
                       name="keyCard1"
@@ -501,7 +515,8 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                     name="note"
                     value={formData.note}
                     onChange={handleChange}
-                    className="w-full p-4 bg-white border-2 border-orange-100 rounded-3xl min-h-25 focus:outline-none focus:border-[#f3a638] font-medium text-gray-700 shadow-sm"
+                    rows="3"
+                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-[30px] min-h-25 focus:outline-none focus:border-[#f3a638] transition-all font-medium text-gray-700"
                     placeholder="บันทึกข้อมูลเพิ่มเติม..."
                   />
                 ) : (
