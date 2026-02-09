@@ -22,6 +22,7 @@ import {
   HeartPulse,
   UserPlus,
 } from "lucide-react";
+
 import { OrangeButton, ExitButton } from "../components/ActionButtons";
 import RoomHeader from "../components/RoomHeader";
 import TenantInfoModal from "../components/TenantInfoModal";
@@ -30,7 +31,9 @@ const RoomDetail = () => {
   const { roomNumber } = useParams();
   const navigate = useNavigate();
   const [tenant, setTenant] = useState(null);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
+s
 
   // --- Mock Data Logic ---
   useEffect(() => {
@@ -53,10 +56,12 @@ const RoomDetail = () => {
         vehicleNum1: "กข-1234",
         vehicleDetail1: "Honda Civic สีขาว",
         keyCard1: "KC-201-01",
+
         keyCard2: "KC-201-02",
 
         isLaundryService: true,
-        InternetDeviceCount: 2,
+
+        internetDeviceCount: 2,
         note: "แพ้อาหารทะเล, จอดรถที่โซน A",
         outstandingBalance: 3550,
         checkInDate: "01/01/2025",
@@ -113,7 +118,7 @@ const RoomDetail = () => {
                           วันที่แจ้ง
                         </p>
                         <p className="text-md font-bold text-gray-700">
-                          02/02/2568
+                          02/02/2026
                         </p>
                       </div>
                       <div className="flex flex-col items-start justify-center">
@@ -122,6 +127,7 @@ const RoomDetail = () => {
                         </p>
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-white text-orange-600">
                           รอดำเนินการ
+                        
                         </span>
                       </div>
                     </div>
@@ -180,8 +186,7 @@ const RoomDetail = () => {
                       icon={ExternalLink}
                       className="flex-1  py-2! px-4! text-xs!"
                       onClick={() => setIsModalOpen(true)}
-                    />
-                    
+                    />       
                   </div>
                 </div>
 
