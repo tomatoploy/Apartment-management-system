@@ -1,5 +1,5 @@
 import React from "react";
-import { Download, Printer, FileText, Send, Plus } from "lucide-react";
+import { Download, Printer, FileText, Send, Plus, X } from "lucide-react";
 
 // --- Base Component สำหรับคุมความยืดหยุ่น (Responsive) ---
 const BaseButton = ({ onClick, children, className = "", disabled = false }) => (
@@ -97,5 +97,18 @@ export const SelectAllFloorButton = ({
     className={`bg-[#AED6F1] text-[#2E86C1] px-4 py-1.5 rounded-xl font-bold text-sm hover:brightness-95 transition-all active:scale-95 ${className}`}
   >
     {label}
+  </button>
+);
+
+export const ExitButton = ({ onClick, className = "" }) => (
+  <button
+    onClick={onClick}
+    className={`p-2 hover:bg-gray-100 rounded-full transition-all duration-200 group active:scale-90 ${className}`}
+  >
+    <X 
+      size={24} 
+      strokeWidth={3} 
+      className="text-gray-400 transition-colors" 
+    />
   </button>
 );

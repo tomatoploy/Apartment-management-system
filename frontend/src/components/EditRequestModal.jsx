@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, ChevronDown, Trash2 } from "lucide-react";
+import { DateInput } from "../components/DateController";
+import { ExitButton } from "../components/ActionButtons";
 
 // ใช้ Component ภายในร่วมกันเพื่อให้ดีไซน์เหมือนเดิมเป๊ะ
 const FieldLabel = ({ children, required }) => (
@@ -61,9 +63,7 @@ const EditRequestModal = ({ isOpen, onClose, onSave, onDelete, initialData }) =>
             >
               <Trash2 size={22} />
             </button>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-              <X size={24} strokeWidth={3} className="text-gray-400" />
-            </button>
+            <ExitButton onClick={onClose} />
           </div>
         </div>
 
@@ -75,9 +75,14 @@ const EditRequestModal = ({ isOpen, onClose, onSave, onDelete, initialData }) =>
           </div>
 
           <div className="col-span-1">
-            <FieldLabel required>วันที่แจ้ง</FieldLabel>
-            <InputField type="date" name="requestDate" value={formData.requestDate} onChange={handleChange} />
-          </div>
+  <DateInput 
+    label="วันที่แจ้ง" 
+    required 
+    name="requestDate" 
+    value={formData.requestDate} 
+    onChange={handleChange} 
+  />
+</div>
 
           <div className="col-span-1">
             <FieldLabel required>เรื่องที่แจ้ง</FieldLabel>
@@ -109,10 +114,14 @@ const EditRequestModal = ({ isOpen, onClose, onSave, onDelete, initialData }) =>
             <textarea name="body" rows="3" value={formData.body} onChange={handleChange} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#f3a638]" />
           </div>
 
-          <div className="col-span-1">
-            <FieldLabel>วันนัดหมาย</FieldLabel>
-            <InputField type="date" name="appointmentDate" value={formData.appointmentDate || ""} onChange={handleChange} />
-          </div>
+        <div className="col-span-1">
+  <DateInput 
+    label="วันนัดหมาย" 
+    name="appointmentDate" 
+    value={formData.appointmentDate || ""} 
+    onChange={handleChange} 
+  />
+</div>
 
           <div className="col-span-1 relative">
             <FieldLabel>ค่าใช้จ่าย (ถ้ามี)</FieldLabel>
