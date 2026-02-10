@@ -24,8 +24,7 @@ import {
   WhiteButton,
 } from "../components/ActionButtons";
 import { useNavigate } from "react-router-dom";
-import { CustomMonthPicker } from "../components/DateController"; 
-
+import { CustomMonthPicker } from "../components/DateController";
 
 const Billing = () => {
   const [selectedDate, setSelectedDate] = useState(
@@ -156,8 +155,7 @@ const Billing = () => {
 
   // รับ Props มาจาก App.jsx
   return (
-    <div className="bg-white min-h-screen">
-      <div className="max-w-7xl mx-auto bg-white rounded-3xl p-6 shadow-lg border border-gray-200">
+    <>
         <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
           การออกบิล
         </h1>
@@ -166,25 +164,27 @@ const Billing = () => {
         <div className="flex flex-col gap-6 mb-10">
           {/* ส่วนที่ 1: รอบบิล และ สร้างบิลใหม่ */}
           {/* --- ค้นหาบรรทัด "ส่วนที่ 1: รอบบิล" และแก้เป็นโค้ดนี้ --- */}
-<div className="flex flex-col md:flex-row items-center justify-center gap-4">
-  <div className="flex items-center gap-3 w-full md:w-auto">
-    <span className="font-bold text-gray-600 shrink-0">รอบบิล</span>
-    
-    {/* แทนที่ div relative เดิมด้วย Component ใหม่ */}
-    <CustomMonthPicker 
-      value={selectedDate}
-      onChange={(value) => setSelectedDate(value)}
-      className="w-full md:w-64" 
-    />
-  </div>
-  
-  <OrangeButton
-    label="สร้างบิลใหม่"
-    onClick={() => { alert("สร้างบิลสำเร็จ!"); }}
-    className="shadow-md w-full md:w-auto" // เพิ่ม w-full ในมือถือ
-    icon={Plus}
-  />
-</div>
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4">
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <span className="font-bold text-gray-600 shrink-0">รอบบิล</span>
+
+              {/* แทนที่ div relative เดิมด้วย Component ใหม่ */}
+              <CustomMonthPicker
+                value={selectedDate}
+                onChange={(value) => setSelectedDate(value)}
+                className="w-full md:w-64"
+              />
+            </div>
+
+            <OrangeButton
+              label="สร้างบิลใหม่"
+              onClick={() => {
+                alert("สร้างบิลสำเร็จ!");
+              }}
+              className="shadow-md w-full md:w-auto" // เพิ่ม w-full ในมือถือ
+              icon={Plus}
+            />
+          </div>
 
           {/* ส่วนที่ 2: Search และ Filter (จัดกลางหน้า) */}
           <div className="flex flex-col px-4 w-full max-w-3xl mx-auto md:flex-row items-center gap-4">
@@ -227,17 +227,19 @@ const Billing = () => {
           {/* ส่วนที่ 4: โหมดเลือกห้อง */}
           <div className="flex gap-3 w-full max-w-3xl mx-auto justify-end px-4">
             {!isSelectMode ? (
-              <BlueButton label="เลือกห้อง"
-              className="w-full px-20 md:w-auto" 
-              onClick={() => setIsSelectMode(true)} />
-              
+              <BlueButton
+                label="เลือกห้อง"
+                className="w-full px-20 md:w-auto"
+                onClick={() => setIsSelectMode(true)}
+              />
             ) : (
               <>
                 <BlueButton
                   label="เลือกทั้งหมด"
                   onClick={() =>
                     setSelectedRooms(roomsData.map((r) => r.roomNumber))
-                  }                />
+                  }
+                />
                 <BlueButton
                   label="ยกเลิก"
                   onClick={() => {
@@ -304,7 +306,7 @@ const Billing = () => {
             </div>
           ))}
         </div>
-      </div>
+      
 
       {/* --- Modal ตารางสรุป --- */}
       {showSummary && (
@@ -471,7 +473,7 @@ const Billing = () => {
           ))}
         </div>
       </FilterModal>
-    </div>
+    </>
   );
 };
 

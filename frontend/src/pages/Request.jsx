@@ -164,8 +164,7 @@ const Request = () => {
     : filteredAndSortedRequests.filter(req => req.subject === activeSubject);
 
   return (
-    <div className="bg-white min-h-screen">
-      <div className="max-w-7xl mx-auto bg-white rounded-3xl p-6 shadow-lg border border-gray-200 min-h-[85vh]">
+    <>
         <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">การแจ้ง</h1>
 
         {/* Toolbar */}
@@ -313,8 +312,7 @@ const Request = () => {
             </div>
         </FilterModal>
 
-      </div>
-    </div>
+    </>
   );
 };
 
