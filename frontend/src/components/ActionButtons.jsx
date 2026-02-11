@@ -110,6 +110,8 @@ export const ExitButton = ({ onClick, className = "" }) => (
       strokeWidth={3} 
       className="text-gray-400 transition-colors" 
     />
+  </button>);
+
 export const WhiteButton = ({ label, icon: Icon, onClick, className = "" }) => (
   <button
     onClick={onClick} // ใช้ onClick จาก props

@@ -8,6 +8,7 @@ import {
   Send,
   Plus,
   X,
+  RotateCw,
   Filter as FilterIcon, // เปลี่ยนชื่อเพื่อให้ไม่ซ้ำกับตัวแปรอื่น
 } from "lucide-react";
 
@@ -24,8 +25,7 @@ import {
   WhiteButton,
 } from "../components/ActionButtons";
 import { useNavigate } from "react-router-dom";
-import { CustomMonthPicker } from "../components/DateController"; 
-
+import { CustomMonthPicker } from "../components/DateController";
 
 const Billing = () => {
   const [selectedDate, setSelectedDate] = useState(
@@ -156,154 +156,181 @@ const Billing = () => {
 
   // รับ Props มาจาก App.jsx
   return (
-    <div className="bg-white min-h-screen">
-      <div className="max-w-7xl mx-auto bg-white rounded-3xl p-6 shadow-lg border border-gray-200">
-        <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
-          การออกบิล
-        </h1>
+    <>
+      <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
+        การสร้างบิล
+      </h1>
 
-        {/* --- Toolbar & Action Buttons --- */}
-        <div className="flex flex-col gap-6 mb-10">
-          {/* ส่วนที่ 1: รอบบิล และ สร้างบิลใหม่ */}
-          {/* --- ค้นหาบรรทัด "ส่วนที่ 1: รอบบิล" และแก้เป็นโค้ดนี้ --- */}
-<div className="flex flex-col md:flex-row items-center justify-center gap-4">
-  <div className="flex items-center gap-3 w-full md:w-auto">
-    <span className="font-bold text-gray-600 shrink-0">รอบบิล</span>
-    
-    {/* แทนที่ div relative เดิมด้วย Component ใหม่ */}
-    <CustomMonthPicker 
-      value={selectedDate}
-      onChange={(value) => setSelectedDate(value)}
-      className="w-full md:w-64" 
-    />
-  </div>
-  
-  <OrangeButton
-    label="สร้างบิลใหม่"
-    onClick={() => { alert("สร้างบิลสำเร็จ!"); }}
-    className="shadow-md w-full md:w-auto" // เพิ่ม w-full ในมือถือ
-    icon={Plus}
-  />
-</div>
+      {/* --- Toolbar & Action Buttons --- */}
+      <div className="flex flex-col mx-auto gap-6 mb-10 ">
+        {/* ส่วนที่ 1: รอบบิล และ สร้างบิลใหม่ */}
+        <div className="flex flex-col md:flex-row items-center justify-center gap-4 w-full md:w-auto mx-auto">
+          {" "}
+          <div className="flex  items-center gap-3 w-full md:w-auto mx-auto">
+            <span className="font-bold text-gray-600 shrink-0 ">รอบบิล</span>
 
-          {/* ส่วนที่ 2: Search และ Filter (จัดกลางหน้า) */}
-          <div className="flex flex-col px-4 w-full max-w-3xl mx-auto md:flex-row items-center gap-4">
-            {/* Search Bar */}
-            <div className="w-full md:flex-1">
-              <SearchBar value={searchTerm} onChange={setSearchTerm} />
+            {/* แทนที่ div relative เดิมด้วย Component ใหม่ */}
+            <CustomMonthPicker
+              value={selectedDate}
+              onChange={(value) => setSelectedDate(value)}
+              className="w-full md:w-64"
+            />
+          </div>
+          <div className="flex gap-2 w-full items-center">
+            {/* ปุ่มสร้างบิลใหม่: ใช้ flex-1 เพื่อให้กินพื้นที่ส่วนใหญ่ในบรรทัดเดียวบนมือถือ */}
+            <div className="flex-1 md:flex-none">
+              <OrangeButton
+                label="สร้างบิลใหม่"
+                onClick={() => {
+                  alert("สร้างบิลสำเร็จ!");
+                }}
+                icon={Plus}
+                // ลบ w-full ออกและให้ Wrapper จัดการแทน เพื่อให้ปุ่มหด-ขยายตาม flex-1
+                className="shadow-md w-full py-2.5 px-4 "
+              />
             </div>
 
-            {/* กลุ่มปุ่ม Filter และ คำอธิบาย */}
-            <div className="flex gap-3 w-full md:w-auto">
+            {/* ปุ่มรีเฟรช*/}
+            <button
+              onClick={() => window.location.reload()}
+              className="p-3 rounded-xl border transition-all flex items-center justify-center h-10 w-10 shrink-0
+            bg-white border-gray-200 text-gray-500 hover:border-[#f3a638] hover:text-[#f3a638] hover:bg-orange-50 group"
+              title="รีเฟรชหน้า"
+            >
+              <RotateCw
+                size={20}
+                className="transition-transform duration-500 group-hover:rotate-180"
+              />
+            </button>
+          </div>
+        </div>
+
+        {/* ส่วนที่ 2: Search และ Filter (จัดกลางหน้า) */}
+        <div className="flex flex-col px-4 w-full max-w-3xl mx-auto md:flex-row items-center gap-4">
+          {/* Search Bar */}
+          <div className="w-full md:flex-1">
+            <SearchBar value={searchTerm} onChange={setSearchTerm} />
+          </div>
+
+          {/* กลุ่มปุ่ม Filter และ คำอธิบาย */}
+          <div className="flex gap-2 w-full md:w-auto">
+            {/* ปุ่ม Filter: บังคับให้ขยายเท่ากับปุ่มข้างๆ */}
+            <div className="flex-1 md:flex-none">
               <FilterButton
                 label="Filter"
                 icon={FilterIcon}
                 onClick={() => setShowFilterModal(true)}
                 activeCount={activeFilterCount}
-                className="md:flex-1 "
+                // ปรับ padding ภายในปุ่ม filter ให้เล็กลงบนมือถือเพื่อประหยัดที่
+                className="w-full h-12 px-2 md:px-4"
               />
+            </div>
 
-              <div className="flex-1 md:w-40">
-                <WhiteButton
-                  label="คำอธิบาย"
-                  icon={HelpCircle}
-                  onClick={() => setShowHelpModal(true)}
-                />
-              </div>
+            {/* ปุ่ม คำอธิบาย: บังคับให้กว้างเท่ากัน และซ่อนไอคอน HelpCircle */}
+            <div className="flex-1 md:w-40">
+              <WhiteButton
+                label="คำอธิบาย"
+                // ส่ง icon ปกติ แต่เราจะใช้ class ไปสั่งซ่อน
+                icon={HelpCircle}
+                onClick={() => setShowHelpModal(true)}
+                // ใช้ whitespace-nowrap เพื่อไม่ให้ตัวหนังสือตัดบรรทัด
+                className="w-full h-12 px-2 md:px-4 text-sm md:text-base whitespace-nowrap"
+                iconClassName="hidden md:block"
+              />
             </div>
           </div>
+        </div>
 
-          <div className="mx-auto max-w-3xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 px-4 w-full">
-            <WhiteButton label="พิมพ์บิลค่าเช่า" icon={Printer} />
-            <WhiteButton label="พิมพ์ใบสรุปบิล" icon={FileText} />
-            <DownloadButton label="ดาวน์โหลด Excel" />
-            <GreenButton
-              label={`ส่งบิล (${selectedRooms.length})`}
-              icon={Send}
-              onClick={() => setShowSummary(true)}
+        <div className="mx-auto max-w-3xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 px-4 w-full">
+          <WhiteButton label="พิมพ์บิลค่าเช่า" icon={Printer} />
+          <WhiteButton label="พิมพ์ใบสรุปบิล" icon={FileText} />
+          <DownloadButton label="ดาวน์โหลด" />
+          <GreenButton
+            label={`ส่งบิล (${selectedRooms.length})`}
+            icon={Send}
+            onClick={() => setShowSummary(true)}
+          />
+        </div>
+
+        {/* ส่วนที่ 4: โหมดเลือกห้อง */}
+        <div className="flex gap-3 w-full max-w-3xl mx-auto justify-end px-4">
+          {!isSelectMode ? (
+            <BlueButton
+              label="เลือกห้อง"
+              className="w-full px-20 md:w-auto"
+              onClick={() => setIsSelectMode(true)}
             />
-          </div>
-
-          {/* ส่วนที่ 4: โหมดเลือกห้อง */}
-          <div className="flex gap-3 w-full max-w-3xl mx-auto justify-end px-4">
-            {!isSelectMode ? (
-              <BlueButton label="เลือกห้อง"
-              className="w-full px-20 md:w-auto" 
-              onClick={() => setIsSelectMode(true)} />
-              
-            ) : (
-              <>
-                <BlueButton
-                  label="เลือกทั้งหมด"
-                  onClick={() =>
-                    setSelectedRooms(roomsData.map((r) => r.roomNumber))
-                  }                />
-                <BlueButton
-                  label="ยกเลิก"
-                  onClick={() => {
-                    setSelectedRooms([]);
-                    setIsSelectMode(false);
-                  }}
-                />
-              </>
-            )}
-          </div>
+          ) : (
+            <>
+              <BlueButton
+                label="เลือกทั้งหมด"
+                onClick={() =>
+                  setSelectedRooms(roomsData.map((r) => r.roomNumber))
+                }
+              />
+              <BlueButton
+                label="ยกเลิก"
+                onClick={() => {
+                  setSelectedRooms([]);
+                  setIsSelectMode(false);
+                }}
+              />
+            </>
+          )}
         </div>
+      </div>
 
-        {/* --- ส่วนแสดงผลห้องแยกตามชั้น --- */}
-        <div className="space-y-8">
-          {floors.map((floor) => (
-            <div
-              key={floor}
-              className="bg-gray-50 p-6 rounded-[35px] border border-gray-200 shadow-sm"
-            >
-              <div className="flex justify-between items-center mb-6 px-4">
-                <h2 className="text-xl font-bold text-gray-700">
-                  ชั้น {floor}
-                </h2>
-                <SelectAllFloorButton onClick={() => selectAllInFloor(floor)} />
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-10 justify-items-center">
-                {filteredRoomsByFloor[floor]?.map((room) => {
-                  const isSelected = selectedRooms.includes(room.roomNumber);
-                  return (
-                    <div
-                      key={room.roomId}
-                      onClick={() => {
-                        if (isSelectMode) {
-                          toggleRoomSelection(room.roomNumber);
-                        } else {
-                          navigate(`/billings/${room.roomNumber}`);
-                        }
-                      }}
-                      className="relative cursor-pointer hover:scale-105 transition-all"
-                    >
-                      <RoomCard
-                        roomNumber={room.roomNumber}
-                        tenantName={room.tenantFirstName || ""}
-                        status={room.status}
-                      />
-
-                      {/* ยอดเงินในกราฟิก */}
-                      <div className="absolute inset-10 left-0 right-0 text-center z-20">
-                        <span className="text-[18px] text-white font-bold">
-                          {room.total.toLocaleString()} ฿
-                        </span>
-                      </div>
-
-                      {isSelected && (
-                        <div className="absolute -top-3 -right-3 bg-[#3498DB] text-white rounded-full p-1.5 shadow-lg z-30">
-                          <CheckSquare size={20} />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+      {/* --- ส่วนแสดงผลห้องแยกตามชั้น --- */}
+      <div className="space-y-8">
+        {floors.map((floor) => (
+          <div
+            key={floor}
+            className="bg-gray-50 p-6 rounded-[35px] border border-gray-200 shadow-sm"
+          >
+            <div className="flex justify-between items-center mb-6 px-4">
+              <h2 className="text-xl font-bold text-gray-700">ชั้น {floor}</h2>
+              <SelectAllFloorButton onClick={() => selectAllInFloor(floor)} />
             </div>
-          ))}
-        </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-10 justify-items-center">
+              {filteredRoomsByFloor[floor]?.map((room) => {
+                const isSelected = selectedRooms.includes(room.roomNumber);
+                return (
+                  <div
+                    key={room.roomId}
+                    onClick={() => {
+                      if (isSelectMode) {
+                        toggleRoomSelection(room.roomNumber);
+                      } else {
+                        navigate(`/billings/${room.roomNumber}`);
+                      }
+                    }}
+                    className="relative cursor-pointer hover:scale-105 transition-all"
+                  >
+                    <RoomCard
+                      roomNumber={room.roomNumber}
+                      tenantName={room.tenantFirstName || ""}
+                      status={room.status}
+                    />
+
+                    {/* ยอดเงินในกราฟิก */}
+                    <div className="absolute inset-10 left-0 right-0 text-center z-20">
+                      <span className="text-[18px] text-white font-bold">
+                        {room.total.toLocaleString()} ฿
+                      </span>
+                    </div>
+
+                    {isSelected && (
+                      <div className="absolute -top-3 -right-3 bg-[#3498DB] text-white rounded-full p-1.5 shadow-lg z-30">
+                        <CheckSquare size={20} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* --- Modal ตารางสรุป --- */}
@@ -471,7 +498,7 @@ const Billing = () => {
           ))}
         </div>
       </FilterModal>
-    </div>
+    </>
   );
 };
 

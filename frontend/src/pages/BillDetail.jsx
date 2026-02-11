@@ -7,6 +7,7 @@ import {
   Trash2,
   Send,
   X,
+Minus,
   Calendar as CalendarIcon,
 } from "lucide-react";
 
@@ -15,7 +16,8 @@ import {
   GreenButton,
   OrangeButton,
   SaveButton,
-  ExitButton
+  ExitButton,
+WhiteButton
 } from "../components/ActionButtons";
 import { CustomMonthPicker, toThaiMonth } from "../components/DateController";
 
@@ -130,8 +132,7 @@ const BillDetail = () => {
 
   /* -------- Render -------- */
   return (
-    <div className="bg-white min-h-screen">
-      <div className="max-w-7xl mx-auto bg-white rounded-3xl p-6 shadow-lg border border-gray-200 min-h-[85vh]">
+    <>
         <div className="relative text-center mb-6">
           
           <ExitButton  onClick={() => navigate(-1)} className="absolute right-0 top-0" />
@@ -216,7 +217,7 @@ const BillDetail = () => {
                     {editingId === item.id ? (
                       <button
                         onClick={() => saveEdit(item.id)}
-                        className="px-4 py-2 bg-green-500 text-white rounded-xl font-bold"
+                      className="px-4 py-2 bg-[#D5F5E3] text-[#1D8348] hover:bg-[#abebc6]  rounded-xl"
                       >
                         บันทึก
                       </button>
@@ -224,13 +225,13 @@ const BillDetail = () => {
                       <>
                         <button
                           onClick={() => startEdit(item)}
-                          className="p-2 bg-[#ffe3c2] rounded-xl text-[#F5A623]"
+                          className="p-2 bg-[#ffe3c2] rounded-xl text-orange-500 hover:bg-[#ffdaaf] "
                         >
                           <Pencil size={18} />
                         </button>
                         <button
                           onClick={() => deleteItem(item.id)}
-                          className="p-2 bg-red-100 rounded-xl text-red-500"
+                          className="p-2 bg-red-100 rounded-xl text-red-500 hover:bg-red-200"
                         >
                           <Trash2 size={18} />
                         </button>
@@ -256,20 +257,32 @@ const BillDetail = () => {
         </div>
 
         <div className="flex justify-center gap-4 mb-6">
-          <BlueButton label="เพิ่มรายการ" icon={Plus} onClick={() => addItem("other")} />
-          <BlueButton label="เพิ่มส่วนลด" icon={Plus} onClick={() => addItem("discount")} />
+          <div className="flex flex-col md:flex-row justify-center gap-3 w-full">
+  <WhiteButton
+    label="เพิ่มรายการ"
+    icon={Plus}
+    onClick={() => addItem("other")}
+    className="flex-1 md:flex-none !bg-blue-50 !text-blue-600 !border-blue-200 hover:!bg-blue-100"
+  />
+
+  <WhiteButton
+    label="เพิ่มส่วนลด"
+    icon={Minus}
+    onClick={() => addItem("discount")}
+    className="flex-1 md:flex-none !bg-red-50 !text-red-600 !border-red-200 hover:!bg-red-100"
+  />
           <SaveButton
             label="บันทึก"
             onClick={() => alert("บันทึกข้อมูลทั้งหมด")}
           />
         </div>
+</div>
 
         <div className="flex justify-center gap-4">
           <OrangeButton label="บันทึกเป็น PDF" icon={Download} />
           <OrangeButton label="ส่งบิล" icon={Send} />
         </div>
-      </div>
-    </div>
+</>
   );
 };
 

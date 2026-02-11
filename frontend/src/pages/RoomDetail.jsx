@@ -22,27 +22,18 @@ import {
   HeartPulse,
   UserPlus,
 } from "lucide-react";
-<<<<<<< Updated upstream
 
 import { OrangeButton, ExitButton } from "../components/ActionButtons";
 import RoomHeader from "../components/RoomHeader";
 import TenantInfoModal from "../components/TenantInfoModal";
-=======
-import { OrangeButton, BlueButton } from "../components/ActionButtons";
-import RoomHeader from "../components/RoomHeader";
->>>>>>> Stashed changes
 
 const RoomDetail = () => {
   const { roomNumber } = useParams();
   const navigate = useNavigate();
   const [tenant, setTenant] = useState(null);
 
-<<<<<<< Updated upstream
   const [isModalOpen, setIsModalOpen] = useState(false);
-s
 
-=======
->>>>>>> Stashed changes
   // --- Mock Data Logic ---
   useEffect(() => {
     // สมมติว่าห้อง 201 มีข้อมูลผู้เช่า
@@ -64,16 +55,9 @@ s
         vehicleNum1: "กข-1234",
         vehicleDetail1: "Honda Civic สีขาว",
         keyCard1: "KC-201-01",
-<<<<<<< Updated upstream
-
         keyCard2: "KC-201-02",
-
         isLaundryService: true,
-
         internetDeviceCount: 2,
-=======
-        isLaundryService: true,
->>>>>>> Stashed changes
         note: "แพ้อาหารทะเล, จอดรถที่โซน A",
         outstandingBalance: 3550,
         checkInDate: "01/01/2025",
@@ -91,12 +75,21 @@ s
     }
   }, [roomNumber]);
 
+  // 1. เพิ่ม State สำหรับควบคุม Modal เพิ่มผู้เช่า
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const handleSaveTenant = (data) => {
+    console.log("ข้อมูลผู้เช่าใหม่:", data);
+    // Logic สำหรับส่งข้อมูลไป API
+    setIsAddModalOpen(false);
+  };
+
   return (
     <div>
       <RoomHeader roomNumber={roomNumber}>
         {tenant ? (
           /* --- กรณีมีผู้เช่า: แสดงข้อมูลทั้งหมด --- */
-          <div className="animate-in fade-in duration-500 space-y-8">
+          <div className="space-y-8">
             {/* 1 & 2: Banners ถ้ามีการแจ้งเตือนค้างก็จะแสดง */}
             {/* --- 1 & 2: Banners แจ้งเตือนและพัสดุ --- */}
             <div className="flex flex-col gap-4 max-w-4xl mx-auto">
@@ -137,24 +130,18 @@ s
                         <p className="text-[12px] font-black text-red-400">
                           สถานะ
                         </p>
-<<<<<<< Updated upstream
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-white text-orange-600">
                           รอดำเนินการ
-                        
-=======
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-orange-100 text-orange-600">
-                          ● รอดำเนินการ
->>>>>>> Stashed changes
                         </span>
                       </div>
                     </div>
 
                     {/* ปุ่ม: เต็มความกว้างในมือถือ (w-full) และขนาดปกติในจอใหญ่ (md:w-auto) */}
                     <button
-                      //onClick={() => navigate(`/request/${roomNumber}`)}
-                      className="w-full md:w-auto bg-[#ea3720] text-white px-6 py-2.5 rounded-xl font-black text-sm hover:bg-red-700 transition-all shadow-md shadow-red-100 shrink-0"
+                      // onClick={() => navigate(`/request/${roomNumber}`)}
+                      className="w-full md:w-auto text-[#ea3720] font-black text-sm underline underline-offset-4 hover:text-red-700 transition-all shrink-0"
                     >
-                      ดูรายละเอียด
+                      แสดงเพิ่มเติม
                     </button>
                   </div>
                 </div>
@@ -177,9 +164,9 @@ s
                   {/* ปุ่มดูรายละเอียด */}
                   <button
                     // onClick={() => navigate(`/parcels/${roomNumber}`)}
-                    className="w-full md:w-auto ml-0 md:ml-auto bg-[#485cf7] text-white px-6 py-2.5 rounded-xl font-black text-sm hover:bg-blue-700 transition-all shadow-md shadow-blue-100 shrink-0 active:scale-95"
+                    className="w-full md:w-auto text-[#485cf7] font-black text-sm underline underline-offset-4 hover:text-blue-700 transition-all shrink-0"
                   >
-                    ดูรายละเอียด
+                    แสดงเพิ่มเติม
                   </button>
                 </div>
               )}
@@ -198,25 +185,12 @@ s
                     ข้อมูลผู้เช่า
                   </h3>
                   <div className="flex gap-2 sm:w-auto">
-<<<<<<< Updated upstream
                     <OrangeButton
                       label="ดูข้อมูล"
                       icon={ExternalLink}
                       className="flex-1  py-2! px-4! text-xs!"
                       onClick={() => setIsModalOpen(true)}
-                    />       
-=======
-                    <BlueButton
-                      label="ข้อมูลทั้งหมด"
-                      icon={ExternalLink}
-                      className="flex-1  py-2! px-4! text-xs!"
                     />
-                    <OrangeButton
-                      label="แก้ไขข้อมูล"
-                      icon={Edit3}
-                      className="flex-1 py-2! px-4! text-xs!"
-                    />
->>>>>>> Stashed changes
                   </div>
                 </div>
 
@@ -266,19 +240,14 @@ s
               <section className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden h-full flex flex-col">
                 {/* Header: ดีไซน์ใหม่เน้นความโปร่ง */}
                 <div className="p-3 md:p-5 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50/20">
-                    {/* Icon ทรงมนที่ดูซอฟต์ลง */}
+                  {/* Icon ทรงมนที่ดูซอฟต์ลง */}
                   <h3 className="text-xl font-black text-gray-700 flex items-center gap-3">
-<<<<<<< Updated upstream
                     <div className="w-10 h-10 bg-orange-50 rounded-2xl flex items-center justify-center text-[#f3a638] shrink-0 ">
-=======
-                    <div className="w-10 h-10 bg-orange-50 rounded-2xl flex items-center justify-center text-[#f3a638] shrink-0 border border-orange-200">
->>>>>>> Stashed changes
                       <FileText size={24} />
                     </div>
-                        ไฟล์เอกสาร
-                      </h3>
-                    
-                  
+                    ไฟล์เอกสาร
+                  </h3>
+
                   <OrangeButton
                     label="เพิ่มไฟล์"
                     icon={Plus}
@@ -328,76 +297,54 @@ s
                 </div>
 
                 {/* Footer: หมายเหตุ (ถ้ามี) */}
-<<<<<<< Updated upstream
                 {/* แสดงส่วนหมายเหตุเฉพาะในกรณีที่มีข้อมูลเท่านั้น */}
-{tenant.note && (
-  <div className="p-5 bg-orange-50/50 border-t border-orange-100">
-    <div className="flex items-center gap-2 mb-1">
-      <div className="w-1.5 h-1.5 bg-[#f3a638] rounded-full"></div>
-      <p className="text-[10px] font-black text-[#f3a638] uppercase tracking-widest">
-        หมายเหตุพิเศษ
-      </p>
-    </div>
-    <p className="text-sm font-bold text-gray-600 italic pl-3.5">
-      "{tenant.note}"
-    </p>
-  </div>
-)}
-=======
-                <div className="p-5 bg-orange-50/50 border-t border-orange-100">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="w-1.5 h-1.5 bg-[#f3a638] rounded-full"></div>
-                    <p className="text-[10px] font-black text-[#f3a638] uppercase tracking-widest">
-                      หมายเหตุพิเศษ
+                {tenant.note && (
+                  <div className="p-5 bg-orange-50/50 border-t border-orange-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-1.5 h-1.5 bg-[#f3a638] rounded-full"></div>
+                      <p className="text-[10px] font-black text-[#f3a638] uppercase tracking-widest">
+                        หมายเหตุพิเศษ
+                      </p>
+                    </div>
+                    <p className="text-sm font-bold text-gray-600 italic pl-3.5">
+                      "{tenant.note}"
                     </p>
                   </div>
-                  <p className="text-sm font-bold text-gray-600 italic pl-3.5">
-                    "{tenant.note || "ไม่มีข้อมูลเพิ่มเติม"}"
-                  </p>
-                </div>
->>>>>>> Stashed changes
+                )}
               </section>
             </div>
           </div>
         ) : (
           /* --- กรณีไม่มีผู้เช่า (ห้องว่าง) --- */
-          <div className="py-24 flex flex-col items-center justify-center text-center animate-in zoom-in duration-300">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center text-gray-300 mb-6 shadow-inner">
+          <div className="py-24 flex flex-col items-center justify-center text-center  bg-gray-50 rounded-3xl border border-gray-200">
+            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-gray-600 mb-6 border border-gray-200 shadow-inner">
               <UserPlus size={48} />
             </div>
-            <h3 className="text-2xl font-black text-gray-400 mb-2">
-              ยังไม่มีข้อมูลผู้เช่า
-            </h3>
-            <p className="text-gray-400 mb-10 max-w-xs font-bold">
-              ห้องนี้ว่างอยู่ คุณสามารถเพิ่มข้อมูลผู้เช่าใหม่เพื่อทำสัญญาได้
-            </p>
+            <h3 className="text-2xl text-gray-400 mb-2">ไม่มีข้อมูลผู้เช่า</h3>
             <OrangeButton
               label="เพิ่มผู้เช่าใหม่"
               icon={Plus}
+              // ส่ง roomNumber ไปกับ URL
               onClick={() => navigate(`/rooms/${roomNumber}/add-tenant`)}
-              className="px-10 py-4 shadow-lg shadow-orange-100"
             />
           </div>
         )}
       </RoomHeader>
-<<<<<<< Updated upstream
 
-{/* แสดงข้อมูลผู้เช่า */}
+      {/* แสดงข้อมูลผู้เช่า */}
 
       {isModalOpen && (
-  <TenantInfoModal 
-  isOpen={isModalOpen}
-  onClose={() => setIsModalOpen(false)}
-  tenant={tenant}
-  onSave={(updatedData) => {
-    // ส่ง updatedData ไปที่ API หรืออัปเดต State หลัก
-    setTenant(updatedData);
-    console.log("บันทึกข้อมูลสำเร็จ:", updatedData);
-  }}
-/>
-)}
-=======
->>>>>>> Stashed changes
+        <TenantInfoModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          tenant={tenant}
+          onSave={(updatedData) => {
+            // ส่ง updatedData ไปที่ API หรืออัปเดต State หลัก
+            setTenant(updatedData);
+            console.log("บันทึกข้อมูลสำเร็จ:", updatedData);
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -418,10 +365,4 @@ const InfoItem = ({ label, value, icon, valueClassName = "text-gray-800" }) => (
     </div>
   </div>
 );
-
-<<<<<<< Updated upstream
-
-
-=======
->>>>>>> Stashed changes
 export default RoomDetail;

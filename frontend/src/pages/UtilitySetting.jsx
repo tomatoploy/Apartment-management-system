@@ -95,146 +95,144 @@ const UtilitySetting = () => {
   };
 
   return (
-    <div className="flex-1 bg-white min-h-screen">
-      <div className="max-w-7xl mx-auto bg-white rounded-[40px] p-8 shadow-lg border border-gray-200 min-h-[calc(100vh-100px)] flex flex-col">
-        {/* Header */}
-        <div className="relative text-center mb-8">
+    <>
+      {/* Header */}
+      <div className="relative text-center mb-8">
+        <button
+          onClick={() => navigate("/settings")}
+          className="absolute p-2 right-0 hover:bg-gray-100 rounded-full transition-colors"
+        >
+          <X size={24} strokeWidth={3} />
+        </button>
+        <h1 className="text-3xl font-bold text-gray-800">
+          กำหนดราคา ค่าน้ำ/ค่าไฟ ต่อหน่วย
+        </h1>
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex flex-col items-center gap-6 mb-10">
+        <div className="flex w-full max-w-2xl gap-4">
+          <SearchBar
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <FilterButton
+            onClick={() => setShowFilterModal(true)}
+            activeCount={activeStatusFilters.length}
+          />
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
           <button
-            onClick={() => navigate("/settings")}
-            className="absolute p-2 right-0 hover:bg-gray-100 rounded-full transition-colors"
+            onClick={() =>
+              setModalConfig({
+                title: "กำหนดราคาค่าไฟฟ้า",
+                type: "simple",
+                color: "bg-[#FFCCAC]",
+              })
+            }
+            className="bg-[#e58530] text-white px-6 py-2.5 rounded-2xl font-bold flex items-center gap-2 shadow-md hover:scale-105 transition-all"
           >
-            <X size={24} strokeWidth={3} />
+            <Zap size={18} fill="currentColor" /> กำหนดค่าไฟฟ้า
           </button>
-          <h1 className="text-3xl font-bold text-gray-800">
-            กำหนดราคา ค่าน้ำ/ค่าไฟ ต่อหน่วย
-          </h1>
+
+          <button
+            onClick={() =>
+              setModalConfig({
+                title: "กำหนดราคาค่าน้ำประปา",
+                type: "simple",
+                color: "bg-[#D1F1F9]",
+              })
+            }
+            className="bg-[#3498DB] text-white px-6 py-2.5 rounded-2xl font-bold flex items-center gap-2 shadow-md hover:scale-105 transition-all"
+          >
+            <Droplets size={18} fill="currentColor" /> กำหนดค่าน้ำประปา
+          </button>
+          <BlueButton label="เลือกทั้งหมด" onClick={selectAllRooms} />
+          <BlueButton label="ยกเลิก" onClick={() => setSelectedRooms([])} />
         </div>
+      </div>
 
-        {/* Toolbar */}
-        <div className="flex flex-col items-center gap-6 mb-10">
-          <div className="flex w-full max-w-2xl gap-4">
-            <SearchBar
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <FilterButton
-              onClick={() => setShowFilterModal(true)}
-              activeCount={activeStatusFilters.length}
-            />
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
-            <button
-              onClick={() =>
-                setModalConfig({
-                  title: "กำหนดราคาค่าไฟฟ้า",
-                  type: "simple",
-                  color: "bg-[#FFCCAC]",
-                })
-              }
-              className="bg-[#e58530] text-white px-6 py-2.5 rounded-2xl font-bold flex items-center gap-2 shadow-md hover:scale-105 transition-all"
+      {/* Room Layout per Floor */}
+      <div className="space-y-10">
+        {floorsConfig.map((roomCount, idx) => {
+          const floor = idx + 1;
+          return (
+            <div
+              key={floor}
+              className="bg-gray-50 p-6 rounded-[35px] border border-gray-200"
             >
-              <Zap size={18} fill="currentColor" /> กำหนดค่าไฟฟ้า
-            </button>
+              <div className="flex justify-between items-center mb-6 px-4">
+                <h2 className="text-xl font-bold text-gray-700">
+                  ชั้น {floor}
+                </h2>
+                <SelectAllFloorButton
+                  label="เลือกทั้งชั้น"
+                  onClick={() => selectAllInFloor(floor, roomCount)}
+                />
+              </div>
 
-            <button
-              onClick={() =>
-                setModalConfig({
-                  title: "กำหนดราคาค่าน้ำประปา",
-                  type: "simple",
-                  color: "bg-[#D1F1F9]",
-                })
-              }
-              className="bg-[#3498DB] text-white px-6 py-2.5 rounded-2xl font-bold flex items-center gap-2 shadow-md hover:scale-105 transition-all"
-            >
-              <Droplets size={18} fill="currentColor" /> กำหนดค่าน้ำประปา
-            </button>
-            <BlueButton label="เลือกทั้งหมด" onClick={selectAllRooms} />
-            <BlueButton label="ยกเลิก" onClick={() => setSelectedRooms([])} />
-          </div>
-        </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6 justify-items-center">
+                {Array.from({ length: roomCount }).map((_, roomIdx) => {
+                  const roomNum = `${floor}${String(roomIdx + 1).padStart(2, "0")}`;
+                  const roomInfo = roomsData.find(
+                    (r) => r.roomNumber === roomNum,
+                  ) || { status: "available" };
+                  const isSelected = selectedRooms.includes(roomNum);
 
-        {/* Room Layout per Floor */}
-        <div className="space-y-10">
-          {floorsConfig.map((roomCount, idx) => {
-            const floor = idx + 1;
-            return (
-              <div
-                key={floor}
-                className="bg-gray-50 p-6 rounded-[35px] border border-gray-200"
-              >
-                <div className="flex justify-between items-center mb-6 px-4">
-                  <h2 className="text-xl font-bold text-gray-700">
-                    ชั้น {floor}
-                  </h2>
-                  <SelectAllFloorButton
-                    label="เลือกทั้งชั้น"
-                    onClick={() => selectAllInFloor(floor, roomCount)}
-                  />
-                </div>
+                  // Logic Filter
+                  const matchesSearch = roomNum.includes(searchTerm);
+                  const matchesStatus =
+                    activeStatusFilters.length === 0 ||
+                    activeStatusFilters.includes(roomInfo.status);
+                  const isVisible = matchesSearch && matchesStatus;
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6 justify-items-center">
-                  {Array.from({ length: roomCount }).map((_, roomIdx) => {
-                    const roomNum = `${floor}${String(roomIdx + 1).padStart(2, "0")}`;
-                    const roomInfo = roomsData.find(
-                      (r) => r.roomNumber === roomNum,
-                    ) || { status: "available" };
-                    const isSelected = selectedRooms.includes(roomNum);
+                  // สไตล์สีตามสถานะ
+                  const statusStyles = {
+                    occupied: "bg-white border-[#10b981] shadow-green-100",
+                    overdue: "bg-white border-[#fb7185] shadow-[#fb7185]/10",
+                    reserved: "bg-white border-[#facc15] shadow-yellow-100",
+                    available: "bg-white border-gray-100",
+                    close: "bg-gray-100 border-gray-300 ",
+                  };
 
-                    // Logic Filter
-                    const matchesSearch = roomNum.includes(searchTerm);
-                    const matchesStatus =
-                      activeStatusFilters.length === 0 ||
-                      activeStatusFilters.includes(roomInfo.status);
-                    const isVisible = matchesSearch && matchesStatus;
-
-                    // สไตล์สีตามสถานะ
-                    const statusStyles = {
-                      occupied: "bg-white border-[#10b981] shadow-green-100",
-                      overdue: "bg-white border-[#fb7185] shadow-[#fb7185]/10",
-                      reserved: "bg-white border-[#facc15] shadow-yellow-100",
-                      available: "bg-white border-gray-100",
-                      close: "bg-gray-100 border-gray-300 ",
-                    };
-
-                    return (
-                      <div
-                        key={roomNum}
-                        onClick={() => toggleRoomSelection(roomNum)}
-                        className={`relative w-full max-w-40 p-4 rounded-3xl border-2 transition-all duration-300 flex flex-col gap-2 cursor-pointer 
+                  return (
+                    <div
+                      key={roomNum}
+                      onClick={() => toggleRoomSelection(roomNum)}
+                      className={`relative w-full max-w-40 p-4 rounded-3xl border-2 transition-all duration-300 flex flex-col gap-2 cursor-pointer 
                           ${isVisible ? "opacity-100 scale-100" : "opacity-20 scale-95 pointer-events-none"}
                           ${isSelected ? "ring-4 ring-[#3498DB]/30 border-[#3498DB]" : statusStyles[roomInfo.status]}`}
+                    >
+                      <div
+                        className={`py-1.5 rounded-xl text-[13px] text-center font-bold ${roomInfo.electricPrice ? "bg-orange-100 text-orange-600" : "bg-gray-100 text-gray-400"}`}
                       >
-                        <div
-                          className={`py-1.5 rounded-xl text-[13px] text-center font-bold ${roomInfo.electricPrice ? "bg-orange-100 text-orange-600" : "bg-gray-100 text-gray-400"}`}
-                        >
-                          {roomInfo.electricPrice
-                            ? `ค่าไฟ ${roomInfo.electricPrice} บาท`
-                            : "ค่าไฟ ยังไม่กำหนด"}
-                        </div>
-                        <div
-                          className={`py-1.5 rounded-xl text-[13px] text-center font-bold ${roomInfo.waterPrice ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-400"}`}
-                        >
-                          {roomInfo.waterPrice
-                            ? `ค่าน้ำ ${roomInfo.waterPrice} บาท`
-                            : "ค่าน้ำ ยังไม่กำหนด"}
-                        </div>
-                        <div className="text-center font-bold text-gray-800 text-lg py-1">
-                          {roomNum}
-                        </div>
-                        {isSelected && (
-                          <div className="absolute -top-2 -right-2 bg-[#3498DB] text-white rounded-full p-1 shadow-md">
-                            <CheckSquare size={18} />
-                          </div>
-                        )}
+                        {roomInfo.electricPrice
+                          ? `ค่าไฟ ${roomInfo.electricPrice} บาท`
+                          : "ค่าไฟ ยังไม่กำหนด"}
                       </div>
-                    );
-                  })}
-                </div>
+                      <div
+                        className={`py-1.5 rounded-xl text-[13px] text-center font-bold ${roomInfo.waterPrice ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-400"}`}
+                      >
+                        {roomInfo.waterPrice
+                          ? `ค่าน้ำ ${roomInfo.waterPrice} บาท`
+                          : "ค่าน้ำ ยังไม่กำหนด"}
+                      </div>
+                      <div className="text-center font-bold text-gray-800 text-lg py-1">
+                        {roomNum}
+                      </div>
+                      {isSelected && (
+                        <div className="absolute -top-2 -right-2 bg-[#3498DB] text-white rounded-full p-1 shadow-md">
+                          <CheckSquare size={18} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Filter Modal (กรองได้มากกว่า 1) */}
@@ -283,7 +281,7 @@ const UtilitySetting = () => {
           }}
         />
       )}
-    </div>
+    </>
   );
 };
 
