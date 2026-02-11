@@ -7,6 +7,11 @@ how to run
     cd frontend
     npm run dev
 
+- ติดตั้ง react
+- ติดตั้ง dotnet
+- ติดตั้ง tailwind
+- ติดตั้ง npm install xlsx (excel)
+
 - appsetting.json (nn)
 {
   "Logging": {
