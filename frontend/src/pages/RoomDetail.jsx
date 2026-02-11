@@ -138,10 +138,10 @@ const RoomDetail = () => {
 
                     {/* ปุ่ม: เต็มความกว้างในมือถือ (w-full) และขนาดปกติในจอใหญ่ (md:w-auto) */}
                     <button
-                      //onClick={() => navigate(`/request/${roomNumber}`)}
-                      className="w-full md:w-auto bg-[#ea3720] text-white px-6 py-2.5 rounded-xl font-black text-sm hover:bg-red-700 transition-all shadow-md shadow-red-100 shrink-0"
+                      // onClick={() => navigate(`/request/${roomNumber}`)}
+                      className="w-full md:w-auto text-[#ea3720] font-black text-sm underline underline-offset-4 hover:text-red-700 transition-all shrink-0"
                     >
-                      ดูรายละเอียด
+                      แสดงเพิ่มเติม
                     </button>
                   </div>
                 </div>
@@ -164,9 +164,9 @@ const RoomDetail = () => {
                   {/* ปุ่มดูรายละเอียด */}
                   <button
                     // onClick={() => navigate(`/parcels/${roomNumber}`)}
-                    className="w-full md:w-auto ml-0 md:ml-auto bg-[#485cf7] text-white px-6 py-2.5 rounded-xl font-black text-sm hover:bg-blue-700 transition-all shadow-md shadow-blue-100 shrink-0 active:scale-95"
+                    className="w-full md:w-auto text-[#485cf7] font-black text-sm underline underline-offset-4 hover:text-blue-700 transition-all shrink-0"
                   >
-                    ดูรายละเอียด
+                    แสดงเพิ่มเติม
                   </button>
                 </div>
               )}

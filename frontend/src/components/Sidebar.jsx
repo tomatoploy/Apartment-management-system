@@ -92,7 +92,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
             { icon: LayoutDashboard, text: "Dashboard", to: "/dashboard" },
             { icon: Building2, text: "ผังห้อง", to: "/rooms" },
             { icon: Droplets, text: "มิเตอร์น้ำ-ไฟ", to: "/meters" },
-            { icon: Receipt, text: "ออกบิล", to: "/billings" },
+            { icon: Receipt, text: "สร้างบิล", to: "/billings" },
             { icon: Package, text: "พัสดุ", to: "/parcels" },
             { icon: BellRing, text: "การแจ้ง", to: "/request" },
             { icon: Settings, text: "การตั้งค่า", to: "/settings" },

@@ -10,7 +10,8 @@ import {
   Sparkles,
   Package,
   Clock,
-  FileText, // เพิ่มไอคอนสำหรับ 'other'
+  FileText, 
+  RotateCw,
 } from "lucide-react";
 import RoomCard from "../components/RoomCard";
 import FilterModal from "../components/FilterModal";
@@ -229,6 +230,18 @@ const Rooms = () => {
           >
             คำอธิบาย <HelpCircle size={20} />
           </button>
+          {/* ปุ่มรีเฟรช*/}
+            <button
+              onClick={() => window.location.reload()}
+              className="p-3 rounded-xl border transition-all flex items-center justify-center h-12 w-12 shrink-0
+            bg-white border-gray-200 text-gray-500 hover:border-[#f3a638] hover:text-[#f3a638] hover:bg-orange-50 group"
+              title="รีเฟรชหน้า"
+            >
+              <RotateCw
+                size={20}
+                className="transition-transform duration-500 group-hover:rotate-180"
+              />
+            </button>
         </div>
 
         <div className="flex justify-center w-full flex-wrap gap-2">
