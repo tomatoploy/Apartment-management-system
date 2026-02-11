@@ -10,6 +10,7 @@ import MeterTable from "../components/MeterTable";
 import ChangeMeterModal from "../components/ChangeMeterModal";
 import { SaveButton, DownloadButton } from "../components/ActionButtons";
 import * as XLSX from "xlsx";
+import { CustomMonthPicker, DateInput } from "../components/DateController";
 
 // --- Helper Functions ---
 const formatThaiMonth = (dateStr) => {
@@ -385,35 +386,34 @@ const Meter = () => {
 
   return (
     <>
-      <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
+      <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
         จดมิเตอร์ {currentMonthLabel}
       </h1>
 
       {/* --- Toolbar (ปรับใหม่) --- */}
-      <div className="flex flex-col items-center gap-6 mb-8">
+      <div className="flex flex-col items-center gap-6 mb-10">
         {/* Row 1: Month | Record Date | Download */}
-        {/* ใช้ flex-row เพื่อให้อยู่บรรทัดเดียวกัน และ items-stretch เพื่อให้สูงเท่ากัน */}
-        <div className="flex flex-col md:flex-row w-full max-w-4xl gap-3 items-stretch">
-          {/* 1. Month Picker */}
-          <div className="flex-1 relative min-w-50">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-              <CalendarIcon size={20} />
+        <div className="flex flex-col md:flex-row w-full max-w-4xl gap-4 items-end md:items-stretch">
+          {/* 1. Month Picker (เลือกรอบบิล) */}
+          <div className="flex-1 w-full">
+            <div className="flex flex-col h-full">
+              {/* ใส่ Label หลอกเพื่อให้ความสูงเท่ากับ DateInput ที่มี Label จริง */}
+              <label className="text-[13px] font-bold text-gray-500 mb-2 ml-1 block">
+                เลือกรอบบิล
+              </label>
+              <CustomMonthPicker
+                value={selectedDate}
+                onChange={(value) => setSelectedDate(value)}
+                className="w-full"
+              />
             </div>
-            <input
-              type="month"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#f3a638] text-gray-700 font-bold cursor-pointer h-full"
-            />
           </div>
 
           {/* 2. Record Date (ย้ายมาตรงนี้) */}
-          <div className="flex-1 flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 min-w-50 h-full relative focus-within:border-[#f3a638]">
-            <span className="text-gray-500 text-sm font-bold whitespace-nowrap">
-              วันที่จด:
-            </span>
-            <input
-              type="date"
+          <div className="flex-1 w-full">
+            <DateInput
+              label="วันที่จดมิเตอร์"
+              name="recordDate"
               value={recordDate}
               onChange={(e) => {
                 const newDate = e.target.value;
@@ -421,17 +421,21 @@ const Meter = () => {
                   setRecordDate(newDate);
                 }
               }}
-              className="bg-transparent border-none outline-none text-gray-700 font-bold w-full cursor-pointer"
+              className="w-full"
             />
           </div>
 
           {/* 3. Download Button */}
-          <div className="flex-none">
-            <DownloadButton
-              className="h-full px-6"
-              onClick={() => handleDownload()}
-              disabled={!rooms || rooms.length === 0}
-            />
+          <div className="flex-none w-full md:w-auto self-end">
+            <div className="flex flex-col h-full">
+              {/* เว้นที่ว่างด้านบนให้เท่ากับ Label ของตัวอื่น */}
+              <div className="hidden md:block h-5 mb-2"></div>
+              <DownloadButton
+                className="h-[48px] px-8 rounded-2xl shadow-lg shadow-orange-50 font-black"
+                onClick={() => handleDownload()}
+                disabled={!rooms || rooms.length === 0}
+              />
+            </div>
           </div>
         </div>
 

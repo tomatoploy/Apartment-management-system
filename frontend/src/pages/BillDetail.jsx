@@ -174,15 +174,16 @@ const BillDetail = () => {
 
                   <td className="p-4">
                     {editingId === item.id ? (
-                      <input
+                      <textarea
                         value={form.label}
                         onChange={(e) =>
                           setForm({ ...form, label: e.target.value })
                         }
-                        className="w-full border rounded-xl px-3 py-2"
-                      />
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 outline-none "/>
                     ) : (
-                      getItemLabel(item, selectedDate)
+                      <div className="whitespace-pre-wrap text-gray-700">
+                      {getItemLabel(item, selectedDate)}
+                    </div>
                     )}
                   </td>
 
@@ -198,7 +199,7 @@ const BillDetail = () => {
                             amount: item.type === "discount" ? -v : v,
                           });
                         }}
-                        className="w-full border rounded-xl px-3 py-2 text-right"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 outline-none "
                       />
                     ) : (
                       <span

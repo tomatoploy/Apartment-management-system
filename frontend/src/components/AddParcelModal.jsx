@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, ChevronDown } from "lucide-react";
+import { DateInput } from "./DateController";
 
 const FieldLabel = ({ children, required }) => (
   <label className="block text-md font-bold text-gray-700 mb-2">
@@ -80,9 +81,7 @@ const AddParcelModal = ({ isOpen, onClose, onSave }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">
-            เพิ่มรายการพัสดุ
-          </h2>
+          <h2 className="text-2xl font-bold text-gray-800">เพิ่มรายการพัสดุ</h2>
           <button
             onClick={onClose}
             className="absolute right-0 p-2 hover:bg-gray-100
@@ -174,19 +173,17 @@ const AddParcelModal = ({ isOpen, onClose, onSave }) => {
           </div>
 
           <div>
-            <FieldLabel required>วันที่พัสดุมาถึง</FieldLabel>
-            <InputField
-              type="date"
+            <DateInput
+              label="วันที่พัสดุมาถึง"
               name="arrivalDate"
               value={formData.arrivalDate}
               onChange={handleChange}
+              required
             />
           </div>
-
           <div>
-            <FieldLabel>วันที่รับพัสดุ</FieldLabel>
-            <InputField
-              type="date"
+            <DateInput
+              label="วันที่รับพัสดุ"
               name="pickupDate"
               value={formData.pickupDate}
               onChange={handleChange}
