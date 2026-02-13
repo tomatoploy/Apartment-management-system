@@ -254,7 +254,8 @@ export const DateInput = ({
 export const CustomMonthPicker = ({ value, onChange, className = "" }) => {
   const [show, setShow] = useState(false);
   const containerRef = useRef(null);
-  const monthsFull = [
+
+  const months = [
     "ม.ค.",
     "ก.พ.",
     "มี.ค.",
@@ -268,7 +269,20 @@ export const CustomMonthPicker = ({ value, onChange, className = "" }) => {
     "พ.ย.",
     "ธ.ค.",
   ];
-
+  const monthsFull = [
+    "มกราคม",
+    "กุมภาพันธ์",
+    "มีนาคม",
+    "เมษายน",
+    "พฤษภาคม",
+    "มิถุนายน",
+    "กรกฎาคม",
+    "สิงหาคม",
+    "กันยายน",
+    "ตุลาคม",
+    "พฤศจิกายน",
+    "ธันวาคม",
+  ];
   const currentYear = new Date().getFullYear();
 
   // แยกค่า Year และ Month จาก value (ค.ศ.)
@@ -324,7 +338,7 @@ export const CustomMonthPicker = ({ value, onChange, className = "" }) => {
               className="bg-transparent border-none font-black text-gray-700 text-sm focus:outline-none cursor-pointer"
             >
               {/* ปรับตรงนี้: ย้อนหลัง 20 ปี ถึง ล่วงหน้า 10 ปี */}
-              {Array.from({ length: 30 }, (_, i) => currentYear - 20 + i).map(
+              {Array.from({ length: 10 }, (_, i) => currentYear - 5 + i).map(
                 (y) => (
                   <option key={y} value={y}>
                     {y + 543}
@@ -334,7 +348,7 @@ export const CustomMonthPicker = ({ value, onChange, className = "" }) => {
             </select>
           </div>
           <div className="grid grid-cols-3 gap-2">
-            {monthsFull.map((m, i) => (
+            {months.map((m, i) => (
               <button
                 key={m}
                 type="button"

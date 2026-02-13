@@ -507,7 +507,7 @@ const Meter = () => {
       </div>
 
       {/* sticky footer */}
-      <div className="sticky bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm py-4 z-20 ">
+      <div className="sticky bottom-0 left-0 right-0 bg-white/50 backdrop-blur-sm py-4 z-20 ">
         <div className="flex justify-end px-2">
           <SaveButton
             disabled={isSaving}

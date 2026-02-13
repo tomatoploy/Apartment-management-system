@@ -7,7 +7,7 @@ const RoomHeader = ({ roomNumber, children }) => {
 
   const menuItems = [
     { id: "main", label: "หน้าหลัก", path: `/rooms/${roomNumber}` },
-    { id: "bill", label: "บิล", path: `/billings/${roomNumber}` },
+    { id: "bill", label: "บิล", path: `/rooms/billings/${roomNumber}` },
     { id: "request", label: "การแจ้ง", path: `/request/${roomNumber}` },
     { id: "moveout", label: "การย้ายออก", path: `/moveout/${roomNumber}` },
     { id: "booking", label: "จองห้อง", path: `/booking/${roomNumber}` },
@@ -20,7 +20,7 @@ const RoomHeader = ({ roomNumber, children }) => {
       </h1>
 
       {/*2 แถบเมนู (Tabs) */}
-      <div className=" bg-gray-50/50 ">
+      <div className=" bg-white ">
         <div className="flex bg-gray-100 p-1 rounded-2xl w-full max-w-3xl mx-auto overflow-x-auto no-scrollbar">
           {/* ส่วนที่วนลูป menuItems ในไฟล์ RoomHeader.jsx */}
           {menuItems.map((item) => {
@@ -53,7 +53,7 @@ const RoomHeader = ({ roomNumber, children }) => {
       </div>
 
       {/* 3. จุดสำคัญ: ส่วนที่ใช้แสดงข้อมูลจาก (children) */}
-      <div className="p-6 md:p-10">{children}</div>
+      <div className="p-2 md:p-4">{children}</div>
     </>
   );
 };

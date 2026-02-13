@@ -7,7 +7,7 @@ const Layout = ({ children, userProfileImage, onLogout }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false); // ควบคุมการเปิดปิดบนมือถือ
 
   return (
-    <div className="h-screen flex flex-col md:bg-gray-50">
+    <main className="h-screen flex flex-col md:bg-gray-50">
       {/* ส่งฟังก์ชันเปิดปิดไปให้ Navbar */}
       <Navbar onMenuClick={() => setIsMobileOpen(!isMobileOpen)} />
 <div className="flex flex-1 pt-16 overflow-hidden relative">        {/* Sidebar สำหรับ Mobile (Overlay) และ Desktop */}
@@ -46,7 +46,7 @@ const Layout = ({ children, userProfileImage, onLogout }) => {
           </div>
         </main>
       </div>
-    </div>
+    </main>
   );
 };
 

@@ -127,12 +127,20 @@ function App() {
           </Layout>
         }
       />
-     
-        <Route
+
+<Route
   path="/billings/:roomNumber"
   element={
     <Layout>
-      <BillDetail />
+      <BillDetail mode="billing-menu" />
+    </Layout>
+  }
+/>
+<Route
+  path="/rooms/billings/:roomNumber"
+  element={
+    <Layout>
+      <BillDetail mode="room-map" />
     </Layout>
   }
 />
@@ -140,7 +148,7 @@ function App() {
 <Route path="/rooms/:roomNumber" element={<Layout><RoomDetail /></Layout>} />
 <Route path="/rooms/:roomNumber/add-tenant" element={<Layout><AddTenant /></Layout>} />
 
-<Route path="/rooms/:roomNumber/bill" element={<Layout><RoomBill /></Layout>} />
+{/* <Route path="/rooms/:roomNumber/bill" element={<Layout><RoomBill /></Layout>} /> */}
 
       {/* case กันคนพิมพ์ URL แปลก ๆ */}
       <Route path="*" element={<Navigate to="/login" />} />
