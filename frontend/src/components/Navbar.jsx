@@ -1,7 +1,9 @@
 import { Bell, Home, Menu } from 'lucide-react'; // เพิ่ม Menu icon
 import logoImg from '../assets/AMS-logo.png';
+import { useNavigate } from "react-router-dom";
 
 const Navbar = ({ onMenuClick }) => { // รับ props onMenuClick
+const navigate = useNavigate();
   return (
     <nav className="h-16 bg-[#F5A623] flex items-center justify-between px-6 shadow-md fixed w-full top-0 z-50">
       {/* Left side: Menu Button & Logo */}
@@ -26,8 +28,8 @@ const Navbar = ({ onMenuClick }) => { // รับ props onMenuClick
 
       {/* Right side: Icons */}
       <div className="flex gap-4">
-        <Bell className="cursor-pointer hover:opacity-80" size={24} />
-        <Home className="cursor-pointer hover:opacity-80" size={24} />
+        <Home className="cursor-pointer hover:opacity-80" size={24} 
+        onClick={() => navigate("/dashboard")} />
         {/* ปุ่ม Menu แสดงเฉพาะมือถือ (lg:hidden) */}
         <button 
           onClick={onMenuClick}
