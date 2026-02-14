@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  X,
   User,
   Phone,
   MapPin,
@@ -10,11 +9,10 @@ import {
   Calendar,
   CreditCard,
   Info,
-  Monitor,
   FileText,
   Edit3,
   Save,
-  RotateCcw,
+  CircleChevronLeft,
 } from "lucide-react";
 import { ExitButton } from "../components/ActionButtons";
 import { toThaiDate, DateInput } from "../components/DateController";
@@ -42,7 +40,6 @@ const DisplayItem = ({ label, value, icon: Icon, isFullWidth }) => (
 
 // โหมดแก้ไข (Edit Mode)
 // --- Components ย่อยสำหรับการจัดการ Style ---
-
 const FieldLabel = ({ children, required }) => (
   <label className="text-[13px] font-bold text-gray-500 ml-1">
     {children} {required && <span className="text-red-500">*</span>}
@@ -138,7 +135,6 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
               </h2>
             </div>
           </div>
-          {/* --- ส่วน Header (แก้ไขเฉพาะในกลุ่มปุ่มบันทึก/ยกเลิก) --- */}
           <div className="flex flex-row-reverse items-center gap-2 md:gap-3 shrink-0">
             <ExitButton onClick={onClose} />
             {!isEditMode ? (
@@ -151,7 +147,6 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
               </button>
             ) : (
               <div className="flex flex-row-reverse items-center gap-2">
-                {/* ปุ่มบันทึก: แสดง Icon บนมือถือ, แสดงข้อความบน Desktop */}
                 <button
                   onClick={handleSave}
                   className="flex items-center gap-2 px-3 md:px-4 py-2.5 bg-[#f3a638] text-white rounded-2xl font-black shadow-lg shadow-orange-100 hover:brightness-95 transition-all text-xs md:text-sm"
@@ -160,8 +155,6 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                   <Save size={16} />
                   <span className="hidden sm:inline">บันทึก</span>
                 </button>
-
-                {/* ปุ่มยกเลิก: แสดง Icon บนมือถือ, แสดงข้อความบน Desktop */}
                 <button
                   onClick={() => {
                     setIsEditMode(false);
@@ -170,7 +163,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                   className="flex items-center gap-2 px-3 md:px-4 py-2.5 bg-gray-100 text-gray-500 rounded-2xl font-black hover:bg-gray-200 transition-all text-xs md:text-sm"
                   title="ยกเลิก"
                 >
-                  <RotateCcw size={16} />
+                  <CircleChevronLeft size={16} />
                   <span className="hidden sm:inline">ยกเลิก</span>
                 </button>
               </div>
@@ -215,7 +208,6 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                       className="absolute inset-0 opacity-0 cursor-pointer"
                       accept="image/*"
                       onChange={(e) => {
-                        /* Logic สำหรับอัปโหลดรูปภาพใหม่ */
                         console.log("เลือกรูปภาพใหม่:", e.target.files[0]);
                       }}
                     />
@@ -249,7 +241,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
 
                 <div className="p-4 rounded-2xl border border-orange-200 bg-orange-50 flex justify-between items-center">
                   <span className="text-sm font-bold text-gray-700">
-                    อุปกรณ์เน็ต
+                    อุปกรณ์อินเตอร์เน็ต
                   </span>
                   {isEditMode ? (
                     <input
