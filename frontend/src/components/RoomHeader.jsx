@@ -8,7 +8,7 @@ const RoomHeader = ({ roomNumber, children }) => {
   const menuItems = [
     { id: "main", label: "หน้าหลัก", path: `/rooms/${roomNumber}` },
     { id: "bill", label: "บิล", path: `/rooms/billings/${roomNumber}` },
-    { id: "request", label: "การแจ้ง", path: `/request/${roomNumber}` },
+    { id: "request", label: "การแจ้ง", path: `/rooms/request/${roomNumber}` },
     { id: "moveout", label: "การย้ายออก", path: `/moveout/${roomNumber}` },
     { id: "booking", label: "จองห้อง", path: `/booking/${roomNumber}` },
   ];
@@ -53,7 +53,7 @@ const RoomHeader = ({ roomNumber, children }) => {
       </div>
 
       {/* 3. จุดสำคัญ: ส่วนที่ใช้แสดงข้อมูลจาก (children) */}
-      <div className="p-2 md:p-4">{children}</div>
+      <div className="p-2">{children}</div>
     </>
   );
 };

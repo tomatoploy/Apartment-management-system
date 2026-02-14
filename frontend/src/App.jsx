@@ -16,7 +16,8 @@ import Billing from "./pages/Billing";
 import BillDetail from "./pages/BillDetail";
 import RoomDetail from "./pages/RoomDetail";
 import AddTenant from "./pages/AddTenant";
-import RoomBill from "./pages/RoomBill"
+// import RoomBill from "./pages/RoomBill"
+import RoomRequest from "./pages/RoomRequest";
 
 // import RoomsFilter from "./pages/Rooms-filterModal";
 
@@ -147,7 +148,14 @@ function App() {
 
 <Route path="/rooms/:roomNumber" element={<Layout><RoomDetail /></Layout>} />
 <Route path="/rooms/:roomNumber/add-tenant" element={<Layout><AddTenant /></Layout>} />
-
+<Route
+  path="/rooms/request/:roomNumber"
+  element={
+    <Layout>
+      <RoomRequest/>
+    </Layout>
+  }
+/>
 {/* <Route path="/rooms/:roomNumber/bill" element={<Layout><RoomBill /></Layout>} /> */}
 
       {/* case กันคนพิมพ์ URL แปลก ๆ */}

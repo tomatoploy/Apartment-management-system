@@ -89,7 +89,7 @@ const RoomDetail = () => {
       <RoomHeader roomNumber={roomNumber}>
         {tenant ? (
           /* --- กรณีมีผู้เช่า: แสดงข้อมูลทั้งหมด --- */
-          <div className="space-y-8">
+          <div className="space-y-6 mt-2">
             {/* 1 & 2: Banners ถ้ามีการแจ้งเตือนค้างก็จะแสดง */}
             {/* --- 1 & 2: Banners แจ้งเตือนและพัสดุ --- */}
             <div className="flex flex-col gap-4 max-w-4xl mx-auto">
@@ -315,12 +315,13 @@ const RoomDetail = () => {
             </div>
           </div>
         ) : (
+
           /* --- กรณีไม่มีผู้เช่า (ห้องว่าง) --- */
-          <div className="py-24 flex flex-col items-center justify-center text-center  bg-gray-50 rounded-3xl border border-gray-200">
-            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-gray-600 mb-6 border border-gray-200 shadow-inner">
+          <div className="py-24 flex flex-col items-center justify-center text-center  bg-gray-50 rounded-3xl border border-gray-200 mt-4 max-w-4xl mx-auto">
+            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-gray-400 mb-3 border border-dashed border-gray-300">
               <UserPlus size={48} />
             </div>
-            <h3 className="text-2xl text-gray-400 mb-2">ไม่มีข้อมูลผู้เช่า</h3>
+            <h3 className="text-xl font-black text-gray-500 mb-3">ไม่มีข้อมูลผู้เช่า</h3>
             <OrangeButton
               label="เพิ่มผู้เช่าใหม่"
               icon={Plus}

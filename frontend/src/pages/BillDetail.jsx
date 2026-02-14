@@ -1,16 +1,15 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { Download, Plus, Send, Minus } from "lucide-react";
-
-import {
-  OrangeButton,
-  SaveButton,
-  ExitButton,
-  WhiteButton,
-} from "../components/ActionButtons";
 import { CustomMonthPicker, toThaiMonth } from "../components/DateController";
 import BillTable from "../components/BillTable";
-import RoomHeader from "../components/RoomHeader"; // สมมติว่าสร้าง component นี้ไว้แล้ว
+import RoomHeader from "../components/RoomHeader";
+import {
+  OrangeButton,
+  ExitButton,
+  WhiteButton,
+  SaveButton,
+} from "../components/ActionButtons";
+import { Inbox, Download, Plus, Send, Minus } from "lucide-react";
 
 /* ================= Helpers ================= */
 const getItemLabel = (item, selectedDate) => {
@@ -34,7 +33,6 @@ const BillDetail = ({ mode }) => {
   const location = useLocation();
 
   // เช็คโหมด: ถ้าไม่ได้ส่ง props มา ให้เช็คจาก state ของ navigation (ถ้ามีการส่งมา)
-  // หรือจะใช้การเช็ค Path ก็ได้ครับ
   const isFromRoomMap =
     mode === "room-map" || location.state?.from === "room-map";
 
@@ -42,6 +40,8 @@ const BillDetail = ({ mode }) => {
     new Date().toISOString().slice(0, 7),
   );
 
+  //Mockdata
+  //const [items, setItems] = useState([]);
   const [items, setItems] = useState([
     { id: 1, type: "rent", amount: 3000, labels: {} },
     {
@@ -102,7 +102,6 @@ const BillDetail = ({ mode }) => {
 
   return (
     <>
-      {/* ส่วนเงื่อนไขการแสดง Header */}
       {isFromRoomMap ? (
         <RoomHeader roomNumber={roomNumber} />
       ) : (
@@ -117,21 +116,100 @@ const BillDetail = ({ mode }) => {
         </div>
       )}
 
-      {/* Table Component (ที่มีตัวเลือกเดือนและปุ่มภายใน) */}
-      <BillTable
-        items={items}
-        editingId={editingId}
-        form={form}
-        setForm={setForm}
-        selectedDate={selectedDate}
-        setSelectedDate={setSelectedDate}
-        getItemLabel={getItemLabel}
-        startEdit={startEdit}
-        saveEdit={saveEdit}
-        deleteItem={deleteItem}
-        total={total}
-        addItem={addItem}
-      />
+      <div className="flex justify-center items-center gap-3 mb-8">
+         {" "}
+        <div className="flex items-center gap-4 flex-col md:flex-row">
+                <span className="font-bold text-gray-600 shrink-0">รอบบิล</span>
+                      {" "}
+          <CustomMonthPicker
+            value={selectedDate}
+            onChange={(value) => setSelectedDate(value)}
+            className="w-64"
+          />
+           {" "}
+        </div>
+      </div>
+
+      {/* Table Component */}
+      {items && items.length > 0 ? (
+        // 1. กรณีมีข้อมูล: แสดงตารางปกติ
+        <>
+          <BillTable
+            roomNumber={roomNumber}
+            items={items}
+            editingId={editingId}
+            form={form}
+            setForm={setForm}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            getItemLabel={getItemLabel}
+            startEdit={startEdit}
+            saveEdit={saveEdit}
+            deleteItem={deleteItem}
+            total={total}
+            addItem={addItem}
+          />
+
+          <div className="flex justify-center gap-4 mb-2">
+            <div className="flex flex-col md:flex-row justify-center gap-3 w-full">
+              <WhiteButton
+                label="เพิ่มรายการ"
+                icon={Plus}
+                onClick={() => addItem("other")}
+                className="flex-1 md:flex-none w-full md:w-auto 
+      flex items-center justify-center gap-2 
+      py-2.5 px-6 rounded-xl font-bold transition-all 
+      active:scale-95  !bg-blue-50 !text-blue-600 !border-blue-50 hover:!bg-blue-100"
+              />
+              <WhiteButton
+                label="เพิ่มส่วนลด"
+                icon={Minus}
+                onClick={() => addItem("discount")}
+                className="flex-1 md:flex-none w-full md:w-auto 
+      flex items-center justify-center gap-2 
+      py-2.5 px-6 rounded-xl font-bold transition-all 
+      active:scale-95  !bg-red-50 !text-red-600 !border-red-50 hover:!bg-red-100"
+              />
+              <SaveButton
+                label="บันทึก"
+                onClick={() => alert("บันทึกข้อมูลทั้งหมด")}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col md:flex-row justify-center items-center gap-3 md:gap-4 w-full mt-3">
+            <OrangeButton
+              label="บันทึกเป็น PDF"
+              icon={Download}
+              className="py-3 w-full md:w-auto"
+            />
+            <OrangeButton
+              label="ส่งบิล"
+              icon={Send}
+              className="py-3 w-full md:w-auto"
+            />
+          </div>
+        </>
+      ) : (
+        // 2. กรณีไม่มีบิลค้างชำระ: แสดงสไตล์ Empty State ตามที่คุณต้องการ
+        <div className="py-24 flex flex-col items-center justify-center text-center bg-gray-50 rounded-[40px] border border-gray-200 mt-4 max-w-4xl mx-auto px-6">
+          <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-gray-300 mb-6 border border-dashed border-gray-300">
+            <Inbox size={48} />
+          </div>
+          <h3 className="text-xl font-black text-gray-500 mb-2">
+            ไม่มีบิลค้างชำระ
+          </h3>
+          <p className="text-gray-400 text-sm mb-6 font-bold uppercase tracking-wider">
+            ไม่พบรายการบิลสำหรับเดือน {toThaiMonth(selectedDate)}
+          </p>
+
+          <OrangeButton
+            label="สร้างบิลใหม่"
+            icon={Plus}
+            onClick={() => addItem("rent")}
+          />
+        </div>
+      )}
     </>
   );
 };
