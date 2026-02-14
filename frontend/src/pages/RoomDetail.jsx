@@ -138,7 +138,7 @@ const RoomDetail = () => {
 
                     {/* ปุ่ม: เต็มความกว้างในมือถือ (w-full) และขนาดปกติในจอใหญ่ (md:w-auto) */}
                     <button
-                      // onClick={() => navigate(`/request/${roomNumber}`)}
+                      onClick={() => navigate(`/rooms/request/${roomNumber}`)}
                       className="w-full md:w-auto text-[#ea3720] font-black text-sm underline underline-offset-4 hover:text-red-700 transition-all shrink-0"
                     >
                       แสดงเพิ่มเติม
@@ -163,8 +163,9 @@ const RoomDetail = () => {
 
                   {/* ปุ่มดูรายละเอียด */}
                   <button
-                    // onClick={() => navigate(`/parcels/${roomNumber}`)}
-                    className="w-full md:w-auto text-[#485cf7] font-black text-sm underline underline-offset-4 hover:text-blue-700 transition-all shrink-0"
+                        onClick={() => {
+                          router.push(`/parcels?search=${roomNumber}`); 
+                        }}                    className="w-full md:w-auto text-[#485cf7] font-black text-sm underline underline-offset-4 hover:text-blue-700 transition-all shrink-0"
                   >
                     แสดงเพิ่มเติม
                   </button>

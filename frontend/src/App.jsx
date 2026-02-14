@@ -18,6 +18,7 @@ import RoomDetail from "./pages/RoomDetail";
 import AddTenant from "./pages/AddTenant";
 // import RoomBill from "./pages/RoomBill"
 import RoomRequest from "./pages/RoomRequest";
+import AdminSettings from "./pages/AdminSettings";
 
 // import RoomsFilter from "./pages/Rooms-filterModal";
 
@@ -156,6 +157,16 @@ function App() {
     </Layout>
   }
 />
+ <Route
+        path="/settings/admin"
+        element={
+          <Layout>
+            <AdminSettings />
+          </Layout>
+        }
+      />
+      
+
 {/* <Route path="/rooms/:roomNumber/bill" element={<Layout><RoomBill /></Layout>} /> */}
 
       {/* case กันคนพิมพ์ URL แปลก ๆ */}
