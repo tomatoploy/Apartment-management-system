@@ -6,6 +6,7 @@ import PriceSettingModal from "../components/PriceSettingModal";
 import FilterButton from "../components/FilterButton";
 import FilterModal from "../components/FilterModal";
 import { SelectAllFloorButton, BlueButton } from "../components/ActionButtons";
+import { ExitButton } from "../components/ActionButtons";
 
 const UtilitySetting = () => {
   const navigate = useNavigate();
@@ -103,12 +104,11 @@ const UtilitySetting = () => {
     <>
       {/* Header */}
       <div className="relative text-center mb-8">
-        <button
+        <ExitButton
           onClick={() => navigate("/settings")}
           className="absolute p-2 right-0 hover:bg-gray-100 rounded-full transition-colors"
         >
-          <X size={24} strokeWidth={3} />
-        </button>
+        </ExitButton>
         <h1 className="text-3xl font-bold text-gray-800">กำหนดค่าเช่าห้อง</h1>
       </div>
 
