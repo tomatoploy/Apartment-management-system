@@ -1,9 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
-import building from "../assets/buildingSetting.jpg";
-import electric from "../assets/electricSetting.png";
-import rental from "../assets/rentalSetting.png";
+
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -14,23 +12,39 @@ const Settings = () => {
       id: 1,
       title: "ข้อมูลหอพัก",
       path: "/settings/building-edit",
-      bgImage: `url("${building}")`, // แก้ไข path รูปภาพจริงของคุณที่นี่
-      bgColor: "bg-[#c1e2ff]",
+      bgColor: "bg-orange-200",
     },
     {
       id: 2,
       title: "อัตราค่าไฟฟ้าและค่าน้ำประปา",
       path: "/settings/utility",
-      bgImage: `url("${electric}")`,
-      bgColor: "bg-[#64C192]",
+      bgColor: "bg-orange-200",
     },
     {
       id: 3,
       title: "ค่าเช่าห้องพักและค่าบริการ",
       path: "/settings/roomrate",
-      bgImage: `url("${rental}")`,
-      bgColor: "bg-[#e8c39a]",
+      bgColor: "bg-orange-200",
     },
+    {
+      id: 4,
+      title: "สัญญาและเอกสาร",
+      path: "/",
+      bgColor: "bg-orange-200",
+    },
+    {
+      id: 5,
+      title: "ข้อมูลแอดมิน",
+      path: "/settings/admin",
+      bgColor: "bg-orange-200",
+    },
+    {
+      id: 6,
+      title: "ตั้งค่าการเข้าถึงของแอดมิน",
+      path: "",
+      bgColor: "bg-orange-200",
+    },
+
   ];
 
   return (
@@ -41,25 +55,16 @@ const Settings = () => {
       </h1>
 
       {/* รายการเมนูเรียงต่อกัน 3 อันแนวตั้ง */}
-      <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto py-4 px-2 w-full space-y-8 overflow-y-auto pr-2">
+      <div className="flex-1 flex flex-col justify-center max-w-xl mx-auto py-4 px-2 w-full space-y-6 overflow-y-auto pr-2">
         {settingsMenu.map((item) => (
           <div
             key={item.id}
             onClick={() => navigate(item.path)}
-            className={`${item.bgColor} rounded-[35px] h-37 flex items-center justify-between px-10 cursor-pointer shadow-md hover:scale-[1.02] transition-all relative overflow-hidden group`}
+            className={`${item.bgColor} rounded-[35px] h-20 flex items-center justify-between px-10 cursor-pointer shadow-md hover:scale-[1.02] transition-all relative overflow-hidden group`}
           >
-            {/* พื้นหลังรูปภาพที่แสดงด้านขวาตาม Figma */}
-            <div
-              className="absolute inset-0 bg-right bg-no-repeat opacity-90 transition-transform duration-500 group-hover:scale-110"
-              style={{
-                backgroundImage: item.bgImage,
-                backgroundSize: "contain",
-                //   backgroundPosition: 'right'
-              }}
-            />
 
             {/* ชื่อเมนู */}
-            <h2 className="text-2xl font-bold text-[#0c4a6e] z-10">
+            <h2 className="text-xl  text-gray-600 z-10">
               {item.title}
             </h2>
 

@@ -1,5 +1,6 @@
 import React from "react";
-import { Download, Printer, FileText, Send, Plus, X } from "lucide-react";
+import { Download, Printer, FileText, Send, Plus, X, AlertCircle } from "lucide-react";
+import ReactDOM from 'react-dom';
 
 // --- Base Component สำหรับคุมความยืดหยุ่น (Responsive) ---
 const BaseButton = ({ onClick, children, className = "", disabled = false }) => (
@@ -121,3 +122,62 @@ export const WhiteButton = ({ label, icon: Icon, onClick, className = "" }) => (
     {label} {Icon && <Icon size={20} />} {/* ใช้ label และ Icon จาก props */}
   </button>
 );
+
+export const ConfirmModal = ({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  title = "ยืนยันการทำรายการ", 
+  description = "คุณแน่ใจใช่หรือไม่ว่าต้องการดำเนินการนี้?",
+  confirmText = "ยืนยัน",
+  cancelText = "ยกเลิก",
+  icon: Icon = AlertCircle,
+  variant = "warning" 
+}) => {
+  if (!isOpen) return null;
+
+  const confirmBtnColor = variant === "danger" ? "bg-red-500 hover:bg-red-600" : "bg-[#f3a638] hover:bg-[#e6952e]";
+  const iconBgColor = variant === "danger" ? "bg-red-50 text-red-500" : "bg-orange-50 text-[#f3a638]";
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  return ReactDOM.createPortal(
+    <div 
+    onClick={handleOverlayClick}
+    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-white w-full max-w-sm rounded-4xl p-8 shadow-2xl animate-in zoom-in duration-300">
+        <div className="flex flex-col items-center text-center">
+          <div className={`w-16 h-16 ${iconBgColor} rounded-full flex items-center justify-center mb-4`}>
+            <Icon size={32} />
+          </div>
+          
+          <h3 className="text-xl font-black text-gray-800 mb-2">
+            {title}
+          </h3>
+          <p className="text-gray-500 mb-8 font-medium">
+            {description}
+          </p>
+          
+          <div className="flex w-full gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 py-3.5 rounded-2xl font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors"
+            >
+              {cancelText}
+            </button>
+            <button
+              onClick={onConfirm}
+              className={`flex-1 py-3.5 rounded-2xl font-bold text-white transition-all active:scale-95 ${confirmBtnColor}`}
+            >
+              {confirmText}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body // ส่งไปที่ body
+  );
+};

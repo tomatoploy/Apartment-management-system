@@ -8,10 +8,13 @@ import {
   Settings,
   LogOut,
   ChevronLeft,
+  User,
+  Edit
 } from "lucide-react";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { ConfirmModal } from "./ActionButtons";
 
 const MenuItem = ({ icon: Icon, text, to, collapsed, onClick }) => (
   <NavLink
@@ -35,6 +38,9 @@ const MenuItem = ({ icon: Icon, text, to, collapsed, onClick }) => (
 const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
   const navigate = useNavigate();
   const [profileImage, setProfileImage] = useState(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false); // State สำหรับเปิด Dropdown
+  const dropdownRef = useRef(null); // Ref สำหรับตรวจจับการคลิกด้านนอก
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -46,9 +52,18 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
       }
     };
     fetchUserData();
+  
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
+    <>
     <aside
       className={`
         /* ส่วนที่แก้ไขเพื่อให้ซ่อนบนมือถือ */
@@ -59,12 +74,12 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
         
         /* บนคอมพิวเตอร์ (lg:): ปรับความกว้างตามสถานะ isCollapsed */
         lg:w-${isCollapsed ? "20" : "64"}
-      `}
+       relative`}
     >
       {/* ปุ่มลูกศรย่อขยาย: ซ่อนไว้บนมือถือ (hidden) และแสดงเฉพาะบนคอม (lg:block) */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="hidden lg:block absolute top-4 right-4 p-1 rounded hover:bg-orange-200 transition"
+        className="hidden lg:block absolute top-4 right-4 p-1 z-50 rounded hover:bg-orange-200 transition"
       >
         <ChevronLeft
           size={20}
@@ -74,16 +89,33 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
 
       <div>
         {/* Profile Section */}
-        <div className={`flex justify-center pt-12 py-8 transition-all ${isCollapsed ? "lg:scale-60" : ""}`}>
-          <div className="w-24 h-24 bg-[#cbd5e1] rounded-full flex items-center justify-center overflow-hidden border-4 border-white shadow-md relative">
+        <div className={`flex justify-center pt-12 py-8 transition-all relative ${isCollapsed ? "lg:scale-60" : ""}`} ref={dropdownRef}>
+          <div 
+            onClick={() => setIsMenuOpen(!isMenuOpen)} // กดเพื่อสลับเปิด-ปิด
+          className="w-24 h-24 bg-[#cbd5e1] rounded-full flex items-center justify-center overflow-hidden border-4 border-white shadow-md relative cursor-pointer">
             {profileImage ? (
               <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
             ) : (
-              <svg className="w-full h-full text-[#475569] mt-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
+              <User size={48} className="text-gray-500" />
             )}
           </div>
+        {/* Dropdown Menu */}
+          {isMenuOpen && (
+            <div className="absolute top-10 left-2/3  mt-2 w-46  bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden  animate-in fade-in zoom-in duration-200">
+              
+              
+              <button
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  if (onItemClick) onItemClick(); // ปิด Sidebar บนมือถือ
+                  navigate("/settings/admin"); 
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-[15px] font-bold text-gray-700 hover:bg-gray-50 cursor-pointer"
+              >
+                แก้ไขข้อมูลแอดมิน
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Menu Items */}
@@ -112,18 +144,29 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
       {/* Logout Button */}
       <div className="p-4 bg-[#FFF7ED]">
         <button
-          onClick={() => {
-            if (onItemClick) onItemClick(); // ปิด Sidebar บนมือถือ
-            navigate("/login");
-          }}
+          onClick={() => setShowLogoutConfirm(true)}
           className="flex items-center gap-2 p-3 w-full text-[18px] rounded-lg bg-[#F5A623] hover:bg-[#E2951B] text-white transition-all justify-center"
         >
           <LogOut size={18} strokeWidth={3} />
           {/* บนมือถือจะแสดงข้อความเสมอ ส่วนบนคอมจะแสดงตามสถานะ isCollapsed */}
           <span className={`${isCollapsed ? "lg:hidden" : "block"}`}>Log out</span>
         </button>
+        {/* เรียกใช้ ConfirmModal ที่คุณสร้างไว้ใน ActionButtons.jsx */}
       </div>
     </aside>
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={() => {
+          if (onItemClick) onItemClick(); // ปิด Sidebar (ถ้ามี)
+          setShowLogoutConfirm(false);
+          navigate("/login"); // ไปที่หน้า login หลังยืนยัน
+        }}
+        title="ยืนยันการออกจากระบบ"
+        description="คุณแน่ใจใช่หรือไม่ว่าต้องการออกจากระบบ?"
+        confirmText="ออกจากระบบ"
+      />
+      </>
   );
 };
 
