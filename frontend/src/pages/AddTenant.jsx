@@ -104,31 +104,42 @@ const AddTenant = () => {
   return (
     <RoomHeader roomNumber={roomNumber}>
       {/* Container ครอบฟอร์มให้มีสไตล์เหมือน Modal แต่แสดงเป็นหน้าเพจ */}
-      <div className="bg-white rounded-3xl w-full max-w-4xl mx-auto flex flex-col overflow-hidden border border-gray-200">
+      <div className="bg-white rounded-3xl w-full max-w-4xl mx-auto flex flex-col overflow-hidden border border-gray-200 mt-4 h-[600px] md:h-[700px]">
         {/* Header */}
         <div className="p-6 border-b border-gray-200 flex items-center justify-between bg-white">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-[#f3a638]">
-              <User size={28} strokeWidth={2.5} />
+            <div className="hidden md:flex w-10 h-10 bg-orange-50 rounded-xl items-center justify-center text-[#f3a638] shadow-sm shrink-0">
+              <User size={24} strokeWidth={2.5} />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-gray-800">
+              <h2 className="text-lg md:text-xl font-black text-gray-700 flex items-center gap-3">
                 เพิ่มผู้เช่าใหม่
               </h2>
             </div>
           </div>
-          <ExitButton onClick={() => navigate(-1)} />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 md:px-4 md:py-2 text-sm font-bold text-gray-400 hover:bg-gray-100 rounded-xl transition-all"
+            >
+              ยกเลิก
+            </button>
+            <button
+              onClick={handleSave}
+              className="p-2 md:px-5 md:py-2 text-sm font-bold bg-[#f3a638] hover:brightness-95 text-white rounded-xl flex items-center gap-2 transition-all"
+            >
+              บันทึก
+            </button>
+            <ExitButton onClick={() => navigate(-1)} />
+          </div>
         </div>
 
         {/* Body */}
-        <div className="p-6 md:py-4 md:px-10  bg-white">
+        <div className=" overflow-y-auto p-6 md:py-4 md:px-10 bg-white custom-scrollbar">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
             {/* --- ส่วนที่แก้ไข: ปรับแถวแรกให้เป็น 3 คอลัมน์ --- */}
             <SectionHeader title="ข้อมูลส่วนบุคคล" icon={Info} />
-
-            {/* ใช้ Grid 5 คอลัมน์ เพื่อแบ่งสัดส่วน 1:2:2 (รวมเป็น 5) จะทำให้ชื่อและนามสกุลดูยาวและสมดุล */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 col-span-1 md:col-span-2">
-              {/* คำนำหน้า - ใช้ 1 ส่วน */}
               <div className="md:col-span-1 flex flex-col">
                 <FieldLabel required>คำนำหน้า</FieldLabel>
                 <select
@@ -142,8 +153,6 @@ const AddTenant = () => {
                   <option value="นาง">นาง</option>
                 </select>
               </div>
-
-              {/* ชื่อจริง - ใช้ 2 ส่วน */}
               <div className="md:col-span-2">
                 <FormInput
                   label="ชื่อจริง"
@@ -153,8 +162,6 @@ const AddTenant = () => {
                   required
                 />
               </div>
-
-              {/* นามสกุล - ใช้ 2 ส่วน */}
               <div className="md:col-span-2">
                 <FormInput
                   label="นามสกุล"
@@ -179,12 +186,12 @@ const AddTenant = () => {
               onChange={handleChange}
             />
 
-            <FormInput
+            {/* <FormInput
               label="ชื่อเล่น"
               name="nickName"
               value={formData.nickName}
               onChange={handleChange}
-            />
+            /> */}
 
             {/* ส่วนอัพโหลดรูปภาพ */}
             <div className="col-span-1 flex flex-col">
@@ -208,8 +215,6 @@ const AddTenant = () => {
                       </span>
                     </div>
                   )}
-
-                  {/* Input File ครอบทับทั้งหมดเพื่อให้กดง่าย */}
                   <input
                     type="file"
                     accept="image/*"
@@ -217,10 +222,9 @@ const AddTenant = () => {
                     onChange={(e) => {
                       const file = e.target.files[0];
                       if (file) {
-                        // 1. เช็คขนาดไฟล์ (ป้องกันหน้าขาวจากไฟล์ใหญ่เกินไป เช่น เกิน 5MB)
-                        if (file.size > 5 * 1024 * 1024) {
+                        if (file.size > 10 * 1024 * 1024) {
                           alert(
-                            "ขนาดไฟล์ใหญ่เกินไป กรุณาเลือกรูปที่ไม่เกิน 5MB ครับ",
+                            "ขนาดไฟล์ใหญ่เกินไป กรุณาเลือกรูปที่ไม่เกิน 10MB",
                           );
                           return;
                         }
@@ -234,7 +238,6 @@ const AddTenant = () => {
                           }));
                         };
 
-                        // กรณีเกิด Error ในการอ่านไฟล์
                         reader.onerror = () => {
                           console.error("เกิดข้อผิดพลาดในการอ่านไฟล์");
                         };
@@ -400,26 +403,7 @@ const AddTenant = () => {
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="border-t border-gray-200 sticky bottom-0 z-30">
-          <div className="max-w-4xl mx-auto p-4 flex justify-end items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="px-8 py-3.5 text-gray-400 font-bold bg-gray-50 hover:bg-gray-100 rounded-2xl transition-all"
-            >
-              ยกเลิก
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="min-w-40 bg-[#f3a638] text-white py-3.5 px-8 rounded-2xl font-black shadow-lg shadow-orange-100 hover:brightness-95 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-            >
-              <Save size={20} />
-              บันทึก
-            </button>
-          </div>
-        </div>
+       
       </div>
     </RoomHeader>
   );

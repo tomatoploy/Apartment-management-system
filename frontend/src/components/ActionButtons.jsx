@@ -107,8 +107,8 @@ export const ExitButton = ({ onClick, className = "" }) => (
     className={`p-2 hover:bg-gray-100 rounded-full transition-all duration-200 group active:scale-90 ${className}`}
   >
     <X 
-      size={24} 
-      strokeWidth={3} 
+      size={20} 
+      strokeWidth={2} 
       className="text-gray-400 transition-colors" 
     />
   </button>);

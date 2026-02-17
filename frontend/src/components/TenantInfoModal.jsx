@@ -176,7 +176,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
           <div className="flex  flex-col lg:flex-row gap-10">
             {/* Sidebar: Photo & Quick Status */}
             <div className="w-full max-w-50 mx-auto lg:mx-0 flex flex-col gap-5">
-              <div className="w-full aspect-square bg-gray-50 rounded-[35px] border-4 border-white shadow-sm overflow-hidden flex items-center justify-center relative group transition-all duration-300 hover:shadow-md">
+              <div className="w-full aspect-square bg-gray-50 rounded-[35px] border-2 border-gray-200 overflow-hidden flex items-center justify-center relative group transition-all">
                 {formData.photo ? (
                   <img
                     src={formData.photo}
@@ -241,7 +241,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
 
                 <div className="p-4 rounded-2xl border border-orange-200 bg-orange-50 flex justify-between items-center">
                   <span className="text-sm font-bold text-gray-700">
-                    อุปกรณ์อินเตอร์เน็ต
+                    อินเตอร์เน็ต
                   </span>
                   {isEditMode ? (
                     <input
@@ -280,12 +280,12 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                       <option value="นาง">นาง</option>
                     </select>
                   </div>
-                  <EditInput
+                  {/* <EditInput
                     label="ชื่อเล่น"
                     name="nickName"
                     value={formData.nickName}
                     onChange={handleChange}
-                  />
+                  /> */}
                   <EditInput
                     label="ชื่อจริง"
                     name="firstName"
@@ -326,7 +326,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                     value={formData.nin}
                     icon={CreditCard}
                   />
-                  <DisplayItem label="ชื่อเล่น" value={formData.nickName} />
+                  {/* <DisplayItem label="ชื่อเล่น" value={formData.nickName} /> */}
                   <DisplayItem
                     label="วันเกิด"
                     value={toThaiDate(formData.birthDate)}

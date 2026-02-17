@@ -10,7 +10,7 @@ const RoomHeader = ({ roomNumber, children }) => {
     { id: "bill", label: "บิล", path: `/rooms/billings/${roomNumber}` },
     { id: "request", label: "การแจ้ง", path: `/rooms/request/${roomNumber}` },
     { id: "moveout", label: "การย้ายออก", path: `/moveout/${roomNumber}` },
-    { id: "booking", label: "จองห้อง", path: `/booking/${roomNumber}` },
+    { id: "booking", label: "จองห้อง", path: `/rooms/reserve/${roomNumber}` },
   ];
 
   return (
