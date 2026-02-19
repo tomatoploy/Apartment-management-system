@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Calendar, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, ChevronDown,X } from "lucide-react";
 
 // --- 1. Helpers สำหรับจัดการวันที่และเดือนไทย (Export ให้ไฟล์อื่นใช้ได้) ---
 
 // แปลงวันที่เต็ม: 2026-02-09 -> 9 กุมภาพันธ์ 2569
 export const toThaiDate = (dateString) => {
-  if (!dateString || dateString === "-") return "เลือกวันที่";
+  if (!dateString || dateString === "-") return "";
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return dateString;
   return date.toLocaleDateString("th-TH", {
@@ -113,6 +113,11 @@ export const DateInput = ({
     }
   }, [value, show]);
 
+  const handleClear = (e) => {
+    e.stopPropagation(); 
+    onChange({ target: { name, value: "" } }); 
+  };
+
   const handleYearChange = (e) => {
     const val = e.target.value;
     setYearInput(val);
@@ -150,7 +155,17 @@ export const DateInput = ({
         <span className={value ? "" : "text-gray-400 font-normal"}>
           {value ? toThaiDate(value) : ""}
         </span>
-        <Calendar size={18} className="text-[#f3a638]" />
+        <div className="flex items-center gap-2">
+          {value && (
+            <div 
+              onClick={handleClear}
+              className="p-1 hover:bg-gray-200 rounded-full transition-colors text-gray-400"
+            >
+              <X size={14} />
+            </div>
+          )}
+          <Calendar size={18} className="text-[#f3a638]" />
+        </div>
       </div>
 
       {show && (

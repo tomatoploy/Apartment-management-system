@@ -189,7 +189,7 @@ const RoomReserve = () => {
               />
             </div>
           ) : (
-            <div className="bg-white rounded-3xl w-full max-w-4xl mx-auto flex flex-col overflow-hidden border border-gray-200 mt-4 h-[600px] md:h-[550px]">
+            <div className="bg-white rounded-3xl w-full max-w-4xl mx-auto flex flex-col overflow-hidden border border-gray-200 shadow-sm mt-4 h-[600px] md:h-[550px]">
               {/* 3 & 4. ส่วนหัวแบบ Fixed/Sticky */}
 
               {/* Sticky Header: จะติดอยู่ขอบบนเสมอเมื่อ Scroll */}

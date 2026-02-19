@@ -2,13 +2,12 @@ import React, { useState, useEffect } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { DateInput } from "../components/DateController";
 
-// สร้าง Component ภายในสำหรับ Label เพื่อลดความซ้ำซ้อน
 const FieldLabel = ({ children, required }) => (
-  <label className="block text-md font-bold text-gray-700 mb-2">
+  <label className="text-[13px] font-bold text-gray-500 mb-2 ml-1 block">
     {children} {required && <span className="text-red-500">*</span>}
   </label>
 );
-// คอมโพเนนท์สำหรับ Input ที่รวมสไตล์ไว้ที่เดียว
+
 const InputField = ({ type = "text", ...props }) => (
   <input
     type={type}
@@ -82,7 +81,8 @@ const RequestModal = ({ isOpen, onClose, onSave }) => {
         </div>
 
         {/* Form Body */}
-        <div className="grid grid-cols-2 gap-4 text-left">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+          {" "}
           <div className="col-span-1">
             <FieldLabel required>เลขห้อง</FieldLabel>
             <InputField
@@ -91,7 +91,6 @@ const RequestModal = ({ isOpen, onClose, onSave }) => {
               onChange={handleChange}
             />
           </div>
-
           <div className="col-span-1">
             {/* <FieldLabel required>วันที่แจ้ง</FieldLabel>
             <InputField type="date" name="requestDate" value={formData.requestDate} onChange={handleChange}   /> */}
@@ -103,7 +102,6 @@ const RequestModal = ({ isOpen, onClose, onSave }) => {
               required
             />
           </div>
-
           <div className="col-span-1">
             <FieldLabel required>เรื่องที่แจ้ง</FieldLabel>
             <div className="relative">
@@ -123,7 +121,6 @@ const RequestModal = ({ isOpen, onClose, onSave }) => {
               </div>
             </div>
           </div>
-
           <div className="col-span-1">
             <FieldLabel required>สถานะการดำเนินการ</FieldLabel>
             <div className="relative">
@@ -142,7 +139,6 @@ const RequestModal = ({ isOpen, onClose, onSave }) => {
               </div>
             </div>
           </div>
-
           <div className="col-span-2">
             <FieldLabel>รายละเอียด</FieldLabel>
             <textarea
@@ -153,7 +149,6 @@ const RequestModal = ({ isOpen, onClose, onSave }) => {
               className="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#f3a638]"
             />
           </div>
-
           <div className="col-span-1">
             <DateInput
               label="วันนัดหมาย"
@@ -162,7 +157,6 @@ const RequestModal = ({ isOpen, onClose, onSave }) => {
               onChange={handleChange}
             />
           </div>
-
           <div className="col-span-1 relative">
             <FieldLabel>ค่าใช้จ่าย (ถ้ามี)</FieldLabel>
             <InputField
@@ -182,7 +176,6 @@ const RequestModal = ({ isOpen, onClose, onSave }) => {
               <span className="text-xs text-gray-500">ผู้เช่าจ่าย</span>
             </div>
           </div>
-
           <div className="col-span-2 ">
             <FieldLabel>หมายเหตุ</FieldLabel>
             <InputField

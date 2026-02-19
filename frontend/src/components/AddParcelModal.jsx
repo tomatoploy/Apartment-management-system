@@ -3,7 +3,7 @@ import { X, ChevronDown } from "lucide-react";
 import { DateInput } from "./DateController";
 
 const FieldLabel = ({ children, required }) => (
-  <label className="block text-md font-bold text-gray-700 mb-2">
+  <label className="text-[13px] font-bold text-gray-500 mb-2 ml-1 block">
     {children} {required && <span className="text-red-500">*</span>}
   </label>
 );

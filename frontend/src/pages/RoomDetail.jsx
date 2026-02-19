@@ -26,6 +26,7 @@ import {
 import { OrangeButton, ExitButton } from "../components/ActionButtons";
 import RoomHeader from "../components/RoomHeader";
 import TenantInfoModal from "../components/TenantInfoModal";
+import { toThaiDate } from "../components/DateController";
 
 const RoomDetail = () => {
   const { roomNumber } = useParams();
@@ -60,14 +61,14 @@ const RoomDetail = () => {
         internetDeviceCount: 2,
         note: "แพ้อาหารทะเล, จอดรถที่โซน A",
         outstandingBalance: 3550,
-        checkInDate: "01/01/2025",
-        contractEndDate: "01/01/2026",
+        checkInDate: "2025-01-02",
+        contractEndDate: "2026-01-01",
         moveOutDate: "-",
         hasPendingNotification: true,
         pendingParcels: 1,
         documents: [
-          { id: 1, name: "สัญญาเช่า_201.pdf", date: "01/01/2025" },
-          { id: 2, name: "สำเนาทะเบียนบ้าน.png", date: "01/01/2025" },
+          { id: 1, name: "สัญญาเช่า_201.pdf", date: "2025-01-01" },
+          { id: 2, name: "สำเนาทะเบียนบ้าน.png", date: "2025-01-01" },
         ],
       });
     } else {
@@ -123,7 +124,7 @@ const RoomDetail = () => {
                           วันที่แจ้ง
                         </p>
                         <p className="text-md font-bold text-gray-700">
-                          02/02/2026
+                          {toThaiDate("2026-02-02")}
                         </p>
                       </div>
                       <div className="flex flex-col items-start justify-center">
@@ -220,12 +221,12 @@ const RoomDetail = () => {
                   />
                   <InfoItem
                     label="วันเข้าอยู่"
-                    value={tenant.checkInDate}
+                    value={toThaiDate(tenant.checkInDate)}
                     icon={<Calendar size={18} />}
                   />
                   <InfoItem
                     label="วันย้ายออก"
-                    value={tenant.moveOutDate}
+                    value={toThaiDate(tenant.moveOutDate)}
                     icon={<FileText size={18} />}
                   />
                   <InfoItem
@@ -275,7 +276,7 @@ const RoomDetail = () => {
                                 {doc.name}
                               </p>
                               <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">
-                                {doc.date}
+                                {toThaiDate(doc.date)}
                               </p>
                             </div>
                           </div>
