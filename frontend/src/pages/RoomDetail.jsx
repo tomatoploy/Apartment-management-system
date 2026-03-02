@@ -92,7 +92,6 @@ const RoomDetail = () => {
           /* --- กรณีมีผู้เช่า: แสดงข้อมูลทั้งหมด --- */
           <div className="space-y-6 mt-2">
             {/* 1 & 2: Banners ถ้ามีการแจ้งเตือนค้างก็จะแสดง */}
-            {/* --- 1 & 2: Banners แจ้งเตือนและพัสดุ --- */}
             <div className="flex flex-col gap-4 max-w-4xl mx-auto">
               {tenant.hasPendingNotification && (
                 <div className="bg-red-50 border border-red-100 rounded-3xl p-5 shadow-sm overflow-hidden relative group">
@@ -110,12 +109,12 @@ const RoomDetail = () => {
                       </div>
                     </div>
 
-                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-2xl bg-white/30 md:bg-transparent p-3 md:p-0">
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-2xl  md:bg-transparent p-3 md:p-0">
                       <div>
                         <p className="text-[12px] font-black text-red-400">
                           เรื่อง
                         </p>
-                        <p className="text-md font-bold text-gray-700">
+                        <p className="text-sm font-bold text-gray-700">
                           แจ้งซ่อม: ห้องน้ำรั่ว
                         </p>
                       </div>
@@ -123,7 +122,7 @@ const RoomDetail = () => {
                         <p className="text-[12px] font-black text-red-400">
                           วันที่แจ้ง
                         </p>
-                        <p className="text-md font-bold text-gray-700">
+                        <p className="text-sm font-bold text-gray-700">
                           {toThaiDate("2026-02-02")}
                         </p>
                       </div>

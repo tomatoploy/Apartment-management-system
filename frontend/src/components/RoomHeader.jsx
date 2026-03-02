@@ -13,6 +13,7 @@ const RoomHeader = ({ roomNumber, children }) => {
     { id: "booking", label: "จองห้อง", path: `/rooms/reserve/${roomNumber}` },
   ];
 
+  
   return (
     <>
       <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
