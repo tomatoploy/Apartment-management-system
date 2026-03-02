@@ -20,6 +20,7 @@ import AddTenant from "./pages/AddTenant";
 import RoomRequest from "./pages/RoomRequest";
 import AdminSettings from "./pages/AdminSettings";
 import RoomReserve from "./pages/RoomReserve";
+import RoomMoveOut from "./pages/RoomMoveOut";
 
 // import RoomsFilter from "./pages/Rooms-filterModal";
 
@@ -170,6 +171,14 @@ function App() {
         element={
           <Layout>
             <RoomRequest />
+          </Layout>
+        }
+      />
+      <Route
+        path="/rooms/move-out/:roomNumber"
+        element={
+          <Layout>
+            <RoomMoveOut />
           </Layout>
         }
       />
