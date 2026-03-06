@@ -1,27 +1,28 @@
 import React, { useState, useMemo } from "react";
+import { useParams } from "react-router-dom";
 import {
+  ShieldCheck,
+  FileWarning,
   Inbox,
   ChevronDown,
   Download,
   Send,
   Plus,
-  Pencil,
-  Trash2,
   Printer,
   CheckCircle,
+  FileText,
 } from "lucide-react";
+
+// Components
+import RoomHeader from "../components/RoomHeader";
+import BillDetail from "./BillDetail";
+import BillTable from "../components/BillTable";
+import { toThaiDate, toThaiMonth } from "../components/DateController";
 import {
   OrangeButton,
   WhiteButton,
   SaveButton,
 } from "../components/ActionButtons";
-import { FileText } from "lucide-react";
-import RoomHeader from "../components/RoomHeader";
-import { toThaiDate } from "../components/DateController";
-import { useParams, useNavigate } from "react-router-dom";
-import { toThaiMonth } from "../components/DateController";
-import BillTable from "../components/BillTable";
-
 /* ================= Mock Data ================= */
 const mockContract = {
   contractId: "CNT-2025-001",
@@ -75,17 +76,40 @@ const CheckoutManager = () => {
   // Mock Data (สามารถเชื่อมต่อกับ Global State หรือ API ได้)
   //ฟังก์ชันของ BillTable ส่งผ่าน props
   const [assets, setAssets] = useState([]);
+  // บิลค้างชำระ (Step 1)
   const billItems = [
     {
       period: "2024-12",
-      totalAmount: 5500,
       details: [
         { label: "ค่าเช่าห้อง", amount: 5000 },
         { label: "ค่าน้ำ", amount: 100 },
         { label: "ค่าไฟ", amount: 400 },
       ],
     },
+    {
+      period: "2024-11",
+      details: [
+        { label: "ค่าเช่าห้อง", amount: 5000 },
+        { label: "ค่าน้ำ", amount: 200 },
+        { label: "ค่าไฟ", amount: 400 },
+      ],
+    },
   ];
+  const currentMonthBill = {
+  period: "2025-03", 
+  details: [
+    { id: "cur-1", label: "ค่าไฟฟ้า เดือนมีนาคม 2025", amount: 500 },
+    { id: "cur-2", label: "ค่าน้ำ เดือนมีนาคม 2025", amount: 550 },
+  ],
+};
+// เพิ่ม State สำหรับเงินประกัน (Step 4)
+  const [deposits, setDeposits] = useState([
+    { 
+      id: "dep-001", 
+      label: "เงินประกันความเสียหาย", 
+      amount: 3000 
+    }
+  ]);
   //billItems
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ label: "", amount: 0 });
@@ -122,6 +146,12 @@ const CheckoutManager = () => {
       setIsAddingAsset(false); // ปิดฟอร์มหลังบันทึก
     }
   };
+  //เรียกตารางจาก BillDetail
+
+  const [depositData, setDepositData] = useState([
+    // สำหรับ Step 4 (ตัวอย่างข้อมูลเงินประกัน)
+    { id: "d1", type: "deposit", label: "เงินประกันความเสียหาย", amount: 5000 },
+  ]);
 
   const steps = [
     { id: 1, label: "1. เคลียร์บิลค้างชำระ" },
@@ -270,7 +300,10 @@ const CheckoutManager = () => {
                                 ยอดค้างชำระรวม
                               </p>
                               <p className="font-black text-orange-600 text-lg">
-                                {billGroup.totalAmount.toLocaleString()} ฿
+                                {billGroup.details
+                                  .reduce((sum, item) => sum + item.amount, 0)
+                                  .toLocaleString()}{" "}
+                                ฿
                               </p>
                             </div>
                             <ChevronDown
@@ -281,22 +314,25 @@ const CheckoutManager = () => {
 
                         {/* ส่วนรายละเอียด (ใน Step 1) */}
                         {openBills[billGroup.period] && (
-                          <div className="px-0 md:px-5 pb-5 animate-fadeIn">
-                            <div className="border-t border-dashed border-gray-200 pt-4 mt-2">
-                              <BillTable
-                                items={billGroup.details.map((item, idx) => ({
-                                  ...item,
-                                  id: item.id || `${billGroup.period}-${idx}`, // มั่นใจว่ามี id ส่งไปให้ BillTable
-                                }))}
-                                editingId={editingId}
-                                form={form}
-                                setForm={setForm}
-                                selectedDate={billGroup.period}
-                                getItemLabel={(item) => item.label}
-                                startEdit={handleStartEdit}
-                                saveEdit={handleSaveEdit}
-                                deleteItem={handleDeleteItem}
-                                total={billGroup.totalAmount}
+                          <div className="px-0 md:px-5 pb-5 animate-fadeIn border-t border-dashed border-gray-200">
+                            <div className="mt-4">
+                              <BillDetail
+                                mode="checkout"
+                                showAddBtn={false}
+                                showDiscountBtn={false}
+                                showPdfBtn={false}
+                                showSendBtn={false}
+                                showSaveBtn={false}
+                                initialData={billGroup.details.map(
+                                  (item, idx) => ({
+                                    ...item,
+                                    id: item.id || `${billGroup.period}-${idx}`,
+                                  }),
+                                )}
+                                total={billGroup.details.reduce(
+                                  (sum, item) => sum + item.amount,
+                                  0,
+                                )}
                               />
                             </div>
                           </div>
@@ -310,6 +346,7 @@ const CheckoutManager = () => {
 
             {currentStep === 2 && (
               <div className="space-y-4">
+                {/* 1. ส่วนหัวและปุ่มเพิ่มรายการ (คงไว้เหมือนเดิม) */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
                   <div className="flex items-center gap-4">
                     <span
@@ -325,12 +362,11 @@ const CheckoutManager = () => {
                       ตรวจสอบทรัพย์สิน
                     </h2>
                   </div>
-                  {/* เพิ่มปุ่มระดับเดียวกับหัวข้อ */}
+
                   {!isAddingAsset && (
                     <button
                       onClick={() => setIsAddingAsset(true)}
-                      className="px-5 py-2.5 bg-blue-500 text-white rounded-xl font-semibold text-sm
-          hover:bg-blue-600 transition-all flex items-center gap-2 shadow-md"
+                      className="px-5 py-2.5 bg-blue-500 text-white rounded-xl font-semibold text-sm hover:bg-blue-600 transition-all flex items-center gap-2 shadow-md"
                     >
                       <Plus size={18} />
                       เพิ่มรายการทรัพย์สิน
@@ -340,7 +376,7 @@ const CheckoutManager = () => {
 
                 <StepNotice mode={mode} currentStep={currentStep} />
 
-                {/* Form สำหรับเพิ่มข้อมูล (จะแสดงแทรกเมื่อกดปุ่ม) */}
+                {/* 2. Form สำหรับเพิ่มข้อมูล (คงไว้เหมือนเดิม) */}
                 {isAddingAsset && (
                   <div className="bg-blue-50/50 border-2 border-dashed border-blue-100 rounded-[30px] p-4 mb-2 animate-fadeIn">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -371,8 +407,8 @@ const CheckoutManager = () => {
                           value={assetForm.amount}
                           onChange={(e) => {
                             const value = e.target.value;
-
-                            if (value >= 0 || value === "") {
+                            // อนุญาตเฉพาะค่าว่าง (ตอนลบเลข) หรือเลขที่มีค่าตั้งแต่ 0 ขึ้นไปเท่านั้น
+                            if (value === "" || parseFloat(value) >= 0) {
                               setAssetForm({ ...assetForm, amount: value });
                             }
                           }}
@@ -383,7 +419,7 @@ const CheckoutManager = () => {
                     <div className="flex justify-end gap-3 mt-4">
                       <button
                         onClick={() => setIsAddingAsset(false)}
-                        className="px-4 py-1.5 text-gray-400 rounded-xl font-bold hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                        className="px-4 py-1.5 text-gray-400 font-bold hover:bg-gray-100 rounded-xl transition-all"
                       >
                         ยกเลิก
                       </button>
@@ -397,208 +433,103 @@ const CheckoutManager = () => {
                   </div>
                 )}
 
-                {/* รายการ Table แสดง Assets */}
+                {/* 3. ส่วนรายการข้อมูล: ดึงเฉพาะโครงของ BillTable มาใช้ */}
                 {assets.length === 0 && !isAddingAsset ? (
                   <EmptyState message="ไม่มีข้อมูลรายการทรัพย์สิน" />
-                ) : assets.length > 0 ? (
-                  <div className="space-y-3">
-                    {/* --- 1. แสดงเป็นตารางบน Desktop,ipad --- */}
-                    <div className="hidden md:block bg-white rounded-[30px] border border-gray-200 overflow-hidden shadow-sm">
-                      <table className="w-full">
-                        <thead className="bg-gray-100 border-b border-gray-200">
-                          <tr className="text-gray-500 text-xs uppercase font-bold">
-                            <th className="px-8 text-center w-16">ลำดับ</th>
-                            <th className="px-6 py-4 text-left">
-                              รายการทรัพย์สิน
-                            </th>
-                            <th className="p-4 text-right w-40">
-                              มูลค่า (บาท)
-                            </th>
-                            <th className="p-2 w-8"></th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                          {assets.map((asset, index) => (
-                            <tr
-                              key={asset.id}
-                              className="hover:bg-gray-50/80 transition-colors "
-                            >
-                              <td className="px-8 text-center text-gray-700">
-                                {index + 1}
-                              </td>
-                              <td className="p-4 py-2.5 font-normal text-gray-700">
-                                {asset.label}
-                              </td>
-                              <td className="p-4 py-2.5 text-right font-semibold text-red-500">
-                                {asset.amount.toLocaleString()}
-                              </td>
-                              <td className="p-4 py-2.5 text-center">
-                                <button
-                                  onClick={() =>
-                                    setAssets(
-                                      assets.filter((a) => a.id !== asset.id),
-                                    )
-                                  }
-                                  className="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
+                ) : (
+                  <div className="mt-6">
+                    <BillTable
+                      items={assets}
+                      editingId={editingId}
+                      form={form}
+                      setForm={setForm}
+                      // Mapping ชื่อรายการให้แสดงตรงๆ
+                      getItemLabel={(item) => item.label}
+                      startEdit={handleStartEdit}
+                      saveEdit={handleSaveEdit}
+                      deleteItem={(id) =>
+                        setAssets(assets.filter((a) => a.id !== id))
+                      }
+                      total={assets.reduce((sum, item) => sum + item.amount, 0)}
+                    />
 
-                        {/* สรุปจำนวนรายการและมูลค่ารวม */}
-                        <tfoot className="bg-gray-100 border-t border-gray-200">
-                          <tr className="font-black text-gray-700">
-                            <td
-                              colSpan={2}
-                              className=" text-right uppercase tracking-wide text-sm"
-                            >
-                              รวมทั้งหมด {assets.length} รายการ
-                            </td>
-                            <td className="p-3 text-right text-md text-red-600">
-                              {assets
-                                .reduce((sum, item) => sum + item.amount, 0)
-                                .toLocaleString()}{" "}
-                              บาท
-                            </td>
-                            <td></td>
-                          </tr>
-                        </tfoot>
-                      </table>
-                    </div>
-
-                    {/* --- 2. แสดงเป็น Card List สำหรับมือถือ (ต่ำกว่า md) --- */}
-                    <div className="md:hidden space-y-3">
-                      {assets.map((asset) => (
-                        <div
-                          key={asset.id}
-                          className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex justify-between items-center"
-                        >
-                          <div className="flex-1">
-                            <p className="text-xs text-gray-400 font-bold uppercase mb-0.5">
-                              รายการ
-                            </p>
-                            <p className="font-bold text-gray-700">
-                              {asset.label}
-                            </p>
-                          </div>
-                          <div className="text-right px-4">
-                            <p className="text-xs text-gray-400 font-bold uppercase mb-0.5">
-                              มูลค่า
-                            </p>
-                            <p className="font-bold text-red-500">
-                              {asset.amount.toLocaleString()} ฿
-                            </p>
-                          </div>
-                          <button
-                            onClick={() =>
-                              setAssets(assets.filter((a) => a.id !== asset.id))
-                            }
-                            className="p-2.5 bg-red-50 text-red-500 rounded-xl"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      ))}
-                      {assets.length > 0 && (
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="text-gray-400 text-xs font-bold uppercase">
-                              รวมทั้งหมด
-                            </p>
-                            <p className="text-gray-500 font-bold">
-                              {assets.length} รายการ
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xl font-bold text-red-600">
-                              {assets
-                                .reduce((sum, item) => sum + item.amount, 0)
-                                .toLocaleString()}{" "}
-                              บาท
-                            </p>
-                          </div>
-                        </div>
-                      )}
+                  
+                    <div className="flex justify-end ">
+                      <SaveButton
+                        onClick={() => alert("บันทึกรายการทรัพย์สินเรียบร้อย")}
+                        className="px-12 !py-2"
+                      />
                     </div>
                   </div>
-                ) : null}
+                )}
               </div>
             )}
             {currentStep === 3 && (
-              <div className="space-y-6">
-                {/* ตารางแสดงใบเสร็จย้ายออก (รูป 3) */}
-                <div className="overflow-hidden rounded-2xl border border-gray-800">
-                  <table className="w-full text-sm md:text-base">
-                    <thead className="bg-gray-200 border-b border-gray-800">
-                      <tr>
-                        <th className="p-3 border-r border-gray-800 w-16"></th>
-                        <th className="p-3 border-r border-gray-800 text-left">
-                          รายการ
-                        </th>
-                        <th className="p-3 border-r border-gray-800 w-20">
-                          แก้ไข
-                        </th>
-                        <th className="p-3 border-r border-gray-800 w-20">
-                          ลบ
-                        </th>
-                        <th className="p-3 text-right">จำนวนเงิน(บาท)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-800">
-                      <tr>
-                        <td className="p-3 text-center border-r border-gray-800">
-                          1.
-                        </td>
-                        <td className="p-3 border-r border-gray-800">
-                          ค่าไฟฟ้า เดือนธันวาคม 2024...
-                        </td>
-                        <td className="p-3 border-r border-gray-800 text-center">
-                          <button className="p-1 bg-orange-400 rounded text-white">
-                            <Pencil size={14} />
-                          </button>
-                        </td>
-                        <td className="p-3 border-r border-gray-800 text-center">
-                          <button className="p-1 bg-red-400 rounded text-white">
-                            <Trash2 size={14} />
-                          </button>
-                        </td>
-                        <td className="p-3 text-right">500</td>
-                      </tr>
-                      <tr className="bg-gray-100 font-bold">
-                        <td
-                          colSpan={4}
-                          className="p-3 text-center border-r border-gray-800 uppercase tracking-widest"
-                        >
-                          รวมทั้งหมด
-                        </td>
-                        <td className="p-3 text-right">1,050</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <div className="flex flex-wrap justify-center gap-3">
-                  <SaveButton
-                    label="บันทึก"
-                    className="!bg-[#a8d5ba] !border-none"
-                  />
-                  <OrangeButton label="บันทึกเป็น PDF" icon={Download} />
-                  <OrangeButton label="ส่งบิล" icon={Send} />
-                  <WhiteButton
-                    label="เพิ่มรายการ+"
-                    className="!bg-blue-100 !text-blue-600 !border-none"
-                  />
-                  <WhiteButton
-                    label="เพิ่มส่วนลด+"
-                    className="!bg-blue-100 !text-blue-600 !border-none"
-                  />
-                </div>
-              </div>
-            )}
+  <div className="space-y-4">
+    <div className="mt-4">
+      <BillDetail
+        mode="checkout"
+        /* --- รวบรวมข้อมูลจาก Step 1 และ 2 --- */
+        initialData={[
+          // 1. ดึงจาก Step 1: ยุบรายละเอียดแต่ละเดือนเหลือรายการเดียว
+          ...billItems.map((bill) => ({
+            id: `unpaid-${bill.period}`,
+            label: `ยอดค้างชำระเดือน ${bill.period}`, // ยกแค่เดือนมา
+            amount: bill.details.reduce((sum, item) => sum + item.amount, 0), // ยอดรวมเดือนนั้น
+          })),
 
-            {currentStep === 5 && (
+          // 2. ดึงจาก Step 2: รายการทรัพย์สินเสียหายทั้งหมด
+          ...assets.map((asset) => ({
+            ...asset,
+            id: `asset-${asset.id}`, // เติม Prefix กัน ID ซ้ำ
+          })),
+          
+          // 3. เพิ่มรายการค่าน้ำค่าไฟเดือนปัจจุบัน (ถ้ามี)
+          ...currentMonthBill.details
+        ]}
+        
+        /* --- ตั้งค่าปุ่มตามความต้องการของหน้าสรุปบิล --- */
+        showAddBtn={true}      // ให้เพิ่มรายการเพิ่มเติมได้ (เช่น ค่าทำความสะอาด)
+        showDiscountBtn={true} // ให้ใส่ส่วนลดได้
+        showSaveBtn={true}     // บันทึกบิลสรุป
+        showPdfBtn={true}      // พรีวิวใบเสร็จ
+        showSendBtn={true}     // ส่งให้ผู้เช่า
+        
+        // เมื่อมีการแก้ไข (เพิ่ม/ลบรายการในหน้านี้) ให้เก็บค่าไว้ที่ State หลัก
+        onDataChange={(newData) => {
+          // ในที่นี้ควรมี State เช่น [finalBillItems, setFinalBillItems] รองรับ
+          console.log("Final Bill Updated:", newData);
+        }}
+      />
+    </div>
+  </div>
+)}
+
+{currentStep === 4 && (
+  <div className="space-y-4">
+    <div className="mt-4">
+      <BillDetail
+      mode="checkout"
+        type="deposit" // กำหนด type เพื่อให้สไตล์แตกต่างจากบิลหนี้
+        initialData={deposits}
+        showAddBtn={true}    // อนุญาตให้เพิ่มรายการเงินประกันอื่นๆ
+        showSaveBtn={true}   // มีปุ่มบันทึก
+        onDataChange={(newData) => setDeposits(newData)} // อัปเดตยอดเงินประกันกลับมาที่ตัวแม่
+      />
+    </div>
+
+    {/* ส่วนอธิบายเพิ่มเติม (ถ้ามี) */}
+    <div className="bg-gray-50 p-4 rounded-[20px] border border-gray-100">
+      <p className="text-sm text-gray-500">
+        * ยอดเงินประกันนี้จะถูกนำไปหักลบกับยอดหนี้ทั้งหมดในขั้นตอนสุดท้าย (Step 5)
+      </p>
+    </div>
+  </div>
+)}
+
+            {/* ใส่ mock data */}
+            {/*            
+           {currentStep === 5 && (
               <div className="space-y-6">
                 <div
                   className={`rounded-xl overflow-hidden border ${mode === "absconded" ? "border-red-400" : "border-[#f3a638]"}`}
@@ -620,27 +551,77 @@ const CheckoutManager = () => {
                           ไม่มีรายการชำระบิล
                         </div>
                       </div>
-                      <div>
-                        <p className="font-bold mb-2">รายการหักจากเงินประกัน</p>
-                        <div className="border-2 border-dotted border-gray-300 rounded-2xl p-4 space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>ค่าไฟฟ้า...</span>
-                            <span>500 บาท</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>ค่าน้ำ...</span>
-                            <span>50 บาท</span>
-                          </div>
-                          <div className="flex justify-between text-sm text-red-500">
-                            <span>ส่วนลด</span>
-                            <span>-100 บาท</span>
-                          </div>
-                          <div className="border-t border-gray-400 pt-2 flex justify-between font-black text-lg">
-                            <span>สรุปยอดชำระ</span>
-                            <span>1,050 บาท</span>
+                      <div className="bg-white rounded-[30px] border border-gray-200 p-6 shadow-sm">
+                        <h3 className="text-lg font-black text-blue-600 mb-4 flex items-center gap-2">
+                          <ShieldCheck size={20} /> รายการเงินประกัน
+                        </h3>
+                        <div className="space-y-3">
+                          {depositData.map((item) => (
+                            <div
+                              key={item.id}
+                              className="flex justify-between border-b border-dashed pb-2"
+                            >
+                              <span className="text-gray-600 font-bold">
+                                {item.label}
+                              </span>
+                              <span className="font-black text-gray-800">
+                                {item.amount.toLocaleString()} ฿
+                              </span>
+                            </div>
+                          ))}
+                          <div className="pt-2 flex justify-between text-xl font-black text-blue-600">
+                            <span>รวมเงินประกันทั้งสิ้น</span>
+                            <span>
+                              {depositData
+                                .reduce((s, i) => s + i.amount, 0)
+                                .toLocaleString()}{" "}
+                              ฿
+                            </span>
                           </div>
                         </div>
                       </div>
+
+                      <div className="bg-white rounded-[30px] border border-gray-200 p-6 shadow-sm">
+                        <h3 className="text-lg font-black text-red-500 mb-4 flex items-center gap-2">
+                          <FileWarning size={20} /> รายการหักลบ/ค้างชำระ
+                        </h3>
+                        <div className="space-y-3">
+                          <div className="pt-2 flex justify-between text-xl font-black text-red-500">
+                            <span>รวมยอดค้างชำระ</span>
+                            <span>
+                              {ยอดรวมจาก Step 3}.toLocaleString() ฿
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                   
+                    <div
+                      className={`rounded-[30px] p-8 text-center border-2 ${
+                        depositTotal - debtTotal >= 0
+                          ? "bg-green-50 border-green-200"
+                          : "bg-red-50 border-red-200"
+                      }`}
+                    >
+                      <p className="text-gray-500 font-bold uppercase tracking-widest mb-1">
+                        บทสรุปการย้ายออก
+                      </p>
+                      <h2
+                        className={`text-4xl font-black ${
+                          depositTotal - debtTotal >= 0
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {depositTotal - debtTotal >= 0
+                          ? "หอพักคืนเงินผู้เช่า"
+                          : "ผู้เช่าต้องชำระเพิ่ม"}
+                      </h2>
+                      <p className="text-5xl font-black mt-4">
+                        {Math.abs(depositTotal - debtTotal).toLocaleString()}{" "}
+                        <span className="text-2xl">บาท</span>
+                      </p>
                     </div>
                   </div>
                   <div
@@ -659,7 +640,8 @@ const CheckoutManager = () => {
                   />
                 </div>
               </div>
-            )}
+            )} 
+            '*/}
           </div>
         </div>
       </div>
