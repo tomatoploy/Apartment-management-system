@@ -20,6 +20,7 @@ import RoomHeader from "../components/RoomHeader";
 import { toThaiDate } from "../components/DateController";
 import { useParams, useNavigate } from "react-router-dom";
 import { toThaiMonth } from "../components/DateController";
+import BillTable from "../components/BillTable";
 
 /* ================= Mock Data ================= */
 const mockContract = {
@@ -72,7 +73,7 @@ const CheckoutManager = () => {
   const [currentStep, setCurrentStep] = useState(1);
 
   // Mock Data (สามารถเชื่อมต่อกับ Global State หรือ API ได้)
-  //const [billItems, setBillItems] = useState([]);
+  //ฟังก์ชันของ BillTable ส่งผ่าน props
   const [assets, setAssets] = useState([]);
   const billItems = [
     {
@@ -85,11 +86,41 @@ const CheckoutManager = () => {
       ],
     },
   ];
+  //billItems
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState({ label: "", amount: 0 });
+  // ฟังก์ชันเปล่า (Mock functions) เพื่อให้ปุ่มใน BillTable กดแล้วไม่ Error
+  const handleStartEdit = (item) => {
+    setEditingId(item.id);
+    setForm({ label: item.label, amount: item.amount });
+  };
+  const handleSaveEdit = (id) => {
+    setEditingId(null);
+  };
+  const handleDeleteItem = (id) => {
+    console.log("Delete item:", id);
+  };
 
   //step 1: เคลียร์บิลค้างชำระ
   const [openBills, setOpenBills] = useState({}); // เก็บสถานะการเปิดของแต่ละเดือน เช่น { "2024-12": true }
   const toggleBill = (period) => {
     setOpenBills((prev) => ({ ...prev, [period]: !prev[period] }));
+  };
+
+  //รายการทรัพย์สิน (Step 2)
+  const [assetForm, setAssetForm] = useState({ label: "", amount: "" });
+  const [isAddingAsset, setIsAddingAsset] = useState(false);
+  const handleAddAsset = () => {
+    if (assetForm.label && assetForm.amount) {
+      const newAsset = {
+        id: Date.now(),
+        label: assetForm.label,
+        amount: parseFloat(assetForm.amount),
+      };
+      setAssets([...assets, newAsset]);
+      setAssetForm({ label: "", amount: "" }); // เคลียร์ฟอร์ม
+      setIsAddingAsset(false); // ปิดฟอร์มหลังบันทึก
+    }
   };
 
   const steps = [
@@ -179,22 +210,27 @@ const CheckoutManager = () => {
           {" "}
           <hr className="md:hidden border-t border-gray-200 mb-6" />
           {/* Step Title & Notice */}
-          <div className="flex items-center gap-4 mb-2">
-            <span
-              className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg ${
-                mode === "absconded"
-                  ? "bg-purple-100 text-purple-600"
-                  : "bg-blue-100 text-blue-600"
-              }`}
-            >
-              {currentStep}
-            </span>
-            <h2 className="text-xl font-black text-gray-800">
-              {steps.find((s) => s.id === currentStep)?.label.split(". ")[1] ||
-                "สรุปการย้ายออก"}
-            </h2>
-          </div>
-          <StepNotice mode={mode} currentStep={currentStep} />
+          {currentStep !== 2 && (
+            <>
+              <div className="flex items-center gap-4 mb-2">
+                <span
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg ${
+                    mode === "absconded"
+                      ? "bg-purple-100 text-purple-600"
+                      : "bg-blue-100 text-blue-600"
+                  }`}
+                >
+                  {currentStep}
+                </span>
+                <h2 className="text-xl font-black text-gray-800">
+                  {steps
+                    .find((s) => s.id === currentStep)
+                    ?.label.split(". ")[1] || "สรุปการย้ายออก"}
+                </h2>
+              </div>
+              <StepNotice mode={mode} currentStep={currentStep} />
+            </>
+          )}
           {/* 4. Render Dynamic Content Based on Step */}
           <div className="h-auto">
             {currentStep === 1 && (
@@ -243,52 +279,254 @@ const CheckoutManager = () => {
                           </div>
                         </div>
 
-                        {/* ส่วนรายละเอียด (จะแสดงเมื่อกดเปิด) */}
+                        {/* ส่วนรายละเอียด (ใน Step 1) */}
                         {openBills[billGroup.period] && (
-                          <div className="px-5 pb-5 animate-fadeIn">
+                          <div className="px-0 md:px-5 pb-5 animate-fadeIn">
                             <div className="border-t border-dashed border-gray-200 pt-4 mt-2">
-                              <table className="w-full text-sm">
-                                <thead>
-                                  <tr className="text-gray-400 font-bold">
-                                    <th className="text-left pb-2">รายการ</th>
-                                    <th className="text-right pb-2">
-                                      จำนวนเงิน
-                                    </th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-50">
-                                  {/* ดึงข้อมูลจากตารางบิลของเดือนนั้นๆ มา Map */}
-                                  {billGroup.details.map((item, idx) => (
-                                    <tr key={idx}>
-                                      <td className="py-2 text-gray-600 font-bold">
-                                        {item.label}
-                                      </td>
-                                      <td className="py-2 text-right font-black text-gray-800">
-                                        {item.amount.toLocaleString()}
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                              <BillTable
+                                items={billGroup.details.map((item, idx) => ({
+                                  ...item,
+                                  id: item.id || `${billGroup.period}-${idx}`, // มั่นใจว่ามี id ส่งไปให้ BillTable
+                                }))}
+                                editingId={editingId}
+                                form={form}
+                                setForm={setForm}
+                                selectedDate={billGroup.period}
+                                getItemLabel={(item) => item.label}
+                                startEdit={handleStartEdit}
+                                saveEdit={handleSaveEdit}
+                                deleteItem={handleDeleteItem}
+                                total={billGroup.totalAmount}
+                              />
                             </div>
                           </div>
                         )}
                       </div>
                     ))}
-
-                    
                   </>
                 )}
               </div>
             )}
 
-            {currentStep === 2 &&
-              (assets.length === 0 ? (
-                <EmptyState message="ไม่มีข้อมูลรายการทรัพย์สิน" />
-              ) : (
-                <div>{/* Asset List */}</div>
-              ))}
+            {currentStep === 2 && (
+              <div className="space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+                  <div className="flex items-center gap-4">
+                    <span
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg ${
+                        mode === "absconded"
+                          ? "bg-purple-100 text-purple-600"
+                          : "bg-blue-100 text-blue-600"
+                      }`}
+                    >
+                      2
+                    </span>
+                    <h2 className="text-xl font-black text-gray-800">
+                      ตรวจสอบทรัพย์สิน
+                    </h2>
+                  </div>
+                  {/* เพิ่มปุ่มระดับเดียวกับหัวข้อ */}
+                  {!isAddingAsset && (
+                    <button
+                      onClick={() => setIsAddingAsset(true)}
+                      className="px-5 py-2.5 bg-blue-500 text-white rounded-xl font-semibold text-sm
+          hover:bg-blue-600 transition-all flex items-center gap-2 shadow-md"
+                    >
+                      <Plus size={18} />
+                      เพิ่มรายการทรัพย์สิน
+                    </button>
+                  )}
+                </div>
 
+                <StepNotice mode={mode} currentStep={currentStep} />
+
+                {/* Form สำหรับเพิ่มข้อมูล (จะแสดงแทรกเมื่อกดปุ่ม) */}
+                {isAddingAsset && (
+                  <div className="bg-blue-50/50 border-2 border-dashed border-blue-100 rounded-[30px] p-4 mb-2 animate-fadeIn">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-gray-500 ml-2">
+                          ชื่อรายการทรัพย์สิน
+                        </label>
+                        <input
+                          type="text"
+                          autoFocus
+                          value={assetForm.label}
+                          onChange={(e) =>
+                            setAssetForm({
+                              ...assetForm,
+                              label: e.target.value,
+                            })
+                          }
+                          className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2 outline-none focus:border-blue-400 transition-all font-bold"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-gray-500 ml-2">
+                          มูลค่าความเสียหาย (บาท)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={assetForm.amount}
+                          onChange={(e) => {
+                            const value = e.target.value;
+
+                            if (value >= 0 || value === "") {
+                              setAssetForm({ ...assetForm, amount: value });
+                            }
+                          }}
+                          className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2 outline-none focus:border-blue-400 transition-all font-bold"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-3 mt-4">
+                      <button
+                        onClick={() => setIsAddingAsset(false)}
+                        className="px-4 py-1.5 text-gray-400 rounded-xl font-bold hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                      >
+                        ยกเลิก
+                      </button>
+                      <button
+                        onClick={handleAddAsset}
+                        className="px-10 py-1.5 bg-blue-500 text-white rounded-xl font-black shadow-lg shadow-blue-200 hover:bg-blue-600 transition-all"
+                      >
+                        บันทึก
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* รายการ Table แสดง Assets */}
+                {assets.length === 0 && !isAddingAsset ? (
+                  <EmptyState message="ไม่มีข้อมูลรายการทรัพย์สิน" />
+                ) : assets.length > 0 ? (
+                  <div className="space-y-3">
+                    {/* --- 1. แสดงเป็นตารางบน Desktop,ipad --- */}
+                    <div className="hidden md:block bg-white rounded-[30px] border border-gray-200 overflow-hidden shadow-sm">
+                      <table className="w-full">
+                        <thead className="bg-gray-100 border-b border-gray-200">
+                          <tr className="text-gray-500 text-xs uppercase font-bold">
+                            <th className="px-8 text-center w-16">ลำดับ</th>
+                            <th className="px-6 py-4 text-left">
+                              รายการทรัพย์สิน
+                            </th>
+                            <th className="p-4 text-right w-40">
+                              มูลค่า (บาท)
+                            </th>
+                            <th className="p-2 w-8"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {assets.map((asset, index) => (
+                            <tr
+                              key={asset.id}
+                              className="hover:bg-gray-50/80 transition-colors "
+                            >
+                              <td className="px-8 text-center text-gray-700">
+                                {index + 1}
+                              </td>
+                              <td className="p-4 py-2.5 font-normal text-gray-700">
+                                {asset.label}
+                              </td>
+                              <td className="p-4 py-2.5 text-right font-semibold text-red-500">
+                                {asset.amount.toLocaleString()}
+                              </td>
+                              <td className="p-4 py-2.5 text-center">
+                                <button
+                                  onClick={() =>
+                                    setAssets(
+                                      assets.filter((a) => a.id !== asset.id),
+                                    )
+                                  }
+                                  className="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+
+                        {/* สรุปจำนวนรายการและมูลค่ารวม */}
+                        <tfoot className="bg-gray-100 border-t border-gray-200">
+                          <tr className="font-black text-gray-700">
+                            <td
+                              colSpan={2}
+                              className=" text-right uppercase tracking-wide text-sm"
+                            >
+                              รวมทั้งหมด {assets.length} รายการ
+                            </td>
+                            <td className="p-3 text-right text-md text-red-600">
+                              {assets
+                                .reduce((sum, item) => sum + item.amount, 0)
+                                .toLocaleString()}{" "}
+                              บาท
+                            </td>
+                            <td></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+
+                    {/* --- 2. แสดงเป็น Card List สำหรับมือถือ (ต่ำกว่า md) --- */}
+                    <div className="md:hidden space-y-3">
+                      {assets.map((asset) => (
+                        <div
+                          key={asset.id}
+                          className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex justify-between items-center"
+                        >
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-400 font-bold uppercase mb-0.5">
+                              รายการ
+                            </p>
+                            <p className="font-bold text-gray-700">
+                              {asset.label}
+                            </p>
+                          </div>
+                          <div className="text-right px-4">
+                            <p className="text-xs text-gray-400 font-bold uppercase mb-0.5">
+                              มูลค่า
+                            </p>
+                            <p className="font-bold text-red-500">
+                              {asset.amount.toLocaleString()} ฿
+                            </p>
+                          </div>
+                          <button
+                            onClick={() =>
+                              setAssets(assets.filter((a) => a.id !== asset.id))
+                            }
+                            className="p-2.5 bg-red-50 text-red-500 rounded-xl"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      ))}
+                      {assets.length > 0 && (
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="text-gray-400 text-xs font-bold uppercase">
+                              รวมทั้งหมด
+                            </p>
+                            <p className="text-gray-500 font-bold">
+                              {assets.length} รายการ
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-red-600">
+                              {assets
+                                .reduce((sum, item) => sum + item.amount, 0)
+                                .toLocaleString()}{" "}
+                              บาท
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            )}
             {currentStep === 3 && (
               <div className="space-y-6">
                 {/* ตารางแสดงใบเสร็จย้ายออก (รูป 3) */}
