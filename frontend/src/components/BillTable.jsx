@@ -14,10 +14,9 @@ const BillTable = ({
 }) => {
   return (
     <>
-                     {/* แสดงเฉพาะ Table */}
+ {/* แสดงเฉพาะ Table */}
       <div className="overflow-x-auto rounded-3xl border border-gray-300 mb-8 max-w-4xl mx-auto ">
         <table className="w-full table-fixed">
-          {" "}
           <thead className="bg-gray-200 text-gray-600">
             <tr>
               <th className="hidden md:table-cell p-4 w-12 text-center"></th>
@@ -121,7 +120,6 @@ const BillTable = ({
           </tbody>
         </table>
       </div>
-             {" "}
     </>
   );
 };

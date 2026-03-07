@@ -89,7 +89,8 @@ const BillDetail = ({
   //   { id: 4, type: "discount", amount: -100, labels: {} },
   // ]);
 
-  // 1. สร้าง State สำหรับเก็บรายการในตาราง
+  //mock data สำหรับsหน้าย้ายออก
+  //1. สร้าง State สำหรับเก็บรายการในตาราง
   const [items, setItems] = useState(initialData || []);
 
   // 2. **จุดสำคัญ** เพิ่ม useEffect เพื่อดักจับการเปลี่ยนแปลงจากหน้าแม่
