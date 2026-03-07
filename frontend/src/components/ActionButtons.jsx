@@ -11,7 +11,7 @@ const BaseButton = ({ onClick, children, className = "", disabled = false }) => 
       /* จอเล็ก: ขยายเต็มและตัวอักษรเล็กลง | จอใหญ่: ขนาดพอดีและตัวอักษรมาตรฐาน */
       flex-1 md:flex-none w-full md:w-auto 
       flex items-center justify-center gap-2 
-      py-2.5 px-6 rounded-xl font-bold transition-all 
+      py-3 px-6 rounded-xl font-bold transition-all 
       active:scale-95 shadow-md disabled:opacity-50 disabled:cursor-not-allowed
       ${className}
     `}

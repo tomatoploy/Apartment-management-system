@@ -12,49 +12,32 @@ import {
 import { Inbox, Download, Plus, Send, Minus } from "lucide-react";
 
 /* ================= Helpers ================= */
-// const getItemLabel = (item, selectedDate, type) => {
-//   if (type === "asset") {
-//     return item.label || "ระบุรายการทรัพย์สิน";
-//   }
-
-//   if (item.labels?.[selectedDate]) {
-//     return item.labels[selectedDate];
-//   }
-//   const month = toThaiMonth(selectedDate);
-//   if (item.type === "discount") return "ส่วนลด";
-//   if (item.type === "rent") return `ค่าเช่าห้อง เดือน${month}`;
-//   if (item.type === "electric")
-//     return `ค่าไฟฟ้า เดือน${month} ${item.detail || ""}`;
-//   if (item.type === "water")
-//     return `ค่าน้ำประปา เดือน${month} ${item.detail || ""}`;
-//   return "รายการอื่น ๆ";
-// };
-/* ================= Helpers ================= */
 const getItemLabel = (item, selectedDate, type) => {
-  // 1.label ระบุมาตรงๆ (ใช้สำหรับ test case)
-  if (item.label) {
-    return item.label;
-  }
 
-  // 2. สำหรับโหมดทรัพย์สินเสียหาย
-  if (type === "asset") {
-    return item.label || "ระบุรายการทรัพย์สิน";
-  }
-
-  // 3. สำหรับการแสดงผลตามเดือนที่เลือก (กรณีบิลรายเดือน)
+  const month = toThaiMonth(selectedDate);
+  
+   // 1. สำหรับการแสดงผลตามเดือนที่เลือก (กรณีบิลรายเดือน)
   if (item.labels?.[selectedDate]) {
     return item.labels[selectedDate];
   }
 
-  const month = toThaiMonth(selectedDate);
-  
-  // 4. เช็คตามประเภทของรายการ (type)
+  // 2. เช็คตามประเภทของรายการ (type)
   if (item.type === "discount") return "ส่วนลด";
   if (item.type === "rent") return `ค่าเช่าห้อง เดือน${month}`;
   if (item.type === "electric")
     return `ค่าไฟฟ้า เดือน${month} ${item.detail || ""}`;
   if (item.type === "water")
     return `ค่าน้ำประปา เดือน${month} ${item.detail || ""}`;
+
+   // 3.label ระบุมาตรงๆ (ใช้สำหรับ test case)
+  if (item.label) {
+    return item.label;
+  }
+
+  // 4. สำหรับโหมดทรัพย์สินเสียหาย
+  if (type === "asset") {
+    return item.label || "ระบุรายการทรัพย์สิน";
+  }
 
   // 5. กรณีสุดท้ายจริงๆ ถึงจะแสดงรายการอื่น ๆ
   return "รายการอื่น ๆ";
@@ -125,7 +108,6 @@ const BillDetail = ({
 
   ///////จบส่วน data
 
-
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ label: "", amount: 0 });
 
@@ -146,6 +128,7 @@ const BillDetail = ({
         item.id === id
           ? {
               ...item,
+              label: form.label,
               amount: form.amount,
               labels: { ...item.labels, [selectedDate]: form.label },
             }
@@ -158,7 +141,7 @@ const BillDetail = ({
   const addItem = (type) => {
     setItems((prev) => [
       ...prev,
-      { id: Date.now(), type, amount: 0, labels: {} },
+      { id: Date.now(), type, amount: 0, label: "", labels: {} },
     ]);
   };
 
@@ -280,27 +263,23 @@ const BillDetail = ({
         <OrangeButton 
           label="บันทึกเป็น PDF" 
           icon={Download} 
-          className="w-full md:w-auto py-2.5 px-8"
+          className="w-full md:w-auto  px-8"
         />
       )}
       {showSendBtn && (
         <OrangeButton 
           label="ส่งบิล" 
           icon={Send} 
-          className="w-full md:w-auto py-2.5 px-8"
+          className="w-full md:w-auto px-8"
         />
       )}
     </div>
-  )}
-  
+  )} 
 </div>
+    </>   
 
-    </>
-  
-
-          
-        
       ) : (
+
         // 2. กรณีไม่มีบิลค้างชำระ: แสดงสไตล์ Empty State ตามที่คุณต้องการ
         <div className="py-24 flex flex-col items-center justify-center text-center bg-gray-50 rounded-[40px] border border-gray-200 mt-4 max-w-4xl mx-auto px-6">
           <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-gray-300 mb-6 border border-dashed border-gray-300">
