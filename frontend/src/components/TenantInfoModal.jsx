@@ -101,9 +101,16 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
+    let finalValue = type === "checkbox" ? checked : value;
+
+    if (name === "InternetDeviceCount") {
+      finalValue = Math.max(0, parseInt(value) || 0);
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: finalValue,
     }));
   };
 
@@ -140,7 +147,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
             {!isEditMode ? (
               <button
                 onClick={() => setIsEditMode(true)}
-                className="flex items-center gap-2 px-3 md:px-4 py-2.5 bg-orange-100 text-[#f3a638] rounded-2xl font-black hover:bg-orange-200 transition-all text-xs md:text-sm shadow-sm"
+                className="flex items-center gap-2 p-2 md:px-5 md:py-2 bg-orange-100 text-[#f3a638] rounded-2xl font-black hover:bg-orange-200 transition-all text-xs md:text-sm shadow-sm"
               >
                 <Edit3 size={16} />
                 <span className="hidden sm:inline">แก้ไข</span>
@@ -149,9 +156,10 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
               <div className="flex flex-row-reverse items-center gap-2">
                 <button
                   onClick={handleSave}
-                  className="flex items-center gap-2 px-3 md:px-4 py-2.5 bg-[#f3a638] text-white rounded-2xl font-black shadow-lg shadow-orange-100 hover:brightness-95 transition-all text-xs md:text-sm"
+                  className="flex items-center gap-2 p-2 md:px-5 md:py-2 rounded-2xl font-black shadow-sm bg-[#D5F5E3] text-[#1D8348]  hover:brightness-95 transition-all text-xs md:text-sm"
                   title="บันทึก"
                 >
+
                   <Save size={16} />
                   <span className="hidden sm:inline">บันทึก</span>
                 </button>
@@ -160,7 +168,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                     setIsEditMode(false);
                     setFormData(tenant);
                   }}
-                  className="flex items-center gap-2 px-3 md:px-4 py-2.5 bg-gray-100 text-gray-500 rounded-2xl font-black hover:bg-gray-200 transition-all text-xs md:text-sm"
+                  className="flex items-center gap-2  p-2 md:px-5 md:py-2  bg-gray-100 text-gray-500 rounded-2xl font-black hover:bg-gray-200 transition-all text-xs md:text-sm"
                   title="ยกเลิก"
                 >
                   <CircleChevronLeft size={16} />
@@ -176,7 +184,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
           <div className="flex  flex-col lg:flex-row gap-10">
             {/* Sidebar: Photo & Quick Status */}
             <div className="w-full max-w-50 mx-auto lg:mx-0 flex flex-col gap-5">
-              <div className="w-full aspect-square bg-gray-50 rounded-[35px] border-4 border-white shadow-sm overflow-hidden flex items-center justify-center relative group transition-all duration-300 hover:shadow-md">
+              <div className="w-full aspect-square bg-gray-50 rounded-[35px] border-2 border-gray-200 overflow-hidden flex items-center justify-center relative group transition-all">
                 {formData.photo ? (
                   <img
                     src={formData.photo}
@@ -241,7 +249,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
 
                 <div className="p-4 rounded-2xl border border-orange-200 bg-orange-50 flex justify-between items-center">
                   <span className="text-sm font-bold text-gray-700">
-                    อุปกรณ์อินเตอร์เน็ต
+                    อินเตอร์เน็ต
                   </span>
                   {isEditMode ? (
                     <input
@@ -249,7 +257,13 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                       name="InternetDeviceCount"
                       value={formData.InternetDeviceCount}
                       onChange={handleChange}
-                      className="w-12 bg-white rounded-lg text-center font-bold text-[#f3a638]"
+                      min="0" // ป้องกันการกดลดค่าต่ำกว่า 0 จากลูกศรในช่อง input
+                      onKeyDown={(e) => {
+                        if (e.key === "-" || e.key === "e") {
+                          e.preventDefault(); // ป้องกันการพิมพ์เครื่องหมายลบ และตัว e (ซึ่งมากับ type="number")
+                        }
+                      }}
+                      className="w-12 bg-white rounded-lg text-center font-bold text-[#f3a638] focus:outline-none border border-gray-100"
                     />
                   ) : (
                     <span className="text-[11px] font-black px-3 py-1 bg-[#f3a638] text-white rounded-full">
@@ -280,12 +294,12 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                       <option value="นาง">นาง</option>
                     </select>
                   </div>
-                  <EditInput
+                  {/* <EditInput
                     label="ชื่อเล่น"
                     name="nickName"
                     value={formData.nickName}
                     onChange={handleChange}
-                  />
+                  /> */}
                   <EditInput
                     label="ชื่อจริง"
                     name="firstName"
@@ -326,7 +340,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                     value={formData.nin}
                     icon={CreditCard}
                   />
-                  <DisplayItem label="ชื่อเล่น" value={formData.nickName} />
+                  {/* <DisplayItem label="ชื่อเล่น" value={formData.nickName} /> */}
                   <DisplayItem
                     label="วันเกิด"
                     value={toThaiDate(formData.birthDate)}

@@ -26,6 +26,7 @@ import {
 import { OrangeButton, ExitButton } from "../components/ActionButtons";
 import RoomHeader from "../components/RoomHeader";
 import TenantInfoModal from "../components/TenantInfoModal";
+import { toThaiDate } from "../components/DateController";
 
 const RoomDetail = () => {
   const { roomNumber } = useParams();
@@ -60,14 +61,14 @@ const RoomDetail = () => {
         internetDeviceCount: 2,
         note: "แพ้อาหารทะเล, จอดรถที่โซน A",
         outstandingBalance: 3550,
-        checkInDate: "01/01/2025",
-        contractEndDate: "01/01/2026",
+        checkInDate: "2025-01-02",
+        contractEndDate: "2026-01-01",
         moveOutDate: "-",
         hasPendingNotification: true,
         pendingParcels: 1,
         documents: [
-          { id: 1, name: "สัญญาเช่า_201.pdf", date: "01/01/2025" },
-          { id: 2, name: "สำเนาทะเบียนบ้าน.png", date: "01/01/2025" },
+          { id: 1, name: "สัญญาเช่า_201.pdf", date: "2025-01-01" },
+          { id: 2, name: "สำเนาทะเบียนบ้าน.png", date: "2025-01-01" },
         ],
       });
     } else {
@@ -91,7 +92,6 @@ const RoomDetail = () => {
           /* --- กรณีมีผู้เช่า: แสดงข้อมูลทั้งหมด --- */
           <div className="space-y-6 mt-2">
             {/* 1 & 2: Banners ถ้ามีการแจ้งเตือนค้างก็จะแสดง */}
-            {/* --- 1 & 2: Banners แจ้งเตือนและพัสดุ --- */}
             <div className="flex flex-col gap-4 max-w-4xl mx-auto">
               {tenant.hasPendingNotification && (
                 <div className="bg-red-50 border border-red-100 rounded-3xl p-5 shadow-sm overflow-hidden relative group">
@@ -109,12 +109,12 @@ const RoomDetail = () => {
                       </div>
                     </div>
 
-                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-2xl bg-white/30 md:bg-transparent p-3 md:p-0">
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-2xl  md:bg-transparent p-3 md:p-0">
                       <div>
                         <p className="text-[12px] font-black text-red-400">
                           เรื่อง
                         </p>
-                        <p className="text-md font-bold text-gray-700">
+                        <p className="text-sm font-bold text-gray-700">
                           แจ้งซ่อม: ห้องน้ำรั่ว
                         </p>
                       </div>
@@ -122,8 +122,8 @@ const RoomDetail = () => {
                         <p className="text-[12px] font-black text-red-400">
                           วันที่แจ้ง
                         </p>
-                        <p className="text-md font-bold text-gray-700">
-                          02/02/2026
+                        <p className="text-sm font-bold text-gray-700">
+                          {toThaiDate("2026-02-02")}
                         </p>
                       </div>
                       <div className="flex flex-col items-start justify-center">
@@ -220,12 +220,12 @@ const RoomDetail = () => {
                   />
                   <InfoItem
                     label="วันเข้าอยู่"
-                    value={tenant.checkInDate}
+                    value={toThaiDate(tenant.checkInDate)}
                     icon={<Calendar size={18} />}
                   />
                   <InfoItem
                     label="วันย้ายออก"
-                    value={tenant.moveOutDate}
+                    value={toThaiDate(tenant.moveOutDate)}
                     icon={<FileText size={18} />}
                   />
                   <InfoItem
@@ -275,7 +275,7 @@ const RoomDetail = () => {
                                 {doc.name}
                               </p>
                               <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">
-                                {doc.date}
+                                {toThaiDate(doc.date)}
                               </p>
                             </div>
                           </div>

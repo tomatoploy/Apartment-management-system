@@ -1,4 +1,4 @@
-import { Pencil, Trash2} from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 const BillTable = ({
   items,
@@ -9,14 +9,14 @@ const BillTable = ({
   getItemLabel,
   startEdit,
   saveEdit,
-  deleteItem
+  deleteItem,
+  total,
 }) => {
   return (
-     <>
-                     {/* แสดงเฉพาะ Table */}
+    <>
+ {/* แสดงเฉพาะ Table */}
       <div className="overflow-x-auto rounded-3xl border border-gray-300 mb-8 max-w-4xl mx-auto ">
-       <table className="w-full table-fixed">
-          {" "}
+        <table className="w-full table-fixed">
           <thead className="bg-gray-200 text-gray-600">
             <tr>
               <th className="hidden md:table-cell p-4 w-12 text-center"></th>
@@ -95,18 +95,31 @@ const BillTable = ({
                           className="p-1.5 bg-red-100 rounded-lg text-red-500 hover:bg-red-200"
                         >
                           <Trash2 size={16} />
-                          </button>
+                        </button>
                       </>
                     )}
                   </div>
                 </td>
               </tr>
             ))}
+            <tr className="bg-gray-100 border-t border-gray-300">
+              <td className="hidden md:table-cell p-4"></td>
+              <td className="p-4 text-right ">
+                รวม
+              </td>
+              <td className="p-4 text-right">
+                <span className="text-[18px]  font-black text-blue-400">
+                  {total.toLocaleString()}
+                </span>
+                <span className="ml-5">
+                  บาท
+                </span>
+              </td>
+              <td className="p-4"></td>
+            </tr>
           </tbody>
         </table>
       </div>
-             {" "}
-
     </>
   );
 };

@@ -1,79 +1,101 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
-
+import {
+  ChevronRight,
+  Building2,
+  Zap,
+  Wallet,
+  FileText,
+  User,
+  ShieldCheck,
+} from "lucide-react";
 
 const Settings = () => {
   const navigate = useNavigate();
 
-  // ข้อมูลเมนูตั้งค่า พร้อมระบุ path และรูปภาพพื้นหลัง
   const settingsMenu = [
     {
       id: 1,
       title: "ข้อมูลหอพัก",
+      description: "แก้ไขข้อมูลชื่อ ที่อยู่ และรายละเอียดหอพัก",
       path: "/settings/building-edit",
-      bgColor: "bg-orange-200",
+      icon: <Building2 size={22} />,
     },
     {
       id: 2,
       title: "อัตราค่าไฟฟ้าและค่าน้ำประปา",
+      description: "กำหนดราคาต่อหน่วยสำหรับคำนวณบิลรายเดือน",
       path: "/settings/utility",
-      bgColor: "bg-orange-200",
+      icon: <Zap size={22} />,
     },
     {
       id: 3,
       title: "ค่าเช่าห้องพักและค่าบริการ",
+      description: "ตั้งค่าราคาเช่าและค่าบริการเพิ่มเติม",
       path: "/settings/roomrate",
-      bgColor: "bg-orange-200",
+      icon: <Wallet size={22} />,
     },
     {
       id: 4,
       title: "สัญญาและเอกสาร",
-      path: "/",
-      bgColor: "bg-orange-200",
+      description: "จัดการ template สัญญาและไฟล์เอกสาร",
+      path: "/settings/contracts",
+      icon: <FileText size={22} />,
     },
     {
       id: 5,
       title: "ข้อมูลแอดมิน",
+      description: "แก้ไขข้อมูลส่วนตัวผู้ดูแลระบบ",
       path: "/settings/admin",
-      bgColor: "bg-orange-200",
+      icon: <User size={22} />,
     },
     {
       id: 6,
       title: "ตั้งค่าการเข้าถึงของแอดมิน",
+      description: "กำหนดสิทธิ์การใช้งานของผู้ดูแลระบบ",
       path: "",
-      bgColor: "bg-orange-200",
+      icon: <ShieldCheck size={22} />,
     },
-
   ];
 
   return (
-    /* คอนเทนเนอร์หลักที่ใช้ความสูงเต็มหน้าจอเพื่อไม่ให้เกิดสเปซขาวด้านล่าง */
     <>
-      <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
-        การตั้งค่า
-      </h1>
+        <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
+          การตั้งค่า
+        </h1>
+      {/* Menu Grid */}
+      <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+        {settingsMenu.map((item) => {
+          return (
+            <div
+              key={item.id}
+              onClick={() => navigate(item.path)}
+              className={`
+                bg-white rounded-2xl p-6
+                flex items-center justify-between
+                shadow-sm border border-gray-200
+                transition-all duration-200
+                hover:shadow-md hover:scale-103 cursor-pointer
+                
+              `}
+            >
+              <div className="flex items-start gap-4">
+                <div className="bg-orange-100 text-orange-500 p-3 rounded-xl">
+                  {item.icon}
+                </div>
 
-      {/* รายการเมนูเรียงต่อกัน 3 อันแนวตั้ง */}
-      <div className="flex-1 flex flex-col justify-center max-w-xl mx-auto py-4 px-2 w-full space-y-6 overflow-y-auto pr-2">
-        {settingsMenu.map((item) => (
-          <div
-            key={item.id}
-            onClick={() => navigate(item.path)}
-            className={`${item.bgColor} rounded-[35px] h-20 flex items-center justify-between px-10 cursor-pointer shadow-md hover:scale-[1.02] transition-all relative overflow-hidden group`}
-          >
-
-            {/* ชื่อเมนู */}
-            <h2 className="text-xl  text-gray-600 z-10">
-              {item.title}
-            </h2>
-
-            {/* ปุ่มลูกศร */}
-            <div className="z-10 bg-white/60 p-2 rounded-full text-[#0c4a6e] group-hover:bg-[#f3a638] group-hover:text-white transition-colors">
-              <ChevronRight size={32} />
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-800">
+                    {item.title}
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {item.description}
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </>
   );

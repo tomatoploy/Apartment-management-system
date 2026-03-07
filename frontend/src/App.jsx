@@ -19,6 +19,8 @@ import AddTenant from "./pages/AddTenant";
 // import RoomBill from "./pages/RoomBill"
 import RoomRequest from "./pages/RoomRequest";
 import AdminSettings from "./pages/AdminSettings";
+import RoomReserve from "./pages/RoomReserve";
+import RoomMoveOut from "./pages/RoomMoveOut";
 
 // import RoomsFilter from "./pages/Rooms-filterModal";
 
@@ -28,6 +30,7 @@ function App() {
     // profileImage:
     //   "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200",
   };
+  
 
   return (
     <Routes>
@@ -120,8 +123,8 @@ function App() {
           </Layout>
         }
       />
-      
-        <Route
+
+      <Route
         path="/billings"
         element={
           <Layout>
@@ -130,34 +133,64 @@ function App() {
         }
       />
 
-<Route
-  path="/billings/:roomNumber"
-  element={
-    <Layout>
-      <BillDetail mode="billing-menu" />
-    </Layout>
-  }
-/>
-<Route
-  path="/rooms/billings/:roomNumber"
-  element={
-    <Layout>
-      <BillDetail mode="room-map" />
-    </Layout>
-  }
-/>
+      <Route
+        path="/billings/:roomNumber"
+        element={
+          <Layout>
+            <BillDetail mode="billing-menu" />
+          </Layout>
+        }
+      />
+      <Route
+        path="/rooms/billings/:roomNumber"
+        element={
+          <Layout>
+            <BillDetail mode="room-map" />
+          </Layout>
+        }
+      />
 
-<Route path="/rooms/:roomNumber" element={<Layout><RoomDetail /></Layout>} />
-<Route path="/rooms/:roomNumber/add-tenant" element={<Layout><AddTenant /></Layout>} />
-<Route
-  path="/rooms/request/:roomNumber"
-  element={
-    <Layout>
-      <RoomRequest/>
-    </Layout>
-  }
-/>
- <Route
+      <Route
+        path="/rooms/:roomNumber"
+        element={
+          <Layout>
+            <RoomDetail />
+          </Layout>
+        }
+      />
+      <Route
+        path="/rooms/:roomNumber/add-tenant"
+        element={
+          <Layout>
+            <AddTenant />
+          </Layout>
+        }
+      />
+      <Route
+        path="/rooms/request/:roomNumber"
+        element={
+          <Layout>
+            <RoomRequest />
+          </Layout>
+        }
+      />
+      <Route
+        path="/rooms/move-out/:roomNumber"
+        element={
+          <Layout>
+            <RoomMoveOut />
+          </Layout>
+        }
+      />
+      <Route
+        path="/rooms/reserve/:roomNumber"
+        element={
+          <Layout>
+            <RoomReserve />
+          </Layout>
+        }
+      />
+      <Route
         path="/settings/admin"
         element={
           <Layout>
@@ -167,7 +200,7 @@ function App() {
       />
       
 
-{/* <Route path="/rooms/:roomNumber/bill" element={<Layout><RoomBill /></Layout>} /> */}
+      {/* <Route path="/rooms/:roomNumber/bill" element={<Layout><RoomBill /></Layout>} /> */}
 
       {/* case กันคนพิมพ์ URL แปลก ๆ */}
       <Route path="*" element={<Navigate to="/login" />} />
