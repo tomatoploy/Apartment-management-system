@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Dormitory.DTOs
 {
-    public class GetApartment()
+    public class ApartmentPut()
     {
         public string Name { get; set; } = null!;
 
