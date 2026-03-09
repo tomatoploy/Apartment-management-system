@@ -108,7 +108,7 @@ const EditInput = ({
   </div>
 );
 
-const AdminSettings = () => {
+const AdminSetting = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false); // เพิ่ม: คุมการเปิดปิดกล่องรหัสผ่าน
   const fileInputRef = useRef(null);
@@ -524,4 +524,4 @@ const AdminSettings = () => {
   );
 };
 
-export default AdminSettings;
+export default AdminSetting;
