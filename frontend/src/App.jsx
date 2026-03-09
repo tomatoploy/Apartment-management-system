@@ -18,7 +18,7 @@ import RoomDetail from "./pages/RoomDetail";
 import AddTenant from "./pages/AddTenant";
 // import RoomBill from "./pages/RoomBill"
 import RoomRequest from "./pages/RoomRequest";
-import AdminSettings from "./pages/AdminSetting";
+import AdminSetting from "./pages/AdminSetting";
 import RoomReserve from "./pages/RoomReserve";
 import RoomMoveOut from "./pages/RoomMoveOut";
 import ContractSetting from "./pages/ContractSetting";
@@ -195,7 +195,15 @@ function App() {
         path="/settings/admin"
         element={
           <Layout>
-            <AdminSettings />
+            <AdminSetting />
+          </Layout>
+        }
+      />
+      <Route
+        path="/settings/contract"
+        element={
+          <Layout>
+            <ContractSetting />
           </Layout>
         }
       />

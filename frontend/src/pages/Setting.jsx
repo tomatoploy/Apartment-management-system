@@ -39,7 +39,7 @@ const Settings = () => {
       id: 4,
       title: "สัญญาและเอกสาร",
       description: "จัดการ template สัญญาและไฟล์เอกสาร",
-      path: "/settings/contracts",
+      path: "/settings/contract",
       icon: <FileText size={22} />,
     },
     {

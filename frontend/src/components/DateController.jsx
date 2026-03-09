@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import { Calendar, ChevronLeft, ChevronRight, ChevronDown,X } from "lucide-react";
 
 // --- 1. Helpers สำหรับจัดการวันที่และเดือนไทย (Export ให้ไฟล์อื่นใช้ได้) ---
-
 // แปลงวันที่เต็ม: 2026-02-09 -> 9 กุมภาพันธ์ 2569
 export const toThaiDate = (dateString) => {
   if (!dateString || dateString === "-") return "";
