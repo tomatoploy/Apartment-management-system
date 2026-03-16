@@ -19,9 +19,9 @@ const mockSettings = {
 
 const initialContractTemplates = [
   {
-  id: 1,
-  name: "สัญญาเช่า",
-  content: `
+    id: 1,
+    name: "สัญญาเช่า",
+    content: `
 
 
     <div style="font-family: 'Sarabun', sans-serif; line-height: 1.6; color: #000; max-width: 800px; margin: auto; padding: 30px; border: 1px solid #f0f0f0;">
@@ -77,12 +77,12 @@ const initialContractTemplates = [
       </div>
     </div>
   `,
-  is_active: true,
-},
-{
-  id: 2,
-  name: "ใบเสร็จการชำระเงิน (แรกเข้า)",
-  content: `
+    is_active: true,
+  },
+  {
+    id: 2,
+    name: "ใบเสร็จการชำระเงิน (แรกเข้า)",
+    content: `
     <div style="font-family: 'Sarabun', sans-serif; max-width: 800px; margin: auto; border: 1px solid #eee; padding: 20px; color: #333;">
       <div style="text-align: center; border-bottom: 2px solid #f3a638; padding-bottom: 10px; margin-bottom: 20px;">
         <h2 style="margin: 0; color: #f3a638;">หอพักนิตยวดี</h2>
@@ -168,12 +168,12 @@ const initialContractTemplates = [
       </div>
     </div>
   `,
-  is_active: true,
-},
-{
-  id: 3,
-  name: "ใบแจ้งหนี้/ใบเสร็จรับเงิน (รายเดือน)",
-  content: `
+    is_active: true,
+  },
+  {
+    id: 3,
+    name: "ใบแจ้งหนี้/ใบเสร็จรับเงิน (รายเดือน)",
+    content: `
      <div style="font-family: 'Sarabun', sans-serif; max-width: 800px; margin: auto; border: 1px solid #eee; padding: 20px; color: #333;">
       <div style="text-align: center; border-bottom: 2px solid #f3a638; padding-bottom: 10px; margin-bottom: 20px;">
         <h2 style="margin: 0; color: #f3a638;">หอพักนิตยวดี</h2>
@@ -284,8 +284,8 @@ const initialContractTemplates = [
       </div>
     </div>
   `,
-  is_active: true,
-}
+    is_active: true,
+  },
 ];
 
 const ContractTemplate = () => {
@@ -304,14 +304,30 @@ const ContractTemplate = () => {
 
   // ตัวแปรที่ใช้ได้ (Single Source of Truth)
   const availableVariables = [
-    { key: "{{currentMonth}" , desc: "เดือนปัจจุบัน", example: "มกราคม"},
-    { key: "{{apartment_name}}", desc: "ชื่ออะพาร์ตเมนต์", example: "หอพักนิตยวดี" },
-    { key: "{{apartment_address}}", desc: "ที่อยู่อะพาร์ตเมนต์", example: "123 ถนนสุขุมวิท แขวงคลองตัน เขตวัฒนา กรุงเทพฯ 10110" },
+    { key: "{{currentMonth}", desc: "เดือนปัจจุบัน", example: "มกราคม" },
+    {
+      key: "{{apartment_name}}",
+      desc: "ชื่ออะพาร์ตเมนต์",
+      example: "หอพักนิตยวดี",
+    },
+    {
+      key: "{{apartment_address}}",
+      desc: "ที่อยู่อะพาร์ตเมนต์",
+      example: "123 ถนนสุขุมวิท แขวงคลองตัน เขตวัฒนา กรุงเทพฯ 10110",
+    },
     { key: "{{tenant_name}}", desc: "ชื่อผู้เช่า", example: "สมชาย ใจดี" },
-    { key: "{{tenant_nin}}", desc: "เลขที่บัตรประชาชน", example: "1-2345-67890-12-3" },
+    {
+      key: "{{tenant_nin}}",
+      desc: "เลขที่บัตรประชาชน",
+      example: "1-2345-67890-12-3",
+    },
     { key: "{{tenant_phone}}", desc: "เบอร์โทรศัพท์", example: "081-234-5678" },
     { key: "{{room_number}}", desc: "หมายเลขห้อง", example: "101" },
-    { key: "{{contract_monthlyRent}}", desc: "ค่าเช่ารายเดือน", example: "5000" },
+    {
+      key: "{{contract_monthlyRent}}",
+      desc: "ค่าเช่ารายเดือน",
+      example: "5000",
+    },
     { key: "{{contract_deposit}}", desc: "เงินประกัน", example: "10000" },
     {
       key: "{{contract_startDate}}",
@@ -323,13 +339,32 @@ const ContractTemplate = () => {
       desc: "วันที่สิ้นสุดสัญญา",
       example: "31 ธันวาคม 2567",
     },
-    { key: "{{apartment_paymentDueEnd}}", desc: "วันที่สุดท้ายที่สามารถชำระค่าเช่าได้", example: "10" },
-    { key: "{{electricity_rate}}", desc:"อัตราค่าไฟฟ้าต่อหน่วย" , example: "6.00" },
-    { key: "{{water_rate}}", desc:"อัตราค่าน้ำประปาต่อหน่วย" , example: "15.00" },
-    { key: "{{first_month_rent}}", desc:"ค่าเช่าเดือนแรก" , example: "5000" },
-    { key: "{{room_rent_amount}}", desc:"ส่วนของค่าเช่าห้องพัก" , example: "4000" },
-    { key: "{{furniture_rent_amount}}", desc:"ส่วนของค่าเฟอร์นิเจอร์" , example: "1000" },
-  
+    {
+      key: "{{apartment_paymentDueEnd}}",
+      desc: "วันที่สุดท้ายที่สามารถชำระค่าเช่าได้",
+      example: "10",
+    },
+    {
+      key: "{{electricity_rate}}",
+      desc: "อัตราค่าไฟฟ้าต่อหน่วย",
+      example: "6.00",
+    },
+    {
+      key: "{{water_rate}}",
+      desc: "อัตราค่าน้ำประปาต่อหน่วย",
+      example: "15.00",
+    },
+    { key: "{{first_month_rent}}", desc: "ค่าเช่าเดือนแรก", example: "5000" },
+    {
+      key: "{{room_rent_amount}}",
+      desc: "ส่วนของค่าเช่าห้องพัก",
+      example: "4000",
+    },
+    {
+      key: "{{furniture_rent_amount}}",
+      desc: "ส่วนของค่าเฟอร์นิเจอร์",
+      example: "1000",
+    },
   ];
 
   const modules = {
@@ -343,12 +378,12 @@ const ContractTemplate = () => {
   };
 
   // เรียงลำดับ show templates: status active ขึ้นก่อน แล้วค่อยเรียงด้วย id จากมากไปน้อย สร้างใหม่ไปเกก่า
-const sortedTemplates = [...templates].sort((a, b) => {
-  if (a.is_active !== b.is_active) {
-    return b.is_active ? 1 : -1; 
-  }
+  const sortedTemplates = [...templates].sort((a, b) => {
+    if (a.is_active !== b.is_active) {
+      return b.is_active ? 1 : -1;
+    }
     return b.id - a.id;
-});
+  });
 
   const handleSelectTemplate = (template) => {
     setSelectedTemplate(template);
@@ -541,47 +576,45 @@ const sortedTemplates = [...templates].sort((a, b) => {
       </header>
 
       <div className="md:p-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Sidebar: List of Templates */}
-        <div className="lg:col-span-4 space-y-4">
-          <h2 className="font-bold text-gray-700 px-1">เทมเพลตทั้งหมด</h2>
           {/* Sidebar: List of Templates */}
-<div className="lg:col-span-4 space-y-4">
-  <h2 className="font-bold text-gray-700 px-1">เทมเพลตทั้งหมด</h2>
-  {/* ใช้ข้อมูลที่เรียงลำดับแล้ว */}
-  {sortedTemplates.map((t) => (
-    <div
-      key={t.id}
-      onClick={() => handleSelectTemplate(t)}
-      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-        selectedTemplate.id === t.id
-          ? "border-orange-300 bg-white shadow-md scale-[1.02]"
-          : "border-transparent bg-gray-100 hover:bg-gray-200"
-      }`}
-    >
-      <div className="flex justify-between items-start">
-        <h3
-          className={`font-bold ${
-            selectedTemplate.id === t.id ? "text-gray-700" : "text-gray-500"
-          }`}
-        >
-          {t.name}
-        </h3>
-        {/* แสดง ID เล็กๆ เพื่อให้ตรวจสอบการเรียงได้ง่าย */}
-        <span className="text-[10px] text-gray-400">#{t.id}</span>
-      </div>
-      
-      <span
-        className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-full mt-2 inline-block ${
-          t.is_active 
-            ? "bg-green-100 text-green-600" 
-            : "bg-gray-200 text-gray-500"
-        }`}
-      >
-        {t.is_active ? "Active" : "Inactive"}
-      </span>
-    </div>
-  ))}
-</div>
+          <div className="lg:col-span-4 space-y-4">
+            <h2 className="font-bold text-gray-700 px-1">เทมเพลตทั้งหมด</h2>
+            {/* ใช้ข้อมูลที่เรียงลำดับแล้ว */}
+            {sortedTemplates.map((t) => (
+              <div
+                key={t.id}
+                onClick={() => handleSelectTemplate(t)}
+                className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                  selectedTemplate.id === t.id
+                    ? "border-orange-300 bg-white shadow-md scale-[1.02]"
+                    : "border-transparent bg-gray-100 hover:bg-gray-200"
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <h3
+                    className={`font-bold ${
+                      selectedTemplate.id === t.id
+                        ? "text-gray-700"
+                        : "text-gray-500"
+                    }`}
+                  >
+                    {t.name}
+                  </h3>
+                  {/* แสดง ID เล็กๆ เพื่อให้ตรวจสอบการเรียงได้ง่าย */}
+                  <span className="text-[10px] text-gray-400">#{t.id}</span>
+                </div>
+
+                <span
+                  className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-full mt-2 inline-block ${
+                    t.is_active
+                      ? "bg-green-100 text-green-600"
+                      : "bg-gray-200 text-gray-500"
+                  }`}
+                >
+                  {t.is_active ? "Active" : "Inactive"}
+                </span>
+              </div>
+            ))}
         </div>
 
         {/* Main Content: Preview */}
