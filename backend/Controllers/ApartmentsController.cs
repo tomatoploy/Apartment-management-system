@@ -70,10 +70,37 @@ public class ApartmentsController : ControllerBase
             apartment);
     }
 
-    [HttpPut]
-    public async Task<ActionResult<Apartment>> Edit([FromBody] ApartmentPut dto)
+    [HttpPut("{id}")]
+    public async Task<ActionResult<Apartment>> Put(uint id, [FromBody] ApartmentPut dto)
     {
-        
+        var apartment = await _db.Apartment.FindAsync(id);
+        if (apartment == null)
+            return NotFound($"Apartment id {id} not found.");
+
+        apartment.Name = dto.Name;
+        apartment.Address = dto.Address;
+        apartment.Phone = dto.Phone;
+        apartment.LineId = dto.LineId;
+        apartment.Email = dto.Email;
+        apartment.PaymentDueStart = dto.PaymentDueStart;
+        apartment.PaymentDueEnd = dto.PaymentDueEnd;
+
+        await _db.SaveChangesAsync();
+
+        return Ok(apartment);
     }
 
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(uint id)
+    {
+        var apartment = await _db.Apartment.FindAsync(id);
+        
+        if (apartment == null)
+            return NotFound(new {message = $"Apartment id {id} not found"});
+        
+        _db.Apartment.Remove(apartment);
+        await _db.SaveChangesAsync();
+
+        return Ok(new {message = "Delete successfully", id});
+    }
 }
