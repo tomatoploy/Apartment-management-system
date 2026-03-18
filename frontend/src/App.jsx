@@ -22,6 +22,7 @@ import AdminSetting from "./pages/AdminSetting";
 import RoomReserve from "./pages/RoomReserve";
 import RoomMoveOut from "./pages/RoomMoveOut";
 import ContractSetting from "./pages/ContractSetting";
+import DocumentPreview from "./pages/DocumentPreview";
 
 // import RoomsFilter from "./pages/Rooms-filterModal";
 
@@ -31,7 +32,6 @@ function App() {
     // profileImage:
     //   "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200",
   };
-  
 
   return (
     <Routes>
@@ -184,6 +184,14 @@ function App() {
         }
       />
       <Route
+        path="/rooms/:roomNumber/preview"
+        element={
+          <Layout>
+            <DocumentPreview />
+          </Layout>
+        }
+      />
+      <Route
         path="/rooms/reserve/:roomNumber"
         element={
           <Layout>
@@ -207,7 +215,6 @@ function App() {
           </Layout>
         }
       />
-      
 
       {/* <Route path="/rooms/:roomNumber/bill" element={<Layout><RoomBill /></Layout>} /> */}
 

@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Bell,
-  Package,
   User,
   Phone,
   MessageSquare,
@@ -12,27 +10,23 @@ import {
   Plus,
   Trash2,
   ExternalLink,
-  Edit3,
-  AlertCircle,
   ShieldCheck,
-  Car,
-  Info,
-  Mail,
-  MapPin,
-  HeartPulse,
-  UserPlus,
+  UserPlus, FilePlus, ChevronDown,
+  AlertCircle, Package
 } from "lucide-react";
+
 
 import { OrangeButton, ExitButton } from "../components/ActionButtons";
 import RoomHeader from "../components/RoomHeader";
 import TenantInfoModal from "../components/TenantInfoModal";
 import { toThaiDate } from "../components/DateController";
+import { initialContractTemplates } from "../data/contractData"
+import { fillTemplateData } from "../components/DocumentProcessor";
 
 const RoomDetail = () => {
   const { roomNumber } = useParams();
   const navigate = useNavigate();
   const [tenant, setTenant] = useState(null);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // --- Mock Data Logic ---
@@ -78,16 +72,68 @@ const RoomDetail = () => {
 
   // 1. เพิ่ม State สำหรับควบคุม Modal เพิ่มผู้เช่า
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-
   const handleSaveTenant = (data) => {
     console.log("ข้อมูลผู้เช่าใหม่:", data);
     // Logic สำหรับส่งข้อมูลไป API
     setIsAddModalOpen(false);
   };
 
+  //-- สร้างเอกสาร / เทมเพลต --
+  const [showDocOptions, setShowDocOptions] = useState(false);
+  // ในใช้งานจริง ส่วนนี้อาจจะมาจาก Context หรือ API Call
+  const activeTemplates = initialContractTemplates.filter(t => t.is_active);
+
+
+ const handleSelectTemplate = (template) => {
+    setShowDocOptions(false);
+    const processed = fillTemplateData(template.content, tenant, roomNumber);  
+    navigate(`/rooms/${roomNumber}/preview`, { 
+      state: { 
+        content: processed, 
+        title: template.name 
+      } 
+    });
+  };
+
   return (
     <div>
       <RoomHeader roomNumber={roomNumber}>
+        <div className="max-w-4xl mx-auto py-2">
+      <div className="flex justify-end items-end">
+        <div className="relative">
+          <button
+            onClick={() => setShowDocOptions(!showDocOptions)}
+            className="flex items-center gap-2 px-6 py-2.5 bg-[#f3a638] text-white rounded-xl font-black text-sm shadow-sm hover:bg-[#e6952e] transition-all"
+          >
+            <FilePlus size={18} />
+            สร้างเอกสาร
+            <ChevronDown size={16} className={`transition-transform ${showDocOptions ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showDocOptions && (
+            <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in duration-200">
+              <div className="p-2">
+                <p className="px-3 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">เลือกเทมเพลต</p>
+                {activeTemplates.map((temp) => (
+                  <button
+                    key={temp.id}
+                    onClick={() => handleSelectTemplate(temp)}
+                    className="w-full text-left px-4 py-3 text-sm font-bold text-gray-700 hover:bg-orange-50 hover:text-[#f3a638] rounded-xl transition-colors flex items-center gap-3"
+                  >
+                    <div className="w-2 h-2 bg-[#f3a638] rounded-full"></div>
+                    {temp.name}
+                  </button>
+                ))}
+                {activeTemplates.length === 0 && (
+                  <p className="px-4 py-3 text-xs text-gray-400 italic">ไม่มีเทมเพลตที่เปิดใช้งาน</p>
+                )}
+              </div>
+            </div>
+          )}
+      </div>
+      </div>
+        
+      </div>
         {tenant ? (
           /* --- กรณีมีผู้เช่า: แสดงข้อมูลทั้งหมด --- */
           <div className="space-y-6 mt-2">
@@ -95,9 +141,7 @@ const RoomDetail = () => {
             <div className="flex flex-col gap-4 max-w-4xl mx-auto">
               {tenant.hasPendingNotification && (
                 <div className="bg-red-50 border border-red-100 rounded-3xl p-5 shadow-sm overflow-hidden relative group">
-                  {/* ปรับ flex-col ในมือถือ และ md:flex-row ใน iPad/คอม */}
                   <div className="flex flex-col md:flex-row md:items-center gap-4 ml-2">
-                    {/* Icon และ หัวข้อหลัก (ชิดซ้ายเสมอ) */}
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center text-red-600">
                         <AlertCircle size={28} />
@@ -135,8 +179,6 @@ const RoomDetail = () => {
                         </span>
                       </div>
                     </div>
-
-                    {/* ปุ่ม: เต็มความกว้างในมือถือ (w-full) และขนาดปกติในจอใหญ่ (md:w-auto) */}
                     <button
                       onClick={() => navigate(`/rooms/request/${roomNumber}`)}
                       className="w-full md:w-auto text-[#ea3720] font-black text-sm underline underline-offset-4 hover:text-red-700 transition-all shrink-0"
@@ -150,7 +192,6 @@ const RoomDetail = () => {
               {/* Banner พัสดุ (ถ้ามี) */}
               {tenant.pendingParcels > 0 && (
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-blue-50 border border-blue-100 rounded-[25px] md:rounded-3xl text-blue-600 shadow-sm transition-all">
-                  {/* ส่วนข้อมูล (Icon + ข้อความ) */}
                   <div className="flex items-center gap-3 w-full md:w-auto">
                     <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shrink-0">
                       <Package size={28} />
@@ -160,8 +201,6 @@ const RoomDetail = () => {
                       รายการ
                     </span>
                   </div>
-
-                  {/* ปุ่มดูรายละเอียด */}
                   <button
                         onClick={() => {
                           router.push(`/parcels?search=${roomNumber}`); 
@@ -174,7 +213,7 @@ const RoomDetail = () => {
             </div>
 
             {/* คอนเทนเนอร์หลัก: 1 คอลัมน์ในมือถือ (grid-cols-1) และ 2 คอลัมน์ในจอใหญ่ (lg:grid-cols-2) */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               {/* --- คอลัมน์ที่ 1: ข้อมูลผู้เช่า --- */}
               <section className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden h-full">
                 {/* Header */}
