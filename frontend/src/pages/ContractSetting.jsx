@@ -329,8 +329,7 @@ const ContractTemplate = () => {
                   >
                     {t.name}
                   </h3>
-                  {/* แสดง ID เล็กๆ เพื่อให้ตรวจสอบการเรียงได้ง่าย */}
-                  <span className="text-[10px] text-gray-400">#{t.id}</span>
+                
                 </div>
 
                 <span

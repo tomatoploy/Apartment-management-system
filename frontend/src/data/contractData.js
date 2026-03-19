@@ -1,3 +1,4 @@
+//ข้อมมูลตาราง Document
 export const initialContractTemplates = [
   {
     id: 1,
@@ -93,8 +94,8 @@ export const initialContractTemplates = [
       <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 20px;">
         <thead>
           <tr style="background-color: #f9f9f9;">
-            <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">รายการ</th>
-            <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">จำนวนเงิน (บาท)</th>
+            <td style="border: 1px solid #ddd; padding: 10px; text-align: left;">รายการ</td>
+            <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">จำนวนเงิน (บาท)</td>
           </tr>
         </thead>
         <tbody>
@@ -175,50 +176,45 @@ export const initialContractTemplates = [
           <p style="margin: 0;"><strong>วันที่พิมพ์:</strong> {{print_datetime}}</p>
         </div>
       </div>
-
+      </br>
       <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 10px;">
         <thead>
-          <tr style="background-color: #f3a638; color: white;">
-            <th style="padding: 10px; text-align: center; width: 50px; border: 1px solid #e6952e;">ลำดับ</th>
-            <th style="padding: 10px; text-align: left; border: 1px solid #e6952e;">รายการ </th>
-            <th style="padding: 10px; text-align: center; border: 1px solid #e6952e;">หน่วย</th>
-            <th style="padding: 10px; text-align: center; border: 1px solid #e6952e;">ราคา/หน่วย</th>
-            <th style="padding: 10px; text-align: right; border: 1px solid #e6952e;">รวม (บาท)</th>
+          <tr style="color: ##e6952e;">
+<td style="padding: 5px 2px; text-align: center; width: 10px; border: 1px solid #e6952e;">ลำดับ</td>            <td style="padding: 10px; text-align: left; border: 1px solid #e6952e;">รายการ </td>
+            <td style="padding: 10px; text-align: center; border: 1px solid #e6952e;">หน่วย</td>
+            <td style="padding: 10px; text-align: center; border: 1px solid #e6952e;">ราคา/หน่วย</td>
+            <td style="padding: 10px; text-align: right; border: 1px solid #e6952e;">รวม (บาท)</td>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td style="border: 1px solid #eee; padding: 10px; text-align: center;">1</td>
+            <td style="border: 1px solid #eee; padding: 5px; text-align: center;">1</td>
             <td style="border: 1px solid #eee; padding: 10px;">ค่าเช่าห้อง และค่าเช่าเฟอร์นิเจอร์ </td>
             <td style="border: 1px solid #eee; padding: 10px; text-align: center;">-</td>
             <td style="border: 1px solid #eee; padding: 10px; text-align: center;">-</td>
-            <td style="border: 1px solid #eee; padding: 10px; text-align: right;">{{monthly_rent_total}}</td>
+            <td style="border: 1px solid #eee; padding: 10px; text-align: right;">{{monthly_rent}}</td>
           </tr>
           <tr>
-            <td style="border: 1px solid #eee; padding: 10px; text-align: center;">2</td>
+            <td style="border: 1px solid #eee; padding: 5px; text-align: center;">2</td>
             <td style="border: 1px solid #eee; padding: 10px;">
-              ค่าไฟฟ้า (จดวันที่ {{meter_reading_date}})<br>
-              <span style="font-size: 12px; color: #666;">(เลขมิเตอร์: {{curr_elec}} - {{prev_elec}}) </span>
-            </td>
-            <td style="border: 1px solid #eee; padding: 10px; text-align: center;">{{elec_units}}</td>
+              ค่าไฟฟ้า </td>
+            <td style="font-size: 12px; color: #666;">{{curr_elec}} - {{prev_elec}}= {{elec_units}}</td>
             <td style="border: 1px solid #eee; padding: 10px; text-align: center;">{{elec_rate}}</td>
             <td style="border: 1px solid #eee; padding: 10px; text-align: right;">{{elec_amount}}</td>
           </tr>
           <tr>
-            <td style="border: 1px solid #eee; padding: 10px; text-align: center;">3</td>
+            <td style="border: 1px solid #eee; padding: 5px; text-align: center;">3</td>
             <td style="border: 1px solid #eee; padding: 10px;">
-              ค่าน้ำประปา (จดวันที่ {{meter_reading_date}})<br>
-              <span style="font-size: 12px; color: #666;">(เลขมิเตอร์: {{curr_water}} - {{prev_water}}) </span>
-            </td>
-            <td style="border: 1px solid #eee; padding: 10px; text-align: center;">{{water_units}}</td>
+              ค่าน้ำประปา </td>
+              <td span style="font-size: 12px; color: #666;">{{curr_water}} - {{prev_water}})= {{water_units}} </td>
             <td style="border: 1px solid #eee; padding: 10px; text-align: center;">{{water_rate}}</td>
             <td style="border: 1px solid #eee; padding: 10px; text-align: right;">{{water_amount}}</td>
           </tr>
           <tr>
-            <td style="border: 1px solid #eee; padding: 10px; text-align: center;">4</td>
+            <td style="border: 1px solid #eee; padding: 5px; text-align: center;">4</td>
             <td style="border: 1px solid #eee; padding: 10px;">ค่าเฟอร์นิเจอร์</td>
-            <td style="border: 1px solid #eee; padding: 10px; text-align: center;"></td>
-            <td style="border: 1px solid #eee; padding: 10px; text-align: center;"></td>
+            <td style="border: 1px solid #eee; padding: 10px; text-align: center;">-</td>
+            <td style="border: 1px solid #eee; padding: 10px; text-align: center;">-</td>
             <td style="border: 1px solid #eee; padding: 10px; text-align: right;">{{furniture_fee_amount}}</td>
           </tr>
           <tr>
@@ -229,7 +225,7 @@ export const initialContractTemplates = [
             <td style="border: 1px solid #eee; padding: 10px; text-align: right;">{{internet_fee}}</td>
           </tr>
           <tr>
-            <td style="border: 1px solid #eee; padding: 10px; text-align: center;">6</td>
+            <td style="border: 1px solid #eee; padding: 5px; text-align: center;">6</td>
             <td style="border: 1px solid #eee; padding: 10px;">ค่าทำความสะอาด </td>
             <td style="border: 1px solid #eee; padding: 10px; text-align: center;">-</td>
             <td style="border: 1px solid #eee; padding: 10px; text-align: center;">-</td>
