@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 const Navbar = ({ onMenuClick }) => { // รับ props onMenuClick
 const navigate = useNavigate();
   return (
-    <nav className="h-16 bg-[#F5A623] flex items-center justify-between px-6 shadow-md fixed w-full top-0 z-50">
+    <nav className="print:hidden h-16 bg-[#F5A623] flex items-center justify-between px-6 shadow-md fixed w-full top-0 z-50">
       {/* Left side: Menu Button & Logo */}
       <div className="flex items-center gap-2">
         <div className="bg-[#F5A623] p-1 rounded">

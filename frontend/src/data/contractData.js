@@ -5,8 +5,8 @@ export const initialContractTemplates = [
     name: "สัญญาเช่า",
     content: `
 
-    <div style="font-family: 'Sarabun', sans-serif; line-height: 1.6; color: #000; max-width: 800px; margin: auto; padding: 30px; border: 1px solid #f0f0f0;">
-      <h2 style="text-align: center; font-size: 24px; margin-bottom: 5px;">สัญญาเช่าห้องพัก</h2>
+    <div style="font-family: 'Sarabun', sans-serif; font-size: 12px; line-height: 1.6; color: #000; max-width: 800px; margin: auto; padding: 30px; border: 1px solid #f0f0f0;">
+      <h2 style="text-align: center; font-size: 20px; margin-bottom: 5px;">สัญญาเช่าห้องพัก ห้อง {{room_number}}</h2>
       <p style="text-align: right;">ทำขึ้นเมื่อวันที่ {{contract_date}}</p><br>
       
       <p>สัญญาฉบับนี้ทำขึ้นระหว่าง <strong>{{apartment_name}}</strong> {{apartment_address}}โดยผู้รับมอบอำนาจ ซึ่งต่อไปนี้เรียกว่า "ผู้ให้เช่า" ฝ่ายหนึ่ง 
@@ -93,14 +93,14 @@ export const initialContractTemplates = [
       
       <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 20px;">
         <thead>
-          <tr style="background-color: #f9f9f9;">
+          <tr style="background-color: white;">
             <td style="border: 1px solid #ddd; padding: 10px; text-align: left;">รายการ</td>
             <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">จำนวนเงิน (บาท)</td>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td style="border: 1px solid #ddd; padding: 10px;">ค่าเช่าเดือนปัจจุบัน ({{contract_monthlyRent}})</td>
+            <td style="border: 1px solid #ddd; padding: 10px;">ค่าเช่าเดือนปัจจุบัน </td>
             <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">{{monthly_rent}}</td>
           </tr>
           <tr>
@@ -115,18 +115,30 @@ export const initialContractTemplates = [
             <td style="border: 1px solid #ddd; padding: 10px;">ค่ากุญแจ</td>
             <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">{{key_fee}}</td>
           </tr>
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 10px;">อื่นๆ</td>
+            <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">{{other_fee}}</td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 10px;"></td>
+            <td style="border: 1px solid #ddd; padding: 10px; text-align: right;"></td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 10px;"></td>
+            <td style="border: 1px solid #ddd; padding: 10px; text-align: right;"></td>
+          </tr>
           <tr style="font-weight: bold; color: #d9534f;">
             <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">หักเงินจอง</td>
             <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">- {{booking_deduction}}</td>
           </tr>
-          <tr style="font-weight: bold; background-color: #fff8f0;">
+          <tr style="font-weight: bold; ">
             <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">จำนวนเงินสุทธิที่ชำระ</td>
             <td style="border: 1px solid #ddd; padding: 10px; text-align: right; font-size: 18px; color: #f3a638;">{{total_paid}}</td>
           </tr>
         </tbody>
       </table>
 
-      <div style="background-color: #f4f4f4; padding: 15px; border-radius: 8px; font-size: 13px; margin-bottom: 20px;">
+      <div style="padding: 15px; border-radius: 8px; font-size: 13px; margin-bottom: 20px;">
         <strong>บันทึกตัวเลขมิเตอร์ ณ วันทำสัญญา:</strong><br>
         • มิเตอร์ไฟฟ้า: {{contract_initialElectricUnit}} <br>
         • มิเตอร์น้ำ: {{contract_initialWaterUnit}} <br>

@@ -7,7 +7,7 @@ import {
   OrangeButton,
   ConfirmModal,
 } from "../components/ActionButtons";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import { initialContractTemplates } from "../data/contractData";
 // --- MOCK DATA INCLUDED ---
 const mockSettings = {
@@ -277,13 +277,12 @@ const ContractTemplate = () => {
               variant="warning"
             />
             {showSuccess && (
-              <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[110] w-[90%] md:w-auto min-w-[320px] px-6 md:px-8 py-4 bg-[#f3a638] text-white rounded-2xl shadow-2xl flex items-center justify-center gap-3 animate-in slide-in-from-top-4 fade-in duration-300">
-                <CheckCircle2 size={24} className="shrink-0 " />
-                <span className="font-black whitespace-nowrap text-lg">
-                  แก้ไขเทมเพลตสำเร็จ
-                </span>
-              </div>
+              <div className="print:hidden fixed bottom-10 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-2xl flex items-center gap-3 shadow-2xl z-[100]">
+            <CheckCircle size={20} className="text-green-400" />
+            <span className="font-bold text-sm">แก้ไขเทมเพลตสำเร็จ</span>
+          </div>
             )}
+             
           </div>
         </div>
       </div>
