@@ -12,8 +12,12 @@ const Login = () => {
     password: ""
   });
 
-  const handleChange = ({ target: { name, value } }) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: value 
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -25,11 +29,16 @@ const Login = () => {
         password: formData.password
       };
 
-      console.log("login payload:", payload);
+      const res = await adminService.loginAdmin(payload); 
       
-      const res = await adminService.loginAdmin(payload); //เรียก backend
-      console.log("login success:", res);
+      // --- เก็บ adminId ไว้ในเครื่อง ---
+      if (res.adminId) {
+        localStorage.setItem("adminId", res.adminId);
+        // หากมี Token ก็สามารถเก็บที่นี่ได้เช่นกัน
+        // localStorage.setItem("token", res.token); 
+      }
 
+      console.log("login success:", res);
       navigate("/dashboard");
     } catch (err) {
       console.log("login error:", err.response?.data);

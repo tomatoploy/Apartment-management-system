@@ -138,8 +138,7 @@ public partial class DormitoryDbContext : DbContext
             entity.Property(e => e.MonthlyRent).HasColumnType("decimal(20,3) unsigned");
             entity.Property(e => e.RoomId).HasColumnType("int(10) unsigned");
             entity.Property(e => e.Status)
-                .HasDefaultValueSql("'Pending'")
-                .HasColumnType("enum('Reserved','Pending','Active','Terminated','Expired')");
+                .HasColumnType("enum('Reserved','cancle','Active','Terminated','Expired')");
             entity.Property(e => e.TenantId).HasColumnType("int(10) unsigned");
 
             entity.HasOne(d => d.Room).WithMany(p => p.Contract)
