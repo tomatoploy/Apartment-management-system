@@ -17,6 +17,12 @@ import {
 import { ExitButton } from "../components/ActionButtons";
 import { toThaiDate, DateInput } from "../components/DateController";
 
+// --- Helper: กรองคำว่า "null" ออก ---
+const cleanVal = (val) => {
+  if (val === "null" || val === null || val === undefined || val === "") return "";
+  return val;
+};
+
 // --- Components ย่อยสำหรับการจัดการ Style ---
 const SectionHeader = ({ title, icon: Icon }) => (
   <div className="col-span-1 md:col-span-2 flex items-center gap-2 mt-3 mb-1 border-b border-gray-200 pb-2">
@@ -78,7 +84,8 @@ const EditInput = ({
         ref={inputRef}
         type={type}
         name={name}
-        value={value || ""}
+        // ล้างคำว่า null ออกเวลาแก้ไข
+        value={cleanVal(value)} 
         onChange={onChange}
         onClick={handleInputClick}
         placeholder={placeholder}
@@ -121,6 +128,18 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
 
   if (!isOpen || !tenant) return null;
 
+  // --- ตัวแปรสำหรับจัดเตรียมข้อมูลโชว์ (ล้างคำว่า null ก่อน) ---
+  const showAltName = cleanVal(formData.altName);
+  const showAltRel = cleanVal(formData.altRelationship);
+  const showAltContact = showAltName ? `${showAltName} ${showAltRel ? `(${showAltRel})` : ""}` : "-";
+
+  const showVeh1 = cleanVal(formData.vehicleNum1);
+  const showVeh2 = cleanVal(formData.vehicleNum2);
+  let showVehicle = "-";
+  if (showVeh1 && showVeh2) showVehicle = `${showVeh1} / ${showVeh2}`;
+  else if (showVeh1) showVehicle = showVeh1;
+  else if (showVeh2) showVehicle = showVeh2;
+
   return (
     <div
       className="fixed inset-0 z-100 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
@@ -156,10 +175,9 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
               <div className="flex flex-row-reverse items-center gap-2">
                 <button
                   onClick={handleSave}
-                  className="flex items-center gap-2 p-2 md:px-5 md:py-2 rounded-2xl font-black shadow-sm bg-[#D5F5E3] text-[#1D8348]  hover:brightness-95 transition-all text-xs md:text-sm"
+                  className="flex items-center gap-2 p-2 md:px-5 md:py-2 rounded-2xl font-black shadow-sm bg-[#D5F5E3] text-[#1D8348] hover:brightness-95 transition-all text-xs md:text-sm"
                   title="บันทึก"
                 >
-
                   <Save size={16} />
                   <span className="hidden sm:inline">บันทึก</span>
                 </button>
@@ -168,7 +186,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                     setIsEditMode(false);
                     setFormData(tenant);
                   }}
-                  className="flex items-center gap-2  p-2 md:px-5 md:py-2  bg-gray-100 text-gray-500 rounded-2xl font-black hover:bg-gray-200 transition-all text-xs md:text-sm"
+                  className="flex items-center gap-2 p-2 md:px-5 md:py-2 bg-gray-100 text-gray-500 rounded-2xl font-black hover:bg-gray-200 transition-all text-xs md:text-sm"
                   title="ยกเลิก"
                 >
                   <CircleChevronLeft size={16} />
@@ -180,12 +198,12 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
         </div>
 
         {/* --- Body: ส่วนเนื้อหาที่ Scroll ได้ --- */}
-        <div className="flex-1 overflow-y-auto p-6 md:py-4 md:px-10  bg-white">
-          <div className="flex  flex-col lg:flex-row gap-10">
+        <div className="flex-1 overflow-y-auto p-6 md:py-4 md:px-10 bg-white">
+          <div className="flex flex-col lg:flex-row gap-10">
             {/* Sidebar: Photo & Quick Status */}
             <div className="w-full max-w-50 mx-auto lg:mx-0 flex flex-col gap-5">
               <div className="w-full aspect-square bg-gray-50 rounded-[35px] border-2 border-gray-200 overflow-hidden flex items-center justify-center relative group transition-all">
-                {formData.photo ? (
+                {formData.photo && formData.photo !== "null" ? (
                   <img
                     src={formData.photo}
                     alt="Tenant"
@@ -202,7 +220,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                   </div>
                 )}
 
-                {/* Overlay แสดงเฉพาะตอนโหมดแก้ไข เพื่อให้ผู้ใช้รู้ว่ากดเปลี่ยนรูปได้ */}
+                {/* Overlay แสดงเฉพาะตอนโหมดแก้ไข */}
                 {isEditMode && (
                   <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer">
                     <div className="bg-white/20 p-3 rounded-2xl mb-2">
@@ -227,9 +245,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                 <div
                   className={`p-4 rounded-2xl border flex justify-between items-center ${formData.isLaundryService ? "bg-orange-50 border-orange-200" : "bg-gray-50 border-gray-200"}`}
                 >
-                  <span className="text-sm font-bold text-gray-700">
-                    ซักรีด
-                  </span>
+                  <span className="text-sm font-bold text-gray-700">ซักรีด</span>
                   {isEditMode ? (
                     <input
                       type="checkbox"
@@ -248,19 +264,17 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                 </div>
 
                 <div className="p-4 rounded-2xl border border-orange-200 bg-orange-50 flex justify-between items-center">
-                  <span className="text-sm font-bold text-gray-700">
-                    อินเตอร์เน็ต
-                  </span>
+                  <span className="text-sm font-bold text-gray-700">อินเตอร์เน็ต</span>
                   {isEditMode ? (
                     <input
                       type="number"
                       name="InternetDeviceCount"
                       value={formData.InternetDeviceCount}
                       onChange={handleChange}
-                      min="0" // ป้องกันการกดลดค่าต่ำกว่า 0 จากลูกศรในช่อง input
+                      min="0"
                       onKeyDown={(e) => {
                         if (e.key === "-" || e.key === "e") {
-                          e.preventDefault(); // ป้องกันการพิมพ์เครื่องหมายลบ และตัว e (ซึ่งมากับ type="number")
+                          e.preventDefault();
                         }
                       }}
                       className="w-12 bg-white rounded-lg text-center font-bold text-[#f3a638] focus:outline-none border border-gray-100"
@@ -280,9 +294,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
               {isEditMode ? (
                 <>
                   <div className="col-span-1 flex flex-col ">
-                    <label className="text-[13px] font-bold text-gray-500 ml-1">
-                      คำนำหน้า
-                    </label>
+                    <label className="text-[13px] font-bold text-gray-500 ml-1">คำนำหน้า</label>
                     <select
                       name="title"
                       value={formData.title}
@@ -294,88 +306,35 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                       <option value="นาง">นาง</option>
                     </select>
                   </div>
-                  {/* <EditInput
-                    label="ชื่อเล่น"
-                    name="nickName"
-                    value={formData.nickName}
-                    onChange={handleChange}
-                  /> */}
-                  <EditInput
-                    label="ชื่อจริง"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    required
-                  />
-                  <EditInput
-                    label="นามสกุล"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    required
-                  />
-                  <EditInput
-                    label="เลขบัตรประชาชน"
-                    name="nin"
-                    value={formData.nin}
-                    onChange={handleChange}
-                  />
-                  <DateInput
-                    label="วันเกิด"
-                    name="birthDate"
-                    value={formData.birthDate}
-                    onChange={handleChange}
-                  />
+                  <EditInput label="ชื่อจริง" name="firstName" value={formData.firstName} onChange={handleChange} required />
+                  <EditInput label="นามสกุล" name="lastName" value={formData.lastName} onChange={handleChange} required />
+                  <EditInput label="เลขบัตรประชาชน" name="nin" value={formData.nin} onChange={handleChange} />
+                  <DateInput label="วันเกิด" name="birthDate" value={formData.birthDate} onChange={handleChange} />
                 </>
               ) : (
                 <>
                   <DisplayItem
                     label="ชื่อ - นามสกุล"
-                    value={`${formData.title}${formData.firstName} ${formData.lastName}`}
+                    value={`${cleanVal(formData.title)}${cleanVal(formData.firstName)} ${cleanVal(formData.lastName)}`}
                     icon={User}
                     isFullWidth
                   />
-                  <DisplayItem
-                    label="เลขบัตรประชาชน"
-                    value={formData.nin}
-                    icon={CreditCard}
-                  />
-                  {/* <DisplayItem label="ชื่อเล่น" value={formData.nickName} /> */}
-                  <DisplayItem
-                    label="วันเกิด"
-                    value={toThaiDate(formData.birthDate)}
-                    icon={Calendar}
-                  />
+                  <DisplayItem label="เลขบัตรประชาชน" value={cleanVal(formData.nin)} icon={CreditCard} />
+                  <DisplayItem label="วันเกิด" value={toThaiDate(cleanVal(formData.birthDate))} icon={Calendar} />
                 </>
               )}
 
               <SectionHeader title="การติดต่อ & ที่อยู่" icon={Phone} />
               {isEditMode ? (
                 <>
-                  <EditInput
-                    label="เบอร์โทรศัพท์"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                  />
-                  <EditInput
-                    label="Line ID"
-                    name="lineId"
-                    value={formData.lineId}
-                    onChange={handleChange}
-                  />
-                  <EditInput
-                    label="อีเมล"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    isFullWidth
-                  />
+                  <EditInput label="เบอร์โทรศัพท์" name="phone" value={formData.phone} onChange={handleChange} />
+                  <EditInput label="Line ID" name="lineId" value={formData.lineId} onChange={handleChange} />
+                  <EditInput label="อีเมล" name="email" value={formData.email} onChange={handleChange} isFullWidth />
                   <div className="col-span-1 md:col-span-2 flex flex-col">
                     <FieldLabel>ที่อยู่</FieldLabel>
                     <textarea
                       name="address"
-                      value={formData.address}
+                      value={cleanVal(formData.address)}
                       onChange={handleChange}
                       rows="2"
                       className="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl min-h-20 focus:outline-none focus:border-[#f3a638] transition-all font-medium text-gray-700"
@@ -385,130 +344,49 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                 </>
               ) : (
                 <>
-                  <DisplayItem
-                    label="เบอร์โทรศัพท์"
-                    value={formData.phone}
-                    icon={Phone}
-                  />
-                  <DisplayItem label="Line ID" value={formData.lineId} />
-                  <DisplayItem
-                    label="อีเมล"
-                    value={formData.email}
-                    icon={Mail}
-                    isFullWidth
-                  />
-                  <DisplayItem
-                    label="ที่อยู่"
-                    value={formData.address}
-                    icon={MapPin}
-                    isFullWidth
-                  />
+                  <DisplayItem label="เบอร์โทรศัพท์" value={cleanVal(formData.phone)} icon={Phone} />
+                  <DisplayItem label="Line ID" value={cleanVal(formData.lineId)} />
+                  <DisplayItem label="อีเมล" value={cleanVal(formData.email)} icon={Mail} isFullWidth />
+                  <DisplayItem label="ที่อยู่" value={cleanVal(formData.address)} icon={MapPin} isFullWidth />
                 </>
               )}
 
-              <SectionHeader
-                title="ติดต่อฉุกเฉิน & ทรัพย์สิน"
-                icon={ShieldCheck}
-              />
+              <SectionHeader title="ติดต่อฉุกเฉิน & ทรัพย์สิน" icon={ShieldCheck} />
               {isEditMode ? (
                 <>
-                  <EditInput
-                    label="ผู้ติดต่อสำรอง"
-                    name="altName"
-                    value={formData.altName}
-                    onChange={handleChange}
-                  />
-                  <EditInput
-                    label="ความสัมพันธ์"
-                    name="altRelationship"
-                    value={formData.altRelationship}
-                    onChange={handleChange}
-                  />
-                  <EditInput
-                    label="เบอร์สำรอง"
-                    name="altPhone"
-                    value={formData.altPhone}
-                    onChange={handleChange}
-                    isFullWidth
-                  />
-                  <EditInput
-                    label="ทะเบียนรถ 1"
-                    name="vehicleNum1"
-                    value={formData.vehicleNum1}
-                    onChange={handleChange}
-                  />
-                  <EditInput
-                    label="รายละเอียดรถ 1"
-                    name="vehicleDetail1"
-                    value={formData.vehicleDetail1}
-                    onChange={handleChange}
-                  />
-                  <EditInput
-                    label="ทะเบียนรถ 2"
-                    name="vehicleNum2"
-                    value={formData.vehicleNum2}
-                    onChange={handleChange}
-                  />
-                  <EditInput
-                    label="รายละเอียดรถ 2"
-                    name="vehicleDetail2"
-                    value={formData.vehicleDetail2}
-                    onChange={handleChange}
-                  />
+                  <EditInput label="ผู้ติดต่อสำรอง" name="altName" value={formData.altName} onChange={handleChange} />
+                  <EditInput label="ความสัมพันธ์" name="altRelationship" value={formData.altRelationship} onChange={handleChange} />
+                  <EditInput label="เบอร์สำรอง" name="altPhone" value={formData.altPhone} onChange={handleChange} isFullWidth />
+                  <EditInput label="ทะเบียนรถ 1" name="vehicleNum1" value={formData.vehicleNum1} onChange={handleChange} />
+                  <EditInput label="รายละเอียดรถ 1" name="vehicleDetail1" value={formData.vehicleDetail1} onChange={handleChange} />
+                  <EditInput label="ทะเบียนรถ 2" name="vehicleNum2" value={formData.vehicleNum2} onChange={handleChange} />
+                  <EditInput label="รายละเอียดรถ 2" name="vehicleDetail2" value={formData.vehicleDetail2} onChange={handleChange} />
                   <div className="col-span-1 md:col-span-2 grid grid-cols-3 gap-3 ">
-                    <EditInput
-                      label="คีย์การ์ด 1"
-                      name="keyCard1"
-                      value={formData.keyCard1}
-                      onChange={handleChange}
-                    />
-                    <EditInput
-                      label="คีย์การ์ด 2"
-                      name="keyCard2"
-                      value={formData.keyCard2}
-                      onChange={handleChange}
-                    />
-                    <EditInput
-                      label="คีย์การ์ด 3"
-                      name="keyCard3"
-                      value={formData.keyCard3}
-                      onChange={handleChange}
-                    />
+                    <EditInput label="คีย์การ์ด 1" name="keyCard1" value={formData.keyCard1} onChange={handleChange} />
+                    <EditInput label="คีย์การ์ด 2" name="keyCard2" value={formData.keyCard2} onChange={handleChange} />
+                    <EditInput label="คีย์การ์ด 3" name="keyCard3" value={formData.keyCard3} onChange={handleChange} />
                   </div>
                 </>
               ) : (
                 <>
-                  <DisplayItem
-                    label="บุคคลติดต่อสำรอง"
-                    value={`${formData.altName} (${formData.altRelationship})`}
-                  />
-                  <DisplayItem
-                    label="เบอร์โทรศัพท์สำรอง"
-                    value={formData.altPhone}
-                    icon={Phone}
-                  />
-                  <DisplayItem
-                    label="ทะเบียนรถ"
-                    value={`${formData.vehicleNum1 || "-"} / ${formData.vehicleNum2 || "-"}`}
-                    icon={Car}
-                  />
+                  {/* แสดงผลด้วยตัวแปรที่กรองคำว่า null ออกไปแล้ว */}
+                  <DisplayItem label="บุคคลติดต่อสำรอง" value={showAltContact} />
+                  <DisplayItem label="เบอร์โทรศัพท์สำรอง" value={cleanVal(formData.altPhone)} icon={Phone} />
+                  <DisplayItem label="ทะเบียนรถ" value={showVehicle} icon={Car} />
                   <div className="col-span-1 md:col-span-2 flex flex-col gap-1">
-                    <span className="text-[13px] font-bold text-gray-400 ml-1">
-                      รายการคีย์การ์ด
-                    </span>
+                    <span className="text-[13px] font-bold text-gray-400 ml-1">รายการคีย์การ์ด</span>
                     <div className="flex gap-2">
-                      {[
-                        formData.keyCard1,
-                        formData.keyCard2,
-                        formData.keyCard3,
-                      ].map((card, idx) => (
-                        <span
-                          key={idx}
-                          className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-600"
-                        >
-                          {card || "-"}
-                        </span>
-                      ))}
+                      {[formData.keyCard1, formData.keyCard2, formData.keyCard3].map((card, idx) => {
+                        const cleanCard = cleanVal(card);
+                        return (
+                          <span
+                            key={idx}
+                            className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-600"
+                          >
+                            {cleanCard || "-"}
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
                 </>
@@ -519,7 +397,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                 {isEditMode ? (
                   <textarea
                     name="note"
-                    value={formData.note}
+                    value={cleanVal(formData.note)}
                     onChange={handleChange}
                     rows="3"
                     className="w-full p-4 bg-gray-50 border border-gray-200 rounded-[30px] min-h-25 focus:outline-none focus:border-[#f3a638] transition-all font-medium text-gray-700"
@@ -527,7 +405,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                   />
                 ) : (
                   <div className="p-5 bg-orange-50/30 border border-orange-100 rounded-3xl text-gray-600 italic text-sm">
-                    {formData.note || "- ไม่มีบันทึกเพิ่มเติม -"}
+                    {cleanVal(formData.note) || "- ไม่มีบันทึกเพิ่มเติม -"}
                   </div>
                 )}
               </div>

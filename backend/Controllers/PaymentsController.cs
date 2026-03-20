@@ -1,0 +1,527 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Dormitory.DormitoryModels;
+using Dormitory.DTOs;
+
+namespace Dormitory.Controllers;
+
+[ApiController]
+[Route("[controller]")]
+public class PaymentsController : ControllerBase
+{
+    private readonly ILogger<PaymentsController> _logger;
+    private readonly DormitoryDbContext _db;
+
+    public PaymentsController(ILogger<PaymentsController> logger, DormitoryDbContext db)
+    {
+        _logger = logger;
+        _db = db;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // HELPERS
+    // ─────────────────────────────────────────────────────────────
+
+    private static uint? CalculateUsedUnit(uint? previous, uint? current)
+    {
+        if (!previous.HasValue || !current.HasValue) return null;
+        if (current.Value >= previous.Value)
+            return current.Value - previous.Value;
+        var maxMeter = uint.Parse(new string('9', previous.Value.ToString().Length));
+        return (maxMeter - previous.Value) + current.Value + 1;
+    }
+
+    private static uint? CalculateUsedWithMeterChange(
+        uint? prevMonthUnit, uint? changeEnd,
+        uint? changeStart,   uint? currentNewUnit)
+    {
+        if (!prevMonthUnit.HasValue) return null;
+        if (!changeEnd.HasValue && !currentNewUnit.HasValue) return null;
+        if (changeEnd.HasValue && !currentNewUnit.HasValue)
+            return CalculateUsedUnit(prevMonthUnit, changeEnd);
+        if (changeEnd.HasValue && changeStart.HasValue && currentNewUnit.HasValue)
+            return CalculateUsedUnit(prevMonthUnit, changeEnd)
+                 + CalculateUsedUnit(changeStart, currentNewUnit);
+        if (currentNewUnit.HasValue)
+            return CalculateUsedUnit(prevMonthUnit, currentNewUnit);
+        return null;
+    }
+
+    private static string BuildCalculationNote(
+        uint? prevElec,       uint? currElec,
+        uint? changeElecEnd,  uint? changeElecStart, decimal electricRate,
+        uint? prevWater,      uint? currWater,
+        uint? changeWaterEnd, uint? changeWaterStart, decimal waterRate)
+    {
+        var parts = new List<string>();
+
+        if (prevElec.HasValue && (currElec.HasValue || changeElecEnd.HasValue))
+        {
+            if (changeElecEnd.HasValue && changeElecStart.HasValue && currElec.HasValue)
+                parts.Add($"ไฟ: ({changeElecEnd.Value}-{prevElec.Value})*{electricRate}" +
+                          $" + ({currElec.Value}-{changeElecStart.Value})*{electricRate}");
+            else if (changeElecEnd.HasValue)
+                parts.Add($"ไฟ: ({changeElecEnd.Value}-{prevElec.Value})*{electricRate}");
+            else if (currElec.HasValue)
+                parts.Add($"ไฟ: ({currElec.Value}-{prevElec.Value})*{electricRate}");
+        }
+
+        if (prevWater.HasValue && (currWater.HasValue || changeWaterEnd.HasValue))
+        {
+            if (changeWaterEnd.HasValue && changeWaterStart.HasValue && currWater.HasValue)
+                parts.Add($"น้ำ: ({changeWaterEnd.Value}-{prevWater.Value})*{waterRate}" +
+                          $" + ({currWater.Value}-{changeWaterStart.Value})*{waterRate}");
+            else if (changeWaterEnd.HasValue)
+                parts.Add($"น้ำ: ({changeWaterEnd.Value}-{prevWater.Value})*{waterRate}");
+            else if (currWater.HasValue)
+                parts.Add($"น้ำ: ({currWater.Value}-{prevWater.Value})*{waterRate}");
+        }
+
+        return parts.Count > 0 ? string.Join(" | ", parts) : string.Empty;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // CORE: คำนวณบิล
+    // ─────────────────────────────────────────────────────────────
+    private async Task<PaymentCalculationResult?> CalculateBillAsync(
+        uint contractId, int year, int month)
+    {
+        var contract = await _db.Contract
+            .Include(c => c.Tenant)
+            .FirstOrDefaultAsync(c => c.Id == contractId);
+
+        // ✅ return null ออกไปก่อน → หลังบรรทัดนี้ compiler รู้ว่า contract ไม่ใช่ null
+        if (contract == null) return null;
+
+        var constants = await _db.Constant.ToListAsync();
+
+        // ✅ Constant.Cost เป็น decimal? → ใช้ ?. แล้วตาม ?? 0m ได้เลย
+        decimal electricityRate = constants.FirstOrDefault(c =>
+            c.Category.Equals("utility",         StringComparison.OrdinalIgnoreCase) &&
+            c.Subject != null &&
+            c.Subject .Equals("ElectricityBill", StringComparison.OrdinalIgnoreCase))
+            ?.Cost ?? 0m;
+
+        decimal waterRate = constants.FirstOrDefault(c =>
+            c.Category.Equals("utility",   StringComparison.OrdinalIgnoreCase) &&
+            c.Subject != null &&
+            c.Subject .Equals("WaterBill", StringComparison.OrdinalIgnoreCase))
+            ?.Cost ?? 0m;
+
+        decimal internetRate = constants.FirstOrDefault(c =>
+            c.Category.Equals("service",  StringComparison.OrdinalIgnoreCase) &&
+            c.Subject != null &&
+            c.Subject .Equals("Internet", StringComparison.OrdinalIgnoreCase))
+            ?.Cost ?? 0m;
+
+        decimal laundryRate = constants.FirstOrDefault(c =>
+            c.Category.Equals("service", StringComparison.OrdinalIgnoreCase) &&
+            c.Subject != null &&
+            c.Subject .Equals("Laundry", StringComparison.OrdinalIgnoreCase))
+            ?.Cost ?? 0m;
+
+        var firstDay = new DateOnly(year, month, 1);
+        var lastDay  = firstDay.AddMonths(1).AddDays(-1);
+
+        var currentMeter = await _db.UtilityMeter
+            .Where(m => m.RoomId == contract.RoomId
+                     && m.RecordDate >= firstDay
+                     && m.RecordDate <= lastDay)
+            .OrderByDescending(m => m.RecordDate)
+            .FirstOrDefaultAsync();
+
+        var previousMeter = await _db.UtilityMeter
+            .Where(m => m.RoomId == contract.RoomId
+                     && m.RecordDate < firstDay)
+            .OrderByDescending(m => m.RecordDate)
+            .FirstOrDefaultAsync();
+
+        uint? electricUsed = CalculateUsedWithMeterChange(
+            previousMeter?.ElectricityUnit,
+            currentMeter?.ChangeElectricityMeterEnd,
+            currentMeter?.ChangeElectricityMeterStart,
+            currentMeter?.ElectricityUnit);
+
+        uint? waterUsed = CalculateUsedWithMeterChange(
+            previousMeter?.WaterUnit,
+            currentMeter?.ChangeWaterMeterEnd,
+            currentMeter?.ChangeWaterMeterStart,
+            currentMeter?.WaterUnit);
+
+        // ✅ MonthlyRent เป็น decimal (non-nullable) → ใช้ตรง ๆ ไม่ต้อง ?? 0m
+        decimal roomRate = contract.MonthlyRent;
+
+        decimal electricCost = electricUsed.HasValue
+            ? (decimal)electricUsed.Value * electricityRate : 0m;
+
+        decimal waterCost = waterUsed.HasValue
+            ? (decimal)waterUsed.Value * waterRate : 0m;
+
+        // ✅ InternetDeviceCount เป็น uint? → ?? 0u แล้วค่อย cast เป็น decimal
+        uint deviceCount  = contract.Tenant?.InternetDeviceCount ?? 0u;
+        decimal internetCost = deviceCount > 0
+            ? (decimal)deviceCount * internetRate : 0m;
+
+        // ✅ IsLaundryService เป็น bool? → == true ป้องกัน null
+        decimal laundryCost = contract.Tenant?.IsLaundryService == true
+            ? laundryRate : 0m;
+
+        decimal totalAmount = roomRate + electricCost + waterCost
+                            + internetCost + laundryCost;
+
+        string calcNote = BuildCalculationNote(
+            previousMeter?.ElectricityUnit, currentMeter?.ElectricityUnit,
+            currentMeter?.ChangeElectricityMeterEnd,
+            currentMeter?.ChangeElectricityMeterStart, electricityRate,
+            previousMeter?.WaterUnit, currentMeter?.WaterUnit,
+            currentMeter?.ChangeWaterMeterEnd,
+            currentMeter?.ChangeWaterMeterStart, waterRate);
+
+        return new PaymentCalculationResult
+        {
+            ContractId = contractId,
+            RoomId     = contract.RoomId,
+            // ✅ TenantId เป็น uint? → ?? 0u
+            TenantId   = contract.TenantId ?? 0u,
+            Year       = year,
+            Month      = month,
+
+            RoomRate = roomRate,
+
+            ElectricityUsedUnit    = electricUsed,
+            ElectricityRatePerUnit = electricityRate,
+            ElectricalCost         = electricCost,
+
+            WaterUsedUnit    = waterUsed,
+            WaterRatePerUnit = waterRate,
+            WaterCost        = waterCost,
+
+            // ✅ deviceCount เป็น uint แล้ว (ผ่าน ?? 0u มาแล้ว) → assign ได้ตรง
+            InternetDeviceCount   = deviceCount,
+            InternetRatePerDevice = internetRate,
+            InternetCost          = internetCost,
+
+            IsLaundryService = contract.Tenant?.IsLaundryService == true,
+            LaundryRate      = laundryRate,
+            LaundryCost      = laundryCost,
+
+            TotalAmount     = totalAmount,
+            CalculationNote = calcNote,
+
+            CurrentElectricUnit  = currentMeter?.ElectricityUnit,
+            PreviousElectricUnit = previousMeter?.ElectricityUnit,
+            CurrentWaterUnit     = currentMeter?.WaterUnit,
+            PreviousWaterUnit    = previousMeter?.WaterUnit,
+        };
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // GET /payments
+    // ─────────────────────────────────────────────────────────────
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<PaymentDetailDto>>> GetAll()
+    {
+        var payments = await _db.Payment
+            .AsNoTracking()
+            .OrderByDescending(p => p.RecordDate)
+            .ToListAsync();
+
+        return Ok(payments.Select(ToDetailDto));
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // GET /payments/{id}
+    // ─────────────────────────────────────────────────────────────
+    [HttpGet("{id}")]
+    public async Task<ActionResult<PaymentDetailDto>> Get(uint id)
+    {
+        var payment = await _db.Payment.AsNoTracking()
+                               .FirstOrDefaultAsync(p => p.Id == id);
+        if (payment == null)
+            return NotFound(new { message = "Payment not found" });
+
+        return Ok(ToDetailDto(payment));
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // GET /payments/by-contract/{contractId}
+    // ─────────────────────────────────────────────────────────────
+    [HttpGet("by-contract/{contractId}")]
+    public async Task<ActionResult<IEnumerable<PaymentDetailDto>>> GetByContract(uint contractId)
+    {
+        var payments = await _db.Payment
+            .AsNoTracking()
+            .Where(p => p.ContractId == contractId)
+            .OrderByDescending(p => p.RecordDate)
+            .ToListAsync();
+
+        return Ok(payments.Select(ToDetailDto));
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // GET /payments/by-month?year=2025&month=6
+    // ─────────────────────────────────────────────────────────────
+    [HttpGet("by-month")]
+    public async Task<ActionResult<IEnumerable<PaymentDetailDto>>> GetByMonth(
+        [FromQuery] int year, [FromQuery] int month)
+    {
+        var firstDay = new DateOnly(year, month, 1);
+        var lastDay  = firstDay.AddMonths(1).AddDays(-1);
+
+        var payments = await _db.Payment
+            .AsNoTracking()
+            .Where(p => p.RecordDate >= firstDay && p.RecordDate <= lastDay)
+            .OrderBy(p => p.ContractId)
+            .ToListAsync();
+
+        return Ok(payments.Select(ToDetailDto));
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // GET /payments/generate?contractId=1&year=2025&month=6
+    // ─────────────────────────────────────────────────────────────
+    [HttpGet("generate")]
+    public async Task<ActionResult<PaymentCalculationResult>> Generate(
+        [FromQuery] uint contractId,
+        [FromQuery] int  year,
+        [FromQuery] int  month)
+    {
+        var result = await CalculateBillAsync(contractId, year, month);
+        if (result == null)
+            return NotFound(new { message = $"Contract id {contractId} not found" });
+
+        var firstDay = new DateOnly(year, month, 1);
+        var lastDay  = firstDay.AddMonths(1).AddDays(-1);
+
+        result.AlreadyExists = await _db.Payment.AnyAsync(p =>
+            p.ContractId == contractId &&
+            p.RecordDate >= firstDay   &&
+            p.RecordDate <= lastDay);
+
+        return Ok(result);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // POST /payments
+    // ─────────────────────────────────────────────────────────────
+    [HttpPost]
+    public async Task<IActionResult> Post([FromBody] PostPaymentDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var contractExists = await _db.Contract.AnyAsync(c => c.Id == dto.ContractId);
+        if (!contractExists)
+            return BadRequest(new { message = $"Contract id {dto.ContractId} not found" });
+
+        var recordDate = dto.RecordDate ?? DateOnly.FromDateTime(DateTime.Today);
+        var firstDay   = new DateOnly(recordDate.Year, recordDate.Month, 1);
+        var lastDay    = firstDay.AddMonths(1).AddDays(-1);
+
+        bool duplicate = await _db.Payment.AnyAsync(p =>
+            p.ContractId == dto.ContractId &&
+            p.RecordDate >= firstDay       &&
+            p.RecordDate <= lastDay);
+
+        if (duplicate)
+            return Conflict(new
+            {
+                message = $"บิลเดือน {recordDate.Month}/{recordDate.Year} มีอยู่แล้ว " +
+                          "ใช้ PUT /payments/{id} เพื่อแก้ไข"
+            });
+
+        var noteParts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(dto.Note))
+            noteParts.Add(dto.Note.Trim());
+        if (!string.IsNullOrWhiteSpace(dto.CalculationNote))
+            noteParts.Add(dto.CalculationNote.Trim());
+
+        var payment = new Payment
+        {
+            ContractId             = dto.ContractId,
+            RecordDate             = recordDate,
+            Status                 = "unpaid",
+            AdminId                = dto.AdminId,
+            RoomRate               = dto.RoomRate,
+            // ✅ ElectricalPricePerUnit/WaterPricePerUnit เป็น decimal? รับ decimal? ได้ตรง
+            ElectricalPricePerUnit = dto.ElectricalCost,
+            WaterPricePerUnit      = dto.WaterCost,
+            InternetCost           = dto.InternetCost,
+            LaundryCost            = dto.LaundryCost,
+            FurnitureCost          = dto.FurnitureCost,
+            DiscountCost           = dto.DiscountCost,
+            DiscountDetail         = dto.DiscountDetail,
+            AdditionalCost         = dto.AdditionalCost,
+            AdditionalDetail       = dto.AdditionalDetail,
+            Note                   = noteParts.Count > 0
+                                         ? string.Join(" | ", noteParts) : null,
+        };
+
+        // ✅ ทุก field ใน Payment เป็น decimal? → ?? 0m ใช้ได้
+        payment.TotalAmount =
+            (payment.RoomRate               ?? 0m) +
+            (payment.ElectricalPricePerUnit ?? 0m) +
+            (payment.WaterPricePerUnit      ?? 0m) +
+            (payment.InternetCost           ?? 0m) +
+            (payment.LaundryCost            ?? 0m) +
+            (payment.FurnitureCost          ?? 0m) +
+            (payment.AdditionalCost         ?? 0m) -
+            (payment.DiscountCost           ?? 0m);
+
+        _db.Payment.Add(payment);
+
+        try 
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            // ดึงข้อความ Error เชิงลึกจาก Database ส่งกลับไปให้ React
+            var innerMsg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+            return StatusCode(500, new { message = $"DB Error: {innerMsg}" });
+        }
+
+        return CreatedAtAction(nameof(Get), new { id = payment.Id }, new
+        {
+            message = "สร้างบิลสำเร็จ",
+            id      = payment.Id,
+            total   = payment.TotalAmount
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // PUT /payments/{id}
+    // ─────────────────────────────────────────────────────────────
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Put(uint id, [FromBody] PutPaymentDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var payment = await _db.Payment.FindAsync(id);
+        if (payment == null)
+            return NotFound(new { message = "Payment not found" });
+
+        if (payment.Status == "paid")
+            return BadRequest(new
+            {
+                message = "ไม่สามารถแก้ไขบิลที่ชำระแล้วได้ " +
+                          "ใช้ PATCH /payments/{id}/status แทน"
+            });
+
+        payment.RoomRate               = dto.RoomRate               ?? payment.RoomRate;
+        payment.ElectricalPricePerUnit = dto.ElectricalCost         ?? payment.ElectricalPricePerUnit;
+        payment.WaterPricePerUnit      = dto.WaterCost               ?? payment.WaterPricePerUnit;
+        payment.InternetCost           = dto.InternetCost            ?? payment.InternetCost;
+        payment.LaundryCost            = dto.LaundryCost             ?? payment.LaundryCost;
+        payment.FurnitureCost          = dto.FurnitureCost           ?? payment.FurnitureCost;
+        payment.DiscountCost           = dto.DiscountCost            ?? payment.DiscountCost;
+        payment.DiscountDetail         = dto.DiscountDetail          ?? payment.DiscountDetail;
+        payment.AdditionalCost         = dto.AdditionalCost          ?? payment.AdditionalCost;
+        payment.AdditionalDetail       = dto.AdditionalDetail        ?? payment.AdditionalDetail;
+
+        if (dto.Note != null)
+        {
+            var noteParts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(dto.Note))
+                noteParts.Add(dto.Note.Trim());
+            if (!string.IsNullOrWhiteSpace(dto.CalculationNote))
+                noteParts.Add(dto.CalculationNote.Trim());
+            payment.Note = noteParts.Count > 0 ? string.Join(" | ", noteParts) : null;
+        }
+
+        payment.TotalAmount =
+            (payment.RoomRate               ?? 0m) +
+            (payment.ElectricalPricePerUnit ?? 0m) +
+            (payment.WaterPricePerUnit      ?? 0m) +
+            (payment.InternetCost           ?? 0m) +
+            (payment.LaundryCost            ?? 0m) +
+            (payment.FurnitureCost          ?? 0m) +
+            (payment.AdditionalCost         ?? 0m) -
+            (payment.DiscountCost           ?? 0m);
+
+        try 
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            var innerMsg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+            return StatusCode(500, new { message = $"DB Error: {innerMsg}" });
+        }
+
+        return Ok(new { message = "อัปเดตบิลสำเร็จ", id = payment.Id, total = payment.TotalAmount });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // PATCH /payments/{id}/status
+    // ─────────────────────────────────────────────────────────────
+    [HttpPatch("{id}/status")]
+    public async Task<IActionResult> PatchStatus(uint id, [FromBody] PatchPaymentStatusDto dto)
+    {
+        var payment = await _db.Payment.FindAsync(id);
+        if (payment == null)
+            return NotFound(new { message = "Payment not found" });
+
+        // ✅ Status ใน DB เป็น enum: 'paid','unpaid','overdue','longOverdue'
+        var allowed = new[] { "paid", "unpaid", "overdue", "longoverdue" };
+        if (!allowed.Contains(dto.Status?.ToLower()))
+            return BadRequest(new
+            {
+                message = $"Status ต้องเป็นหนึ่งใน: paid, unpaid, overdue, longOverdue"
+            });
+
+        payment.Status = dto.Status!;
+
+        if (payment.Status == "paid" && dto.PaidAmount.HasValue)
+            payment.PaidAmount = dto.PaidAmount;
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = $"เปลี่ยนสถานะเป็น '{payment.Status}' สำเร็จ", id });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // DELETE /payments/{id}
+    // ─────────────────────────────────────────────────────────────
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(uint id)
+    {
+        var payment = await _db.Payment.FindAsync(id);
+        if (payment == null)
+            return NotFound(new { message = "Payment not found" });
+
+        if (payment.Status == "paid")
+            return BadRequest(new { message = "ไม่สามารถลบบิลที่ชำระแล้วได้" });
+
+        _db.Payment.Remove(payment);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = "ลบบิลสำเร็จ", id });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // HELPER: Payment → DTO
+    // ─────────────────────────────────────────────────────────────
+    private static PaymentDetailDto ToDetailDto(Payment p) => new()
+    {
+        Id               = p.Id,
+        ContractId       = p.ContractId,
+        RecordDate       = p.RecordDate,
+        Status           = p.Status,
+        RoomRate         = p.RoomRate,
+        ElectricalCost   = p.ElectricalPricePerUnit,
+        WaterCost        = p.WaterPricePerUnit,
+        FurnitureCost    = p.FurnitureCost,
+        InternetCost     = p.InternetCost,
+        LaundryCost      = p.LaundryCost,
+        DiscountCost     = p.DiscountCost,
+        DiscountDetail   = p.DiscountDetail,
+        AdditionalCost   = p.AdditionalCost,
+        AdditionalDetail = p.AdditionalDetail,
+        TotalAmount      = p.TotalAmount,
+        PaidAmount       = p.PaidAmount,
+        AdminId          = p.AdminId,
+        Note             = p.Note,
+    };
+}
