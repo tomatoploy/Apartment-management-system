@@ -21,6 +21,7 @@ import RoomRequest from "./pages/RoomRequest";
 import AdminSettings from "./pages/AdminSettings";
 import RoomReserve from "./pages/RoomReserve";
 import RoomMoveOut from "./pages/RoomMoveOut";
+import RoomContract from "./pages/RoomContract";
 
 // import RoomsFilter from "./pages/Rooms-filterModal";
 
@@ -153,6 +154,14 @@ function App() {
         element={
           <Layout>
             <RoomDetail />
+          </Layout>
+        }
+      />
+      <Route
+        path="/rooms/contract/:roomNumber"
+        element={
+          <Layout>
+            <RoomContract />
           </Layout>
         }
       />

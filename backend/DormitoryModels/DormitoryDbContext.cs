@@ -114,7 +114,7 @@ public partial class DormitoryDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("PRIMARY");
 
             entity.Property(e => e.Id).HasColumnType("int(10) unsigned");
-            entity.Property(e => e.Category).HasColumnType("enum('service','utility','facility','maintenance','penalty','other')");
+            entity.Property(e => e.Category).HasColumnType("enum('service','utility','facility','maintenance','penalty','property','other')");
             entity.Property(e => e.Cost).HasPrecision(20, 3);
             entity.Property(e => e.Note).HasColumnType("text");
             entity.Property(e => e.Subject).HasMaxLength(50);
@@ -199,7 +199,7 @@ public partial class DormitoryDbContext : DbContext
 
             entity.Property(e => e.Id).HasColumnType("int(10) unsigned");
             entity.Property(e => e.AdditionalCost).HasPrecision(20, 3);
-            entity.Property(e => e.AdditionalDetail).HasMaxLength(50);
+            entity.Property(e => e.AdditionalDetail).HasMaxLength(500);
             entity.Property(e => e.AdminId).HasColumnType("int(10) unsigned");
             entity.Property(e => e.ContractId).HasColumnType("int(10) unsigned");
             entity.Property(e => e.DiscountCost).HasPrecision(20, 3);
@@ -213,7 +213,7 @@ public partial class DormitoryDbContext : DbContext
             entity.Property(e => e.RoomRate).HasPrecision(20, 3);
             entity.Property(e => e.Status)
                 .HasDefaultValueSql("'unpaid'")
-                .HasColumnType("enum('paid','unpaid','overdue','longOverdue')");
+                .HasColumnType("enum('paid','unpaid')");
             entity.Property(e => e.TotalAmount).HasPrecision(20, 3);
             entity.Property(e => e.WaterPricePerUnit).HasPrecision(20, 3);
 

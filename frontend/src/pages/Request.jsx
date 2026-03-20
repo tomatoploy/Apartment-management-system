@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { requestService } from "../api/RequestApi";
+import { useNavigate } from "react-router-dom"; // ✨ เพิ่ม useNavigate เพื่อใช้เปลี่ยนหน้า
 import {
   Wrench, Sparkles, LogOut, FileText, CheckCircle2, XCircle, Clock, Plus, LayoutList, CalendarDays,
   ArrowUpDown, Check, Filter
@@ -24,7 +25,6 @@ const STATUS_CONFIG = {
   cancel: { label: "ยกเลิก", color: "bg-[#FEE2E2] text-[#991B1B]", icon: <XCircle size={20} /> },
 };
 
-// ✅ ปรับตัวเลือกการเรียงลำดับใหม่
 const SORT_OPTIONS = {
   latest: { label: "เรียงตามวันที่ล่าสุด", value: "latest" },
   room_asc: { label: "เรียงตามเลขห้อง (มาก → น้อย)", value: "room_asc" },
@@ -32,6 +32,8 @@ const SORT_OPTIONS = {
 };
 
 const Request = () => {
+  const navigate = useNavigate(); // ✨ นำมาใช้ตรงนี้
+  
   const [requests, setRequests] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSubject, setActiveSubject] = useState("all");
@@ -41,7 +43,6 @@ const Request = () => {
   const [modals, setModals] = useState({ filter: false, add: false, edit: false, sort: false });
   const [selectedRequest, setSelectedRequest] = useState(null);
 
-  
   // --- 1. Load Data ---
   const fetchRequests = async () => {
     try {
@@ -77,6 +78,24 @@ const Request = () => {
       await requestService.createRequest(payload);
       await fetchRequests(); 
       toggleModal('add', false);
+
+      // ✨ ตรวจสอบว่า "ผู้เช่ารับผิดชอบ" และ "มีค่าใช้จ่ายมากกว่า 0" ไหม
+      if (payload.isTenantCost && payload.cost > 0) {
+        const confirmBill = window.confirm(`บันทึกการแจ้งเรียบร้อย!\n\nคุณต้องการนำค่าใช้จ่ายจำนวน ${payload.cost} บาท ไปเพิ่มในบิลรอบเดือนปัจจุบันของห้อง ${payload.roomNumber} ทันทีหรือไม่?`);
+        if (confirmBill) {
+          const subjectLabel = SUBJECT_CONFIG[payload.subject]?.label || "ซ่อมแซม";
+          navigate(`/billings/${payload.roomNumber}`, {
+            state: {
+              autoAddItem: {
+                type: "other",
+                label: `ค่า${subjectLabel}: ${payload.body || ""}`.trim(),
+                amount: payload.cost
+              },
+              backTo: "/request"
+            }
+          });
+        }
+      }
     } catch (err) {
       console.error("เพิ่มข้อมูลไม่สำเร็จ", err);
       alert("ไม่สามารถเพิ่มข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
@@ -95,6 +114,24 @@ const Request = () => {
       await requestService.updateRequest(formData.id, payload);
       await fetchRequests();
       toggleModal('edit', false);
+
+      // ✨ กรณีแกัไขก็เด้งถามเหมือนกัน
+      if (payload.isTenantCost && payload.cost > 0) {
+        const confirmBill = window.confirm(`แก้ไขข้อมูลการแจ้งเรียบร้อย!\n\nคุณต้องการนำค่าใช้จ่ายจำนวน ${payload.cost} บาท ไปเพิ่มในบิลรอบเดือนปัจจุบันของห้อง ${payload.roomNumber} ด้วยหรือไม่?`);
+        if (confirmBill) {
+          const subjectLabel = SUBJECT_CONFIG[payload.subject]?.label || "ซ่อมแซม";
+          navigate(`/billings/${payload.roomNumber}`, {
+            state: {
+              autoAddItem: {
+                type: "other",
+                label: `ค่า${subjectLabel}: ${payload.body || ""}`.trim(),
+                amount: payload.cost
+              },
+              backTo: "/request"
+            }
+          });
+        }
+      }
     } catch (err) {
       console.error("แก้ไขข้อมูลไม่สำเร็จ", err);
       alert("แก้ไขข้อมูลไม่สำเร็จ");
@@ -132,7 +169,6 @@ const Request = () => {
   const keyword = searchTerm.toLowerCase();
 
   const filteredAndSortedRequests = useMemo(() => {
-    // 1. Filter
     let result = requests.filter((req) => {
       const matchesSearch = 
         (req.roomNumber && req.roomNumber.toLowerCase().includes(keyword)) || 
@@ -142,14 +178,11 @@ const Request = () => {
       return matchesSearch && matchesStatus;
     });
 
-    // 2. Sort (✅ แก้ไข Logic เรียงตามเลขห้อง)
     return result.sort((a, b) => {
       switch (sortOrder) {
         case "room_asc":
-          // เรียงเลขห้อง น้อย -> มาก (รองรับเลขผสมตัวอักษร เช่น A101, B202)
           return (a.roomNumber || "").localeCompare(b.roomNumber || "", undefined, { numeric: true });
         case "room_desc":
-          // เรียงเลขห้อง มาก -> น้อย
           return (b.roomNumber || "").localeCompare(a.roomNumber || "", undefined, { numeric: true });
         case "latest":
         default:
@@ -168,15 +201,12 @@ const Request = () => {
     <>
         <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">การแจ้ง</h1>
 
-        {/* Toolbar */}
         <div className="flex flex-col gap-5 mb-8">
             <div className="flex flex-wrap items-center justify-center gap-3 w-full">
-                {/* Search */}
                 <div className="w-full sm:w-72"> 
                     <SearchBar value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
 
-                {/* Filter */}
                 <button
                     onClick={() => toggleModal('filter', true)}
                     className={`relative p-3 rounded-xl border transition-all flex items-center justify-center h-[48px] w-[48px] shrink-0
@@ -193,7 +223,6 @@ const Request = () => {
                     )}
                 </button>
 
-                {/* Sort */}
                 <button
                     onClick={() => toggleModal('sort', true)}
                     className={`relative p-3 rounded-xl border transition-all flex items-center justify-center h-[48px] w-[48px] shrink-0
@@ -211,7 +240,6 @@ const Request = () => {
                     )}
                 </button>
 
-                {/* View Mode */}
                 <div className="bg-gray-100 p-1 rounded-xl flex shrink-0 h-[48px] items-center">
                     {[
                         { mode: 'list', icon: <LayoutList size={20} /> },
@@ -229,7 +257,6 @@ const Request = () => {
                     ))}
                 </div>
 
-                {/* Add Button */}
                 <button
                     onClick={() => toggleModal('add', true)}
                     className="bg-[#f3a638] text-white px-6 h-[48px] rounded-xl font-bold flex items-center gap-2 hover:bg-[#e29528] transition-all shadow-md shrink-0"
@@ -238,7 +265,6 @@ const Request = () => {
                 </button>
             </div>
 
-            {/* Subject Tabs */}
             {viewMode === "list" && (
                 <div className="flex justify-center w-full">
                     <div className="flex bg-gray-100 p-1 rounded-2xl w-full max-w-3xl overflow-x-auto no-scrollbar">
@@ -258,7 +284,6 @@ const Request = () => {
             )}
         </div>
 
-        {/* Content */}
         {viewMode === "list" ? (
           <div className="space-y-4 max-w-4xl mx-auto">
             {listRequests.map((req) => (
@@ -272,7 +297,6 @@ const Request = () => {
           <RequestCalendar requests={filteredAndSortedRequests} subjectConfig={SUBJECT_CONFIG} onItemClick={handleItemClick} />
         )}
 
-        {/* Modals */}
         <RequestModal 
             isOpen={modals.add} 
             onClose={() => toggleModal('add', false)} 
@@ -289,7 +313,6 @@ const Request = () => {
           />
         )}
 
-        {/* Filter Modal */}
         <FilterModal isOpen={modals.filter} onClose={() => toggleModal('filter', false)} title="กรองสถานะ" onClear={() => setActiveStatusFilters([])} onConfirm={() => toggleModal('filter', false)} maxWidth="max-w-md">
             <div className="grid grid-cols-1 gap-3">
             {Object.entries(STATUS_CONFIG).map(([key, config]) => (
@@ -301,7 +324,6 @@ const Request = () => {
             </div>
         </FilterModal>
 
-        {/* Sort Modal */}
         <FilterModal isOpen={modals.sort} onClose={() => toggleModal('sort', false)} title="เรียงลำดับข้อมูล" onClear={() => setSortOrder("latest")} onConfirm={() => toggleModal('sort', false)} maxWidth="max-w-md">
             <div className="grid grid-cols-1 gap-3">
                 {Object.values(SORT_OPTIONS).map((option) => (
@@ -312,7 +334,6 @@ const Request = () => {
                 ))}
             </div>
         </FilterModal>
-
     </>
   );
 };

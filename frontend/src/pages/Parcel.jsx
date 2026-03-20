@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { parcelService } from "../api/ParcelApi"; // ตรวจสอบ path ให้ถูกต้อง
+import { parcelService } from "../api/ParcelApi"; 
 import { Plus, Filter, ArrowUpDown, Check } from "lucide-react";
 import SearchBar from "../components/SearchBar";
 import FilterModal from "../components/FilterModal";
 import AddParcelModal from "../components/AddParcelModal";
 import ParcelItem from "../components/ParcelItem";
 import EditParcelModal from "../components/EditParcelModal";
+import { useSearchParams } from "react-router-dom";
 
 const SORT_OPTIONS = {
   latest: { label: "เรียงตามวันที่ล่าสุด", value: "latest" },
@@ -15,8 +16,11 @@ const SORT_OPTIONS = {
 };
 
 const Parcel = () => {
+  const [searchParams] = useSearchParams();
   const [parcels, setParcels] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  
+  // ให้ค่าเริ่มต้นปลอดภัยที่สุด
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [activeStatus, setActiveStatus] = useState("all");
   const [sortOrder, setSortOrder] = useState("latest");
   const [activeTypeFilters, setActiveTypeFilters] = useState([]);
@@ -31,7 +35,6 @@ const Parcel = () => {
   
   const [selectedParcel, setSelectedParcel] = useState(null);
 
-  // Options Configs (เก็บไว้เหมือนเดิม)
   const typeOptions = [
     { id: "box", label: "กล่อง" },
     { id: "pack", label: "ซอง" },
@@ -47,6 +50,12 @@ const Parcel = () => {
     { id: "other", label: "อื่นๆ" },
   ];
 
+  // ✨ อัปเดตคำค้นหาเสมอเมื่อ URL เปลี่ยน
+  useEffect(() => {
+    const searchFromUrl = searchParams.get("search");
+    setSearchTerm(searchFromUrl || ""); 
+  }, [searchParams]);
+
   useEffect(() => {
     loadParcels();
   }, []);
@@ -54,19 +63,19 @@ const Parcel = () => {
   const loadParcels = async () => {
     try {
       const data = await parcelService.getParcels();
-      setParcels(data ?? []);
+      // ✨ เกราะป้องกันที่ 1: ดักจับว่า API ส่ง Array มาจริงๆ ไม่ใช่ Object
+      const safeData = Array.isArray(data) ? data : (data?.data || []);
+      setParcels(safeData);
     } catch (err) {
       console.error("โหลดพัสดุไม่สำเร็จ", err);
+      setParcels([]); // ถ้า Error ให้รีเซ็ตเป็น Array ว่าง ป้องกันหน้าจอพัง
     }
   };
 
   const toggleModal = (name, value) => setModals(prev => ({ ...prev, [name]: value }));
 
-  // --- Handlers ---
-
   const handleAddParcel = async (data) => {
     try {
-      // data ที่ส่งมาจาก AddModal ต้องตรงกับ DTO ของ C#
       await parcelService.createParcel(data);
       await loadParcels();
       toggleModal("add", false);
@@ -104,31 +113,25 @@ const Parcel = () => {
     }
   };
 
-  // ✅ เพิ่มฟังก์ชันเปลี่ยนสถานะ (Quick Status Update)
   const handleChangeStatus = async (id, newStatusKey) => {
     const targetParcel = parcels.find(p => p.id === id);
     if (!targetParcel) return;
 
-    // Logic: ถ้าเปลี่ยนเป็น received ให้ใส่วันที่ปัจจุบัน, ถ้า pending ให้เป็น null
     const newPickupDate = newStatusKey === 'received' 
-        ? new Date().toISOString().split('T')[0] // YYYY-MM-DD
+        ? new Date().toISOString().split('T')[0] 
         : null;
 
     const payload = {
         ...targetParcel,
         pickupDate: newPickupDate
-        // ข้อมูลอื่นๆ ใช้ค่าเดิมเพื่อความครบถ้วนตาม DTO
     };
 
     try {
-        // อัปเดต UI ก่อนเพื่อความลื่นไหล (Optimistic Update)
         setParcels(prev => prev.map(p => p.id === id ? { ...p, pickupDate: newPickupDate } : p));
-        
-        // ยิง API
         await parcelService.updateParcel(id, payload);
     } catch (err) {
         console.error("อัปเดตสถานะไม่สำเร็จ", err);
-        loadParcels(); // โหลดข้อมูลจริงกลับมาถ้าพลาด
+        loadParcels(); 
     }
   };
 
@@ -138,14 +141,28 @@ const Parcel = () => {
     );
   };
 
-  // --- Logic Filter & Sort ---
+  // --- Logic Filter & Sort ที่ปรับให้ปลอดภัย 100% ---
   const filteredAndSortedParcels = useMemo(() => {
+    // ป้องกัน parcels ไม่ใช่ Array
+    if (!Array.isArray(parcels)) return [];
+
+    // ✨ เกราะป้องกันที่ 2: ทำให้ searchTerm ปลอดภัยต่อการถูกเรียก .toLowerCase()
+    const safeSearchTerm = String(searchTerm || "").toLowerCase();
+
     let result = parcels.filter((p) => {
-      const isReceived = !!p.pickupDate; // มีวันที่ = รับแล้ว
+      if (!p) return false; // กัน Error กรณีข้อมูลใน Array มีค่าว่าง
+      
+      const isReceived = !!p.pickupDate;
+      
+      // แปลงทุกอย่างให้เป็น String และพิมพ์เล็กก่อนเทียบ
+      const roomStr = String(p.roomNumber || "").toLowerCase();
+      const recipientStr = String(p.recipient || "").toLowerCase();
+      const trackingStr = String(p.trackingNumber || "").toLowerCase();
+
       const matchesSearch =
-        p.roomNumber?.includes(searchTerm) ||
-        p.recipient?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.trackingNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+        roomStr.includes(safeSearchTerm) ||
+        recipientStr.includes(safeSearchTerm) ||
+        trackingStr.includes(safeSearchTerm);
       
       const matchesStatus =
         activeStatus === "all" || (activeStatus === "received" ? isReceived : !isReceived);
@@ -157,16 +174,20 @@ const Parcel = () => {
     });
 
     return result.sort((a, b) => {
+      // ✨ เกราะป้องกันที่ 3: ทำให้การจัดเรียงวันที่ไม่พังแม้วันที่เป็น null
+      const dateA = new Date(a.arrivalDate || a.createdAt || 0).getTime();
+      const dateB = new Date(b.arrivalDate || b.createdAt || 0).getTime();
+
       switch (sortOrder) {
         case "oldest":
-            return new Date(a.arrivalDate || a.createdAt) - new Date(b.arrivalDate || b.createdAt);
+            return dateA - dateB;
         case "room_asc":
-            return (a.roomNumber || "").localeCompare(b.roomNumber || "", undefined, { numeric: true });
+            return String(a.roomNumber || "").localeCompare(String(b.roomNumber || ""), undefined, { numeric: true });
         case "room_desc":
-            return (b.roomNumber || "").localeCompare(a.roomNumber || "", undefined, { numeric: true });
+            return String(b.roomNumber || "").localeCompare(String(a.roomNumber || ""), undefined, { numeric: true });
         case "latest":
         default:
-            return new Date(b.arrivalDate || b.createdAt) - new Date(a.arrivalDate || a.createdAt);
+            return dateB - dateA;
       }
     });
   }, [parcels, searchTerm, activeStatus, activeTypeFilters, activeCompanyFilters, sortOrder]);
@@ -247,7 +268,7 @@ const Parcel = () => {
                 key={parcel.id} 
                 parcel={parcel} 
                 onClick={() => handleParcelClick(parcel)} 
-                onChangeStatus={handleChangeStatus} // ✅ ส่ง prop นี้ไปด้วย
+                onChangeStatus={handleChangeStatus}
             />
           ))}
           {filteredAndSortedParcels.length === 0 && (
@@ -272,7 +293,7 @@ const Parcel = () => {
         />
       )}
 
-      {/* Filter Modal (Code เดิม) */}
+      {/* Filter Modal */}
       <FilterModal
         isOpen={modals.filter}
         onClose={() => toggleModal("filter", false)}

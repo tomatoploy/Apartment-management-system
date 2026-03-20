@@ -1,67 +1,224 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Bell, Package, User, Phone, MessageSquare, Calendar, CreditCard, FileText, Plus, Trash2, ExternalLink, Edit3, AlertCircle, ShieldCheck, Car, Info, Mail, MapPin, HeartPulse, UserPlus,} from "lucide-react";
+import { Bell, Package, User, Phone, MessageSquare, Calendar, CreditCard, FileText, Plus, Trash2, ExternalLink, UserX, Edit3, AlertCircle, ShieldCheck, Car, Info, Mail, MapPin, HeartPulse, UserPlus,} from "lucide-react";
 
 import { OrangeButton, ExitButton } from "../components/ActionButtons";
 import RoomHeader from "../components/RoomHeader";
 import TenantInfoModal from "../components/TenantInfoModal";
 import { toThaiDate } from "../components/DateController";
+import ContractAlertBanner from "../components/ContractAlertBanner";
+
+// API Services (อย่าลืม import เข้ามานะคะ)
+import { roomService } from "../api/RoomApi";
+import { contractService } from "../api/ContractApi";
+import { tenantService } from "../api/TenantApi";
+import { requestService } from "../api/RequestApi"; 
+import { parcelService } from "../api/ParcelApi";
 
 const RoomDetail = () => {
   const { roomNumber } = useParams();
   const navigate = useNavigate();
   const [tenant, setTenant] = useState(null);
-
+  const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // --- Mock Data Logic ---
-  useEffect(() => {
-    // สมมติว่าห้อง 201 มีข้อมูลผู้เช่า
-    if (roomNumber === "201") {
-      setTenant({
-        nin: "1-1002-00345-67-8",
-        title: "นาย",
-        firstName: "สมชาย",
-        lastName: "ใจดีมาก",
-        nickName: "ชาย",
-        phone: "081-234-5678",
-        address: "99/1 หมู่ 5 ถนนห้วยแก้ว ต.สุเทพ อ.เมือง จ.เชียงใหม่ 50200",
-        birthDate: "1995-05-20",
-        lineId: "somchai_charee",
-        email: "somchai.j@gmail.com",
-        altName: "นางใจดี ใจดีมาก",
-        altPhone: "089-765-4321",
-        altRelationship: "มารดา",
-        vehicleNum1: "กข-1234",
-        vehicleDetail1: "Honda Civic สีขาว",
-        keyCard1: "KC-201-01",
-        keyCard2: "KC-201-02",
-        isLaundryService: true,
-        internetDeviceCount: 2,
-        note: "แพ้อาหารทะเล, จอดรถที่โซน A",
-        outstandingBalance: 3550,
-        checkInDate: "2025-01-02",
-        contractEndDate: "2026-01-01",
-        moveOutDate: "-",
-        hasPendingNotification: true,
-        pendingParcels: 1,
-        documents: [
-          { id: 1, name: "สัญญาเช่า_201.pdf", date: "2025-01-01" },
-          { id: 2, name: "สำเนาทะเบียนบ้าน.png", date: "2025-01-01" },
-        ],
-      });
-    } else {
-      setTenant(null); // ห้องอื่นๆ ให้เป็นห้องว่าง
-    }
-  }, [roomNumber]);
-
-  // 1. เพิ่ม State สำหรับควบคุม Modal เพิ่มผู้เช่า
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  const handleSaveTenant = (data) => {
-    console.log("ข้อมูลผู้เช่าใหม่:", data);
-    // Logic สำหรับส่งข้อมูลไป API
-    setIsAddModalOpen(false);
+  // --- ฟังก์ชันดึงข้อมูล (แยกออกมาเพื่อให้เรียกใช้ซ้ำได้ตอน Save) ---
+const fetchRoomDetail = async () => {
+    setIsLoading(true);
+    try {
+      // 1. หา ID ของห้องปัจจุบัน
+      const allRooms = await roomService.getRoomOverview();
+      const targetRoom = allRooms.find(r => String(r.roomNumber) === String(roomNumber));
+      
+      if (!targetRoom) {
+        setTenant(null);
+        setIsLoading(false);
+        return;
+      }
+      
+      const actualRoomId = targetRoom.roomId || targetRoom.id;
+
+      // 2. หาสัญญาของห้องนี้ ที่สถานะเป็น "Active" หรือ "Expired"
+      const allContracts = await contractService.getAllContracts();
+      const relevantContracts = allContracts.filter(
+        c => c.roomId === actualRoomId && (c.status === "Active" || c.status === "Expired")
+      );
+
+      if (relevantContracts.length > 0) {
+        // ✨ คัดกรองหาสัญญาล่าสุด
+        let latestContract = relevantContracts.find(c => c.status === "Active");
+        
+        if (!latestContract) {
+          const expiredContracts = relevantContracts.filter(c => c.status === "Expired");
+          expiredContracts.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+          latestContract = expiredContracts[0];
+        }
+
+        // --- ✨ Logic คำนวณวันคงเหลือ/หมดอายุสัญญา ---
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); 
+        const endDate = latestContract.endDate ? new Date(latestContract.endDate) : null;
+        
+        let daysLeft = null;
+        let isContractUrgent = false; 
+        let isContractExpired = false; 
+
+        if (endDate) {
+            endDate.setHours(0, 0, 0, 0);
+            const diffTime = endDate - today;
+            daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (daysLeft <= 0) {
+                isContractExpired = true;
+            } else if (daysLeft <= 30) {
+                isContractUrgent = true;
+            }
+        }
+
+        // 3. ดึงข้อมูลผู้เช่าจากสัญญาที่ใหม่ที่สุด
+        const t = await tenantService.getTenant(latestContract.tenantId);
+        
+        // 4. ดึงเอกสารจาก *ทุกสัญญา* ของผู้เช่าคนนี้ในห้องนี้
+        const tenantRoomContracts = allContracts.filter(
+          c => c.roomId === actualRoomId && c.tenantId === latestContract.tenantId
+        );
+
+        const mappedDocuments = tenantRoomContracts
+          .filter(c => c.attachedFile)
+          .map((c, index) => ({
+            id: c.id,
+            name: `สัญญาเช่า_${roomNumber}_ฉบับที่${index + 1}`,
+            date: c.startDate ? c.startDate.split('T')[0] : "-",
+            fileData: c.attachedFile
+          }));
+
+        // Request
+        let hasPendingReq = false;
+        let pendingReqData = null;
+        try {
+          const allRequests = await requestService.getRequests();
+          const pendingRequests = allRequests.filter(req => 
+            String(req.roomNumber) === String(roomNumber) && req.status === "pending"
+          );
+          if (pendingRequests.length > 0) {
+            hasPendingReq = true;
+            pendingReqData = pendingRequests[0];
+          }
+        } catch (err) { console.error(err); }
+
+        // Parcel
+        let pendingParcelsCount = 0;
+        try {
+          const allParcels = await parcelService.getParcels(); 
+          const uncollected = allParcels.filter(p => 
+            String(p.roomNumber) === String(roomNumber) && !p.pickupDate
+          );
+          pendingParcelsCount = uncollected.length;
+        } catch (err) { console.error(err); }
+
+        // จัดรูปข้อมูลส่งให้ State
+        setTenant({
+          id: t.id,
+          nin: t.nin,
+          title: t.title,
+          firstName: t.firstName,
+          lastName: t.lastName,
+          nickName: t.nickName || "-",
+          phone: t.phone,
+          address: t.address || "-",
+          birthDate: t.birthDate ? t.birthDate.split('T')[0] : "-",
+          lineId: t.lineId || "-",
+          email: t.email || "-",
+          note: t.note || "",
+          altName: t.altName,
+          altPhone: t.altPhone,
+          altRelationship: t.altRelationship,
+          vehicleNum1: t.vehicleNum1,
+          vehicleDetail1: t.vehicleDetail1,
+          vehicleNum2: t.vehicleNum2,
+          vehicleDetail2: t.vehicleDetail2,
+          keyCard1: t.keyCard1,
+          keyCard2: t.keyCard2,
+          keyCard3: t.keyCard3,
+          isLaundryService: t.isLaundryService,
+          internetDeviceCount: t.internetDeviceCount,
+          contractStatus: latestContract.status,
+          checkInDate: latestContract.startDate ? latestContract.startDate.split('T')[0] : "-",
+          contractEndDate: latestContract.endDate ? latestContract.endDate.split('T')[0] : "-",
+          outstandingBalance: 0, 
+          documents: mappedDocuments,
+          hasPendingNotification: hasPendingReq, 
+          pendingRequestData: pendingReqData,
+          pendingParcels: pendingParcelsCount, 
+          // ✨ เพิ่มสถานะแจ้งเตือนสัญญา
+          isContractUrgent,
+          isContractExpired,
+          daysLeftUntilExpiry: daysLeft,
+        });
+      } else {
+        setTenant(null); 
+      }
+    } catch (error) {
+      console.error("Error fetching room detail:", error);
+      setTenant(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRoomDetail();
+  }, [roomNumber]);
+
+  // --- ฟังก์ชันบันทึกข้อมูลการแก้ไข (จาก Modal) ---
+  const handleUpdateTenant = async (updatedData) => {
+    try {
+      // ดึงข้อมูลผู้เช่าต้นฉบับจาก API เพื่อป้องกันฟิลด์อื่นๆ หาย
+      const originalTenant = await tenantService.getTenant(tenant.id);
+      
+      // เอาข้อมูลที่แก้จาก Modal มาผสมกับข้อมูลเก่า
+      const payload = {
+        ...originalTenant,
+        title: updatedData.title,
+        firstName: updatedData.firstName,
+        lastName: updatedData.lastName,
+        nickName: updatedData.nickName,
+        phone: updatedData.phone,
+        lineId: updatedData.lineId,
+        email: updatedData.email,
+        nin: updatedData.nin,
+        address: updatedData.address,
+        note: updatedData.note,
+        
+        // ข้อมูลส่วนตัวอื่นๆ
+        altName: updatedData.altName,
+        altPhone: updatedData.altPhone,
+        altRelationship: updatedData.altRelationship,
+        vehicleNum1: updatedData.vehicleNum1,
+        vehicleDetail1: updatedData.vehicleDetail1,
+        vehicleNum2: updatedData.vehicleNum2,
+        vehicleDetail2: updatedData.vehicleDetail2,
+        keyCard1: updatedData.keyCard1,
+        keyCard2: updatedData.keyCard2,
+        keyCard3: updatedData.keyCard3,
+        isLaundryService: updatedData.isLaundryService,
+        internetDeviceCount: updatedData.internetDeviceCount,
+      };
+
+      // ยิง API PUT เพื่ออัปเดตข้อมูลผู้เช่า
+      await tenantService.putTenant(tenant.id, payload);
+      
+      alert("อัปเดตข้อมูลผู้เช่าสำเร็จ");
+      setIsModalOpen(false); // ปิด Modal
+      
+      // ดึงข้อมูลใหม่มาแสดงผล
+      await fetchRoomDetail(); 
+      
+    } catch (error) {
+      console.error("Update error:", error);
+      alert("เกิดข้อผิดพลาดในการอัปเดตข้อมูล");
+    }
   };
 
   return (
@@ -72,53 +229,58 @@ const RoomDetail = () => {
           <div className="space-y-6 mt-2">
             {/* 1 & 2: Banners ถ้ามีการแจ้งเตือนค้างก็จะแสดง */}
             <div className="flex flex-col gap-4 max-w-4xl mx-auto">
-              {tenant.hasPendingNotification && (
+              {/* ✨ แสดงแบนเนอร์แจ้งเตือนสัญญา (ลำดับความสำคัญสูงสุด) */}
+              {(tenant.isContractUrgent || tenant.isContractExpired) && (
+                <ContractAlertBanner 
+                  isExpired={tenant.isContractExpired}
+                  daysLeft={tenant.daysLeftUntilExpiry}
+                  onAction={() => navigate(`/rooms/contract/${roomNumber}`)}
+                />
+              )}
+              {tenant.hasPendingNotification && tenant.pendingRequestData && (
                 <div className="bg-red-50 border border-red-100 rounded-3xl p-5 shadow-sm overflow-hidden relative group">
-                  {/* ปรับ flex-col ในมือถือ และ md:flex-row ใน iPad/คอม */}
                   <div className="flex flex-col md:flex-row md:items-center gap-4 ml-2">
-                    {/* Icon และ หัวข้อหลัก (ชิดซ้ายเสมอ) */}
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center text-red-600">
                         <AlertCircle size={28} />
                       </div>
                       <div>
-                        <h4 className="font-black text-red-600 text-lg  ">
+                        <h4 className="font-black text-red-600 text-lg">
                           การแจ้งเตือน
                         </h4>
                       </div>
                     </div>
 
-                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-2xl  md:bg-transparent p-3 md:p-0">
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-2xl md:bg-transparent p-3 md:p-0">
                       <div>
-                        <p className="text-[12px] font-black text-red-400">
-                          เรื่อง
-                        </p>
-                        <p className="text-sm font-bold text-gray-700">
-                          แจ้งซ่อม: ห้องน้ำรั่ว
+                        <p className="text-[12px] font-black text-red-400">เรื่อง</p>
+                        {/* ดึงจาก API จริง */}
+                        <p className="text-sm font-bold text-gray-700 truncate">
+                          {tenant.pendingRequestData.subject || "แจ้งซ่อม/บริการ"}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[12px] font-black text-red-400">
-                          วันที่แจ้ง
-                        </p>
+                        <p className="text-[12px] font-black text-red-400">วันที่แจ้ง</p>
+                         {/* ดึงจาก API จริง */}
                         <p className="text-sm font-bold text-gray-700">
-                          {toThaiDate("2026-02-02")}
+                          {toThaiDate(tenant.pendingRequestData.requestDate?.split('T')[0])}
                         </p>
                       </div>
                       <div className="flex flex-col items-start justify-center">
-                        <p className="text-[12px] font-black text-red-400">
-                          สถานะ
-                        </p>
+                        <p className="text-[12px] font-black text-red-400">สถานะ</p>
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-white text-orange-600">
                           รอดำเนินการ
                         </span>
                       </div>
                     </div>
 
-                    {/* ปุ่ม: เต็มความกว้างในมือถือ (w-full) และขนาดปกติในจอใหญ่ (md:w-auto) */}
                     <button
-                      onClick={() => navigate(`/rooms/request/${roomNumber}`)}
-                      className="w-full md:w-auto text-[#ea3720] font-black text-sm underline underline-offset-4 hover:text-red-700 transition-all shrink-0"
+                      type="button" // ระบุ Type ป้องกันการ Submit Form โดยไม่ได้ตั้งใจ
+                      onClick={(e) => {
+                        e.stopPropagation(); // ป้องกัน Event Bubble
+                        navigate(`/rooms/request/${roomNumber}`);
+                      }}
+                      className="w-full md:w-auto text-[#ea3720] font-black text-sm underline underline-offset-4 hover:text-red-700 transition-all shrink-0 cursor-pointer z-10"
                     >
                       แสดงเพิ่มเติม
                     </button>
@@ -140,11 +302,14 @@ const RoomDetail = () => {
                     </span>
                   </div>
 
-                  {/* ปุ่มดูรายละเอียด */}
+                  {/* ปุ่มดูรายละเอียด พัสดุ */}
                   <button
-                        onClick={() => {
-                          router.push(`/parcels?search=${roomNumber}`); 
-                        }}                    className="w-full md:w-auto text-[#485cf7] font-black text-sm underline underline-offset-4 hover:text-blue-700 transition-all shrink-0"
+                    type="button" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/parcels?search=${roomNumber}`); 
+                    }}                    
+                    className="w-full md:w-auto text-[#485cf7] font-black text-sm underline underline-offset-4 hover:text-blue-700 transition-all shrink-0 cursor-pointer z-10"
                   >
                     แสดงเพิ่มเติม
                   </button>
@@ -319,11 +484,7 @@ const RoomDetail = () => {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           tenant={tenant}
-          onSave={(updatedData) => {
-            // ส่ง updatedData ไปที่ API หรืออัปเดต State หลัก
-            setTenant(updatedData);
-            console.log("บันทึกข้อมูลสำเร็จ:", updatedData);
-          }}
+          onSave={handleUpdateTenant}
         />
       )}
     </div>
