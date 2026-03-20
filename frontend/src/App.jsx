@@ -57,7 +57,6 @@ function App() {
           </Layout>
         }
       />
-
       {/* <Route
         path="/rooms-nodata"
         element={
@@ -149,7 +148,6 @@ function App() {
           </Layout>
         }
       />
-
       <Route
         path="/rooms/:roomNumber"
         element={

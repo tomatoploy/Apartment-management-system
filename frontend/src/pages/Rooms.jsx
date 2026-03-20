@@ -1,18 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import {
-  Search,
-  Filter,
-  HelpCircle,
-  X,
-  LogIn,
-  LogOut,
-  Wrench,
-  Sparkles,
-  Package,
-  Clock,
-  FileText, 
-  RotateCw,
-} from "lucide-react";
+import { Search, Filter, HelpCircle, X, LogIn, LogOut, Wrench, Sparkles, Package, Clock, FileText,  RotateCw} from "lucide-react";
 import RoomCard from "../components/RoomCard";
 import FilterModal from "../components/FilterModal";
 import SearchBar from "../components/SearchBar";
@@ -273,6 +260,7 @@ const Rooms = () => {
               {filteredRoomsByFloor[floor]?.map((room) => (
                 <RoomCard
                   key={room.roomId || room.id}
+                  roomId={room.roomId || room.id}
                   roomNumber={room.roomNumber}
                   building={room.building}
                   tenantName={room.tenantFirstName || ""}

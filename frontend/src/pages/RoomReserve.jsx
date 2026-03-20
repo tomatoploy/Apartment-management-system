@@ -1,20 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  UserPlus,
-  Plus,
-  User,
-  Phone,
-  IdCard,
-  Calendar,
-  MapPin,
-  Home,
-  Wallet,
-  Trash2,
-  Pencil,
-  Save,
-  X,
-} from "lucide-react";
+import { UserPlus, Plus, User, Phone, IdCard, Calendar, MapPin, Home, Wallet, Trash2, Pencil, Save, X,} from "lucide-react";
 
 // Components
 import RoomHeader from "../components/RoomHeader";
@@ -25,24 +11,18 @@ import {
 } from "../components/ActionButtons";
 import { DateInput } from "../components/DateController";
 
-/* ================= Styled Components (ตามที่คุณระบุ) ================= */
+// API Services
+import { tenantService } from "../api/TenantApi";
+import { contractService } from "../api/ContractApi";
+import { roomService } from "../api/RoomApi";
+
 const FieldLabel = ({ children, required }) => (
   <label className="text-[13px] font-bold text-gray-500 mb-2 text-left block">
     {children} {required && <span className="text-red-500">*</span>}
   </label>
 );
 
-const FormInput = ({
-  label,
-  name,
-  value,
-  onChange,
-  type = "text",
-  required,
-  placeholder,
-  isFullWidth,
-  options,
-  disabled,
+const FormInput = ({ label, name, value, onChange, type = "text", required, placeholder, isFullWidth, options, disabled,
 }) => (
   <div
     className={`${isFullWidth ? "md:col-span-2" : "col-span-1"} flex flex-col`}
@@ -86,8 +66,6 @@ const SectionHeader = ({ title, icon: Icon }) => (
   </div>
 );
 
-
-
 /* ================= Main Component ================= */
 const RoomReserve = () => {
   const { roomNumber } = useParams();
@@ -97,6 +75,11 @@ const RoomReserve = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [reserveData, setReserveData] = useState(null); // จำลองว่าห้องนี้มีการจองหรือไม่
+
+  //ID ของ Contract และ Tenant ที่ดึงมาจาก API เพื่อใช้ตอนอัปเดต
+  const [currentContractId, setCurrentContractId] = useState(null);
+  const [currentTenantId, setCurrentTenantId] = useState(null);
+  const [currentRoomId, setCurrentRoomId] = useState(null);
 
   // State สำหรับ Form
   const initialForm = {
@@ -116,58 +99,173 @@ const RoomReserve = () => {
   };
   const [formData, setFormData] = useState(initialForm);
 
-  // --- 4. Mock Data Logic (จำลองการดึงข้อมูล) ---
-  useEffect(() => {
-    // สมมติว่าห้อง 201 มีข้อมูลการจองอยู่แล้วเพื่อทดสอบโหมดแสดงผล/แก้ไข
-    if (roomNumber === "201" && !isAdding) {
-      const mockData = {
-        title: "นาย",
-        firstName: "สมชาย",
-        lastName: "สายลม",
-        phone: "0811234567",
-        nationalId: "1123456789001",
-        birthDate: "1990-01-01",
-        addressNo: "123/4 ม.5",
-        subDistrict: "สุเทพ",
-        district: "เมือง",
-        province: "เชียงใหม่",
-        zipCode: "50200",
-        checkInDate: "2026-03-01",
-        deposit: "5000",
-      };
-      setReserveData(mockData);
-      setFormData(mockData);
+// --- ดึงข้อมูลการจองจาก API ---
+useEffect(() => {
+  const fetchReservation = async () => {
+    try {
+      // 1. ดึงข้อมูลห้องทั้งหมดมาเพื่อหา ID ของห้องที่กำลังเปิดอยู่
+      const allRooms = await roomService.getRoomOverview();
+      
+      // เทียบเบอร์ห้อง (เป็นตัวอักษร)
+      const targetRoom = allRooms.find(r => String(r.roomNumber) === String(roomNumber));
+      
+      if (!targetRoom) {
+        console.log("หาข้อมูลห้องไม่พบ");
+        return; 
+      }
+      
+      // ดึง ID มาเก็บไว้ใช้ (ขึ้นอยู่กับว่า Backend คุณส่งมาชื่อ roomId หรือ id)
+      const actualRoomId = targetRoom.roomId || targetRoom.id;
+      setCurrentRoomId(actualRoomId); 
+
+      // 2. ดึงสัญญาทั้งหมด แล้วหาอันที่ (1) ห้องตรงกัน (2) สถานะเป็น Reserved
+      const allContracts = await contractService.getAllContracts();
+      const reservedContract = allContracts.find(
+        c => c.roomId === actualRoomId && c.status === "Reserved" 
+      );
+
+      if (reservedContract) {
+        // ถ้าเจอการจอง ให้ดึงข้อมูลคนเช่ามาโชว์
+        const tenant = await tenantService.getTenant(reservedContract.tenantId);
+        
+        setCurrentContractId(reservedContract.id);
+        setCurrentTenantId(tenant.id);
+        
+        const mappedData = {
+          title: tenant.title,
+          firstName: tenant.firstName,
+          lastName: tenant.lastName,
+          phone: tenant.phone,
+          nationalId: tenant.nin,
+          birthDate: tenant.birthDate ? tenant.birthDate.split('T')[0] : "",
+          addressNo: tenant.address, 
+          checkInDate: reservedContract.startDate ? reservedContract.startDate.split('T')[0] : "",
+          deposit: reservedContract.deposit?.toString() || "0",
+        };
+
+        setReserveData(mappedData);
+        setFormData(mappedData);
+      } else {
+        setReserveData(null);
+      }
+    } catch (error) {
+      console.error("Error fetching reservation:", error);
     }
-  }, [roomNumber, isAdding]);
+  };
+
+  fetchReservation();
+}, [roomNumber, isAdding]); // ใส่ isAdding เพื่อให้เวลาปิด/เปิดโหมดเพิ่มข้อมูล มันโหลดใหม่
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = () => {
+  // --- บันทึกข้อมูล (POST / PUT) ---
+  const handleSave = async () => {
     if (!formData.firstName) return alert("กรุณากรอกชื่อผู้จอง");
-    setReserveData(formData);
-    setIsAdding(false);
-    setIsEditing(false);
+
+    try {
+      // 2.1 เตรียมข้อมูล Tenant
+      const fullAddress = [
+        formData.addressNo, 
+        formData.subDistrict ? `ต.${formData.subDistrict}` : "", 
+        formData.district ? `อ.${formData.district}` : "", 
+        formData.province ? `จ.${formData.province}` : "", 
+        formData.zipCode
+      ].filter(Boolean).join(" ");
+
+      const tenantPayload = {
+        Nin: formData.nationalId || null,
+        Title: formData.title,
+        FirstName: formData.firstName,
+        LastName: formData.lastName,
+        Phone: formData.phone || null,
+        Address: fullAddress || null, 
+        BirthDate: formData.birthDate ? formData.birthDate : null, 
+      };
+
+      let savedTenantId = currentTenantId;
+
+      if (isAdding) {
+        // เพิ่มผู้เช่าใหม่
+        const newTenant = await tenantService.postTenant(tenantPayload);
+        savedTenantId = newTenant.id;
+
+        // สร้างสัญญาใหม่
+        // *ต้องมี RoomId* สมมติว่าได้จาก api หรือดึงมาตอนโหลดหน้า (ในที่นี้ขอสมมติเป็น 1 ก่อน)
+        const contractPayload = {
+          RoomId: currentRoomId,
+          TenantId: savedTenantId,
+          Status: "Reserved",
+          StartDate: formData.checkInDate,
+          EndDate: null, 
+          Deposit: parseInt(formData.deposit) || 0,
+        };
+        await contractService.postContract(contractPayload);
+        alert("เพิ่มการจองสำเร็จ");
+
+      } else if (isEditing) {
+        // อัปเดตข้อมูลเดิม
+        await tenantService.putTenant(currentTenantId, tenantPayload);
+        
+        // อัปเดตสัญญา
+        const existingContract = await contractService.getContract(currentContractId);
+        await contractService.putContract(currentContractId, {
+          ...existingContract, // ส่งค่าเก่าที่ไม่ได้แก้ไปด้วย (เพื่อกันค่าหาย)
+          StartDate: formData.checkInDate,
+          Deposit: parseInt(formData.deposit) || 0,
+        });
+        alert("อัปเดตข้อมูลสำเร็จ");
+      }
+
+      setReserveData(formData);
+      setIsAdding(false);
+      setIsEditing(false);
+      const refreshData = async () => {
+        await fetchReservation();
+      };
+
+      await refreshData();
+
+    } catch (error) {
+      console.error("Save error:", error);
+      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+    }
   };
 
-  const handleDelete = () => {
-    if (window.confirm("คุณต้องการลบข้อมูลการจองนี้ใช่หรือไม่?")) {
-      setReserveData(null);
-      setFormData(initialForm);
+// --- 3. ลบข้อมูล (เปลี่ยน Status เป็น Cancle แทนลบทิ้ง) ---
+  const handleDelete = async () => {
+    if (window.confirm("คุณต้องการยกเลิกการจองนี้ใช่หรือไม่? ข้อมูลจะถูกเปลี่ยนสถานะเป็น 'ยกเลิก'")) {
+      try {
+        // 1. ดึงข้อมูลสัญญาปัจจุบันมาก่อน (เพื่อให้ฟิลด์อื่นไม่หาย)
+        const existingContract = await contractService.getContract(currentContractId);
+        
+        // 2. ส่ง PUT Request ไปอัปเดตเฉพาะ Status เป็น "Cancle"
+        await contractService.putContract(currentContractId, {
+          ...existingContract,
+          Status: "Cancle" // สะกดตามที่คุณตั้งไว้ใน DB
+        });
+
+        alert("ยกเลิกการจองเรียบร้อยแล้ว");
+        setReserveData(null);
+        setFormData(initialForm);
+        window.location.reload(); // รีเฟรชหน้าเพื่อให้ UI และ Trigger ของ DB ทำงาน
+      } catch (error) {
+        console.error("Cancel error:", error);
+        alert("ยกเลิกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      }
     }
   };
 
   const handleNumberChange = (e, maxLength=null) => {
-  const { name, value } = e.target;
-  const onlyNums = value.replace(/[^0-9]/g, "");
-
-  // บังคับ maxLength
-  if (onlyNums.length <= maxLength) {
-    setFormData((prev) => ({ ...prev, [name]: onlyNums }));
-  }
-};
+    const { name, value } = e.target;
+    const onlyNums = value.replace(/[^0-9]/g, "");
+    // บังคับ maxLength
+    if (onlyNums.length <= maxLength) {
+      setFormData((prev) => ({ ...prev, [name]: onlyNums }));
+    }
+  };
 
   return (
     <div>
@@ -280,8 +378,11 @@ const RoomReserve = () => {
                       label="ค่ามัดจำ (บาท)"
                       name="deposit"
                       value={formData.deposit}
-                      onChange={handleInputChange}
-                      type="number"
+                      // เปลี่ยนจาก handleInputChange เป็น handleNumberChange 
+                      // และจำกัดให้กรอกได้สูงสุด 7 หลัก (9,999,999 บาท)
+                      onChange={(e) => handleNumberChange(e, 7)} 
+                      type="text" // เปลี่ยนจาก number เป็น text 
+                      inputMode="numeric" // แจ้งให้มือถือเปิดคีย์บอร์ดตัวเลข
                     />
 
                     <SectionHeader title="ข้อมูลผู้จอง" icon={User} />
@@ -399,7 +500,7 @@ const RoomReserve = () => {
                         />
                         <InfoBox
                           label="ที่อยู่"
-                          value={`${reserveData.addressNo} ต.${reserveData.subDistrict} อ.${reserveData.district} จ.${reserveData.province} ${reserveData.zipCode}`}
+                          value={reserveData.addressNo} // เรียกใช้แค่นี้พอ เพราะรวมมาตั้งแต่ตอนเซฟแล้ว
                           icon={<MapPin size={18} />}
                         />
                       </div>
@@ -418,7 +519,7 @@ const RoomReserve = () => {
 // Component ย่อยสำหรับการแสดงข้อมูล (สไตล์ RoomDetail)
 const InfoBox = ({ label, value, icon, color = "text-gray-700" }) => (
   <div className="flex items-start gap-4">
-      <div className="flex justify-center items-center mt-1 text-orange-400 w-8 h-8 rounded-xl  bg-gray-50">
+    <div className="flex justify-center items-center mt-1 text-orange-400 w-8 h-8 rounded-xl bg-gray-50">
       {icon}
     </div>
     <div>

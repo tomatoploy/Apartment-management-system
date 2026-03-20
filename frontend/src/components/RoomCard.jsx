@@ -1,7 +1,8 @@
 import React from 'react';
+import { Link } from "react-router-dom";
 import { LogIn, LogOut, Wrench, Sparkles, Package, Clock, FileText } from 'lucide-react';
 
-const RoomCard = ({ roomNumber, building, tenantName, status, icons = [] }) => {
+const RoomCard = ({ roomId, roomNumber, building, tenantName, status, icons = [] }) => {
 
   const normalizedStatus = status ? status.toString().toLowerCase() : "available";
 
@@ -32,45 +33,53 @@ const RoomCard = ({ roomNumber, building, tenantName, status, icons = [] }) => {
 
   return (
     <div className="flex flex-col items-center gap-1">
-      <div className={`w-20 h-20 sm:w-28 sm:h-28 rounded-xl shadow-sm relative flex items-center justify-center transition-transform hover:scale-105 cursor-pointer ${statusColors[normalizedStatus] || statusColors.available}`}>
+      {/* 1. ครอบทุกอย่างด้วย Link และส่ง roomId ไปยัง URL */}
+      <Link 
+        to={`/rooms/${roomNumber}`} 
+        className="block transition-transform hover:scale-105 group"
+      >
+        <div className={`w-20 h-20 sm:w-28 sm:h-28 rounded-xl shadow-sm relative flex items-center justify-center transition-transform cursor-pointer ${statusColors[normalizedStatus] || statusColors.available}`}>
 
-        {/* --- ZONE 1: บนซ้าย (Top Left) --- */}
-        {/* กลุ่มย้าย: เรียงแนวนอน (row) */}
-        <div className="absolute top-1.5 left-1.5 flex flex-row gap-1 z-10">
-          {moveIcons.map((iconKey, index) => (
-            iconMap[iconKey] && (
-              <div key={index} className="bg-white/90 rounded-full p-1.5 shadow-sm flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8">
-                {iconMap[iconKey]}
-              </div>
-            )
-          ))}
+          {/* --- ZONE 1: บนซ้าย (Top Left) --- */}
+          <div className="absolute top-1.5 left-1.5 flex flex-row gap-1 z-10">
+            {moveIcons.map((iconKey, index) => (
+              iconMap[iconKey] && (
+                <div key={index} className="bg-white/90 rounded-full p-1.5 shadow-sm flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8">
+                  {iconMap[iconKey]}
+                </div>
+              )
+            ))}
+          </div>
+
+          {/* --- ZONE 2: ล่างซ้าย (Bottom Left) --- */}
+          <div className="absolute bottom-1.5 left-1.5 flex flex-row gap-1 z-10">
+            {activityIcons.map((iconKey, index) => (
+              iconMap[iconKey] && (
+                <div key={index} className="bg-white/90 rounded-full p-1.5 shadow-sm flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8">
+                  {iconMap[iconKey]}
+                </div>
+              )
+            ))}
+          </div>
+
+          {/* กรณีห้องว่างให้โชว์เลขห้องข้างใน */}
+          {normalizedStatus === 'available' && (
+            <span className="text-xl font-bold text-gray-400">
+              {building}{roomNumber}
+            </span>
+          )}
         </div>
 
-        {/* --- ZONE 2: ล่างซ้าย (Bottom Left) --- */}
-        {/* กลุ่มกิจกรรม: เรียงแนวนอน (row) */}
-        <div className="absolute bottom-1.5 left-1.5 flex flex-row gap-1 z-10">
-          {activityIcons.map((iconKey, index) => (
-            iconMap[iconKey] && (
-              <div key={index} className="bg-white/90 rounded-full p-1.5 shadow-sm flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8">
-                {iconMap[iconKey]}
-              </div>
-            )
-          ))}
+        {/* เลขห้องและชื่อเล่นใต้กล่อง - ย้ายมาอยู่ใน Link เพื่อให้กดที่ชื่อก็ได้ด้วย */}
+        <div className="mt-1 flex flex-col items-center leading-tight">
+          <span className="text-m font-bold text-gray-700">{building}{roomNumber}</span>
+          {tenantName && (
+            <span className="py-0.5 text-[14px] text-gray-500 truncate w-20 text-center">
+              {tenantName}
+            </span>
+          )}
         </div>
-
-        {/* กรณีห้องว่างให้โชว์เลขห้องข้างใน */}
-        {normalizedStatus === 'available' && (
-          <span className="text-xl font-bold text-gray-400">
-            {building}{roomNumber}
-          </span>
-        )}
-      </div>
-
-      {/* เลขห้องและชื่อเล่นใต้กล่อง */}
-      <div className="flex flex-col items-center leading-tight">
-        <span className="text-m font-bold text-gray-700">{building}{roomNumber}</span>
-        {tenantName && <span className="py-0.5 text-[14px] text-gray-500 truncate w-16 text-center">{tenantName}</span>}
-      </div>
+      </Link>
     </div>
   );
 };
