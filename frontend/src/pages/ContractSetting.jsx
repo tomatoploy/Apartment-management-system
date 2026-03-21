@@ -195,7 +195,7 @@ const ContractTemplate = () => {
           <div className="relative text-center mb-6">
             <ExitButton
               onClick={() => setIsEditing(false)}
-              className="absolute right-0 top-0"
+              className="hidden lg:block absolute right-0 top-0"
             />
             <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
               แก้ไขเทมเพลต
@@ -310,7 +310,7 @@ const ContractTemplate = () => {
         <div className="relative text-center">
           <ExitButton
             onClick={() => navigate("/settings")}
-            className="absolute right-0 top-0"
+            className="hidden md:block absolute right-0 top-0"
           />
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800 px-10 sm:px-0">
             ตั้งค่าเทมเพลตเอกสาร

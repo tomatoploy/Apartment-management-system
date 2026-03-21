@@ -91,21 +91,21 @@ const BillDetail = ({
 
   //mock data สำหรับsหน้าย้ายออก
   //1. สร้าง State สำหรับเก็บรายการในตาราง
-  const [items, setItems] = useState(initialData || []);
+  // const [items, setItems] = useState(initialData || []);
 
-  // 2. **จุดสำคัญ** เพิ่ม useEffect เพื่อดักจับการเปลี่ยนแปลงจากหน้าแม่
-  useEffect(() => {
-    // เมื่อ initialData ที่ส่งมาจาก CheckoutManager เปลี่ยนแปลง
-    // ให้สั่ง setItems เพื่ออัปเดตข้อมูลในตารางใหม่ทันที
-    setItems(initialData || []);
-  }, [initialData]); 
+  // // 2. **จุดสำคัญ** เพิ่ม useEffect เพื่อดักจับการเปลี่ยนแปลงจากหน้าแม่
+  // useEffect(() => {
+  //   // เมื่อ initialData ที่ส่งมาจาก CheckoutManager เปลี่ยนแปลง
+  //   // ให้สั่ง setItems เพื่ออัปเดตข้อมูลในตารางใหม่ทันที
+  //   setItems(initialData || []);
+  // }, [initialData]); 
 
-  // 3. เมื่อมีการเพิ่ม/ลบรายการในตาราง (ลูกเปลี่ยน) ให้ส่งค่ากลับไปบอกแม่ด้วย
-  useEffect(() => {
-    if (onDataChange) {
-      onDataChange(items);
-    }
-  }, [items, onDataChange]);
+  // // 3. เมื่อมีการเพิ่ม/ลบรายการในตาราง (ลูกเปลี่ยน) ให้ส่งค่ากลับไปบอกแม่ด้วย
+  // useEffect(() => {
+  //   if (onDataChange) {
+  //     onDataChange(items);
+  //   }
+  // }, [items, onDataChange]);
 
   ///////จบส่วน data
 
