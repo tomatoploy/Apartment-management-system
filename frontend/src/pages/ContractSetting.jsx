@@ -1,38 +1,35 @@
 import { useNavigate } from "react-router-dom";
 import React, { useState } from "react";
-import ReactQuill from "react-quill-new";
+import ReactQuill, { Quill } from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import {
   ExitButton,
   OrangeButton,
   ConfirmModal,
 } from "../components/ActionButtons";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Download } from "lucide-react";
 import { initialContractTemplates } from "../data/contractData";
-// --- MOCK DATA INCLUDED ---
-const mockSettings = {
-  building_name: "หอพัก สบายดี แมนชั่น",
-  address: "123/45 ถนนพญาไท แขวงปทุมวัน เขตปทุมวัน กรุงเทพฯ 10330",
-  landlord_name: "คุณสมศรี มีความสุข",
-  landlord_id_card: "1-2345-67890-12-3",
-};
+
+// --- Register Quill Modules (อยู่นอก Component เพื่อความเร็ว) ---
+const Table = Quill.import("formats/table");
+Quill.register(Table, true);
+
+const Size = Quill.import("formats/size");
+Size.whitelist = ["9px", "10px", "11px", "12px", "14px", "16px", "18px", "20px", "24px", "32px"];
+Quill.register(Size, true);
 
 const ContractTemplate = () => {
   const navigate = useNavigate();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-
   const [templates, setTemplates] = useState(initialContractTemplates);
-  const [selectedTemplate, setSelectedTemplate] = useState(
-    initialContractTemplates[0],
-  );
+  const [selectedTemplate, setSelectedTemplate] = useState(initialContractTemplates[0]);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(selectedTemplate.content);
   const [editName, setEditName] = useState(selectedTemplate.name);
   const [showVariableGuide, setShowVariableGuide] = useState(false);
 
-  // ตัวแปรที่ใช้ได้ (Single Source of Truth)
-  const availableVariables = [
+   const availableVariables = [
     { key: "{{currentMonth}", desc: "เดือนปัจจุบัน", example: "มกราคม" },
     {
       key: "{{apartment_name}}",
@@ -83,8 +80,7 @@ const ContractTemplate = () => {
       desc: "อัตราค่าน้ำประปาต่อหน่วย",
       example: "15.00",
     },
-    { key: "{{first_month_rent}}", desc: "ค่าเช่าเดือนแรก", example: "5000" },
-    {
+    { key: "{{first_month_rent}}", desc: "ค่าเช่าเดือนแรก", example: "5000" },{
       key: "{{room_rent_amount}}",
       desc: "ส่วนของค่าเช่าห้องพัก",
       example: "4000",
@@ -95,24 +91,22 @@ const ContractTemplate = () => {
       example: "1000",
     },
   ];
-
-  const modules = {
+  
+    const modules = {
     toolbar: [
+      [{ size: Size.whitelist }],
       [{ header: [1, 2, 3, false] }],
       ["bold", "italic", "underline", "strike"],
+      [{ color: [] }, { background: [] }],
       [{ list: "ordered" }, { list: "bullet" }],
       [{ align: [] }],
+      ["table"],
       ["clean"],
     ],
+    table: true,
   };
 
-  // เรียงลำดับ show templates: status active ขึ้นก่อน แล้วค่อยเรียงด้วย id จากมากไปน้อย สร้างใหม่ไปเกก่า
-  const sortedTemplates = [...templates].sort((a, b) => {
-    if (a.is_active !== b.is_active) {
-      return b.is_active ? 1 : -1;
-    }
-    return b.id - a.id;
-  });
+  const formats = ["size", "header", "bold", "italic", "underline", "strike", "color", "background", "list", "align", "table"];
 
   const handleSelectTemplate = (template) => {
     setSelectedTemplate(template);
@@ -121,52 +115,20 @@ const ContractTemplate = () => {
     setIsEditing(false);
   };
 
-  // const handleSaveTemplate = () => {
-  //   const updatedTemplates = templates.map((t) =>
-  //     t.id === selectedTemplate.id
-  //       ? { ...t, name: editName, content: editContent }
-  //       : t,
-  //   );
-  //   setTemplates(updatedTemplates);
-  //   setSelectedTemplate({
-  //     ...selectedTemplate,
-  //     name: editName,
-  //     content: editContent,
-  //   });
-  //   setIsEditing(false);
-  //   // คุณสามารถเพิ่มการเรียก API จริงที่นี่ในอนาคต
-  // };
-
-  // 1. เมื่อกดปุ่ม "บันทึก" ในหน้าเว็บ ให้เรียกฟังก์ชันนี้เพื่อเปิด Modal
-  const requestSave = () => {
-    setIsConfirmModalOpen(true);
-  };
-
-  //2. ฟังก์ชันที่จะทำงานเมื่อผู้ใช้กด "ยืนยัน" ใน Modal จริงๆ
   const handleConfirmSave = () => {
     const updatedTemplates = templates.map((t) =>
-      t.id === selectedTemplate.id
-        ? { ...t, name: editName, content: editContent }
-        : t,
+      t.id === selectedTemplate.id ? { ...t, name: editName, content: editContent } : t
     );
     setTemplates(updatedTemplates);
-    setSelectedTemplate({
-      ...selectedTemplate,
-      name: editName,
-      content: editContent,
-    });
-
+    setSelectedTemplate({ ...selectedTemplate, name: editName, content: editContent });
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
-
     setIsConfirmModalOpen(false);
   };
 
-  // ฟังก์ชันช่วยแทรกตัวแปรลงใน Quill (ทำให้ใช้งานง่ายขึ้น)
   const insertVariable = (variableKey) => {
     setEditContent((prev) => prev + ` <strong>${variableKey}</strong> `);
   };
-
   const toggleStatus = () => {
     const newStatus = !selectedTemplate.is_active;
     setSelectedTemplate({ ...selectedTemplate, is_active: newStatus });
@@ -181,16 +143,10 @@ const ContractTemplate = () => {
   if (isEditing) {
     return (
       <div className="min-h-screen md:p-4">
-        <div className="max-w-5xl mx-auto space-y-6">
-          {/* Header Edit Mode */}
+        <div className="max-w-5xl mx-auto space-y-6 pb-20">
           <div className="relative text-center mb-6">
-            <ExitButton
-              onClick={() => setIsEditing(false)}
-              className="absolute right-0 top-0"
-            />
-            <h1 className="text-2xl md:text-3xl font-bold mb-8 text-gray-800">
-              แก้ไขเทมเพลต
-            </h1>
+            <ExitButton onClick={() => setIsEditing(false)} className="absolute right-0 top-0" />
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">แก้ไขเทมเพลต</h1>
           </div>
 
           <div className="flex items-center gap-2">
@@ -207,40 +163,31 @@ const ContractTemplate = () => {
             </button>
           </div>
 
-          <div className="flex-1 items-center">
-            <span className="text-md font-medium">ชื่อเทมเพลต</span>
+          <div className="flex-1">
+            <span className="text-md font-medium text-gray-700">ชื่อเทมเพลต</span>
             <input
               type="text"
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
-              className="w-full mt-2 px-4 py-2 border border-gray-300 rounded-xl  focus:outline-none focus:border-[#f3a638] transition-all"
+              className="w-full mt-2 px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-orange-400"
             />
           </div>
 
-          {/* Variable Toolbar (Responsive) */}
+
           <div className="cursor-pointer bg-orange-50 border border-orange-200 p-4 rounded-xl">
-            <button
-              onClick={() => setShowVariableGuide(!showVariableGuide)}
-              className="flex items-center justify-between w-full font-semibold text-gray-800"
-            >
+            <button onClick={() => setShowVariableGuide(!showVariableGuide)}               className="flex items-center justify-between w-full font-semibold text-gray-800">
               <span>
                 {showVariableGuide
                   ? "ซ่อนตัวช่วยแทรกตัวแปร"
                   : "แสดงตัวช่วยแทรกตัวแปร"}
-              </span>
-            </button>
-
+              </span>            
+              </button>
             {showVariableGuide && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
                 {availableVariables.map((v) => (
-                  <button
-                    key={v.key}
-                    onClick={() => insertVariable(v.key)}
-                    className="p-2 bg-white border border-blue-200 rounded text-xs hover:bg-blue-100 transition text-left"
-                  >
-                    <div className="font-mono font-bold text-blue-600">
-                      {v.key}
-                    </div>
+                  <button key={v.key} onClick={() => insertVariable(v.key)} 
+                    className="p-2 bg-white border border-blue-200 rounded text-xs hover:bg-blue-100 transition text-left">
+                    <div className="font-mono font-bold text-blue-600">{v.key}</div>
                     <div className="text-gray-500">{v.desc}</div>
                   </button>
                 ))}
@@ -248,24 +195,15 @@ const ContractTemplate = () => {
             )}
           </div>
 
-          {/* Editor Container */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <ReactQuill
-              theme="snow"
-              value={editContent}
-              onChange={setEditContent}
-              modules={modules}
-              style={{ height: "400px" }}
-              className="mb-12"
-            />
+            <ReactQuill theme="snow" value={editContent} onChange={setEditContent} modules={modules} formats={formats} style={{ height: "500px" }} className="mb-12" />
           </div>
 
-          <div className="flex justify-end gap-3">
-            <OrangeButton
-              label="บันทึก"
-              onClick={requestSave}
-              className="w-full md:w-auto bg-[#f3a638] px-16"
-            />
+          <div className="flex justify-end gap-3 mt-4">
+            <button onClick={() => setIsEditing(false)} className="px-8 py-2.5 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-all">ยกเลิก</button>
+            <OrangeButton label="บันทึกเทมเพลต" onClick={() => setIsConfirmModalOpen(true)} className="px-12 shadow-lg" />
+          </div>
+        </div>
             <ConfirmModal
               isOpen={isConfirmModalOpen}
               onClose={() => setIsConfirmModalOpen(false)}
@@ -282,69 +220,41 @@ const ContractTemplate = () => {
             <span className="font-bold text-sm">แก้ไขเทมเพลตสำเร็จ</span>
           </div>
             )}
-             
-          </div>
-        </div>
+          
       </div>
     );
   }
 
   return (
     <>
-      <header className="mb-8">
+      <header className="print:hidden mb-8">
         <div className="relative text-center">
-          <ExitButton
-            onClick={() => navigate("/settings")}
-            className="absolute right-0 top-0"
-          />
-          <h1 className="text-2xl md:text-3xl font-bold mb-8 text-gray-800">
-            ตั้งค่าเทมเพลตเอกสาร
-          </h1>
+          <ExitButton onClick={() => navigate("/settings")} className="absolute right-0 top-0" />
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 px-10 sm:px-0">ตั้งค่าเทมเพลตเอกสาร</h1>
         </div>
       </header>
 
-      <div className="md:p-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Sidebar: List of Templates */}
-          <div className="lg:col-span-4 space-y-4">
-            <h2 className="font-bold text-gray-700 px-1">เทมเพลตทั้งหมด</h2>
-            {/* ใช้ข้อมูลที่เรียงลำดับแล้ว */}
-            {sortedTemplates.map((t) => (
+      <div className="print:hidden md:p-4 grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
+        <div className="lg:col-span-4 space-y-4 px-4 sm:px-0">
+          <h2 className="font-bold text-gray-700 px-1">เทมเพลตทั้งหมด</h2>
+          <div className="flex flex-col gap-3">
+            {templates.map((t) => (
               <div
                 key={t.id}
                 onClick={() => handleSelectTemplate(t)}
                 className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                  selectedTemplate.id === t.id
-                    ? "border-orange-300 bg-white shadow-md scale-[1.02]"
-                    : "border-transparent bg-gray-100 hover:bg-gray-200"
+                  selectedTemplate.id === t.id ? "border-orange-300 bg-white shadow-md scale-[1.02]" : "border-transparent bg-gray-100 hover:bg-gray-200"
                 }`}
               >
-                <div className="flex justify-between items-start">
-                  <h3
-                    className={`font-bold ${
-                      selectedTemplate.id === t.id
-                        ? "text-gray-700"
-                        : "text-gray-500"
-                    }`}
-                  >
-                    {t.name}
-                  </h3>
-                
-                </div>
-
-                <span
-                  className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-full mt-2 inline-block ${
-                    t.is_active
-                      ? "bg-green-100 text-green-600"
-                      : "bg-gray-200 text-gray-500"
-                  }`}
-                >
+                <h3 className={`font-bold ${selectedTemplate.id === t.id ? "text-gray-700" : "text-gray-500"}`}>{t.name}</h3>
+                <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded-full mt-2 inline-block ${t.is_active ? "bg-green-100 text-green-600" : "bg-gray-200 text-gray-500"}`}>
                   {t.is_active ? "Active" : "Inactive"}
                 </span>
               </div>
             ))}
+          </div>
         </div>
 
-        {/* Main Content: Preview */}
         <div className="lg:col-span-8 bg-white rounded-3xl shadow-sm border border-gray-200 p-6 ">
           <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-200">
             <h2 className="text-xl font-bold text-gray-800">ตัวอย่างเอกสาร</h2>
@@ -356,24 +266,74 @@ const ContractTemplate = () => {
             </button>
           </div>
 
-          {/* Document Preview Area */}
-          <div className="prose prose-orange max-w-none min-h-[400px] text-gray-700 leading-relaxed">
-            <div
-              dangerouslySetInnerHTML={{ __html: selectedTemplate.content }}
-            />
-          </div>
 
-          <div className="mt-10 p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3">
-            <p className="text-sm text-amber-900">
-              เมื่อสร้างจากหน้าห้อง ระบบจะแทนที่ตัวแปรที่เป็น
-              <code className="bg-amber-200 px-1 rounded mx-1">
-                {"{{...}}"}
-              </code>{" "}
-              ด้วยข้อมูลจริงของผู้เช่าให้ทันที
-            </p>
+          <div className="a4-preview-container bg-gray-200/50 rounded-3xl p-4 sm:p-8 flex justify-center border shadow-inner overflow-x-auto max-h-[800px]">
+            <div className="a4-preview-card bg-white shadow-2xl border border-gray-300">
+              <div className="ql-snow">
+                <ReactQuill value={selectedTemplate.content} readOnly={true} theme="snow" modules={{ toolbar: false }} formats={formats} className="readonly-editor" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
+
+        /* Sync Font Sizes */
+        ${Size.whitelist.map((size) => `.ql-editor .ql-size-${size} { font-size: ${size} !important; }`).join("\n")}
+
+        /* จัดการกระดาษ A4 จำลอง */
+        .a4-preview-card {
+          width: 210mm;
+          min-height: 297mm;
+          background: white;
+          box-sizing: border-box;
+          font-family: 'Sarabun', sans-serif !important;
+        }
+
+        /* ปรับแต่งเนื้อหาข้างใน Quill (ReadOnly) */
+        .readonly-editor .ql-container.ql-snow {
+          border: none !important;
+        }
+
+        .readonly-editor .ql-editor {
+          padding: 15mm 20mm !important; /* ระยะขอบกระดาษจริง */
+          font-family: 'Sarabun', sans-serif !important;
+          line-height: 1.6;
+          color: #374151;
+          min-height: 297mm;
+          overflow: visible;
+        }
+
+        /* จัดการตารางให้สวยงามและตรงความจริง */
+        .ql-editor table {
+          width: 100% !important;
+          border-collapse: collapse;
+          margin-bottom: 1rem;
+        }
+        .ql-editor td {
+          border: 1px solid #ccc !important;
+          padding: 8px !important;
+        }
+
+        @media (max-width: 1024px) {
+          .a4-preview-card {
+            width: 100%;
+            min-height: auto;
+          }
+          .readonly-editor .ql-editor {
+            padding: 10mm !important;
+          }
+        }
+      `}</style>
+      
+      {showSuccess && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-2xl flex items-center gap-3 shadow-2xl z-[100]">
+          <CheckCircle size={20} className="text-green-400" />
+          <span className="font-bold text-sm">บันทึกเทมเพลตเรียบร้อย</span>
+        </div>
+      )}
     </>
   );
 };
