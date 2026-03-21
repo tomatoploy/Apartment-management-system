@@ -37,7 +37,6 @@ export const paymentService = {
   },
 
   // GET /payments/generate?contractId=&year=&month=
-  // preview บิลอัตโนมัติ ยังไม่ save → admin ตรวจก่อน confirm
   generatePayment: async (contractId, year, month) => {
     const res = await paymentApi.get("/payments/generate", {
       params: { contractId, year, month },
@@ -46,20 +45,43 @@ export const paymentService = {
   },
 
   // POST /payments
-  // admin กด confirm หลังดู preview → save ลง DB
+  // data ส่งได้ทั้ง: roomRate, electricalCost, waterCost, internetCost, laundryCost,
+  //   furnitureCost, additionalCost, additionalDetail, discountCost, discountDetail,
+  //   contractId, adminId, recordDate, note
+  // ⚠️ Backend POST ไม่รับ status/paidAmount โดยตรง → หลัง POST ต้อง PATCH status แยก
+  //    ยกเว้นกรณี checkout ที่ต้องการ paid ทันที ให้ PATCH ตามหลัง
   createPayment: async (data) => {
-    const res = await paymentApi.post("/payments", data);
+    // แยก status / paidAmount ออกก่อน POST (Backend ไม่รับใน POST body)
+    const { status, paidAmount, ...postData } = data;
+    const res = await paymentApi.post("/payments", postData);
+    // Backend POST ส่งกลับ { message, id, total }
+    const createdId = res.data?.id;
+
+    // ถ้าต้องการ mark paid ทันที → PATCH status ตามหลัง
+    if (status && createdId) {
+      await paymentApi.patch(`/payments/${createdId}/status`, {
+        status,
+        ...(paidAmount != null && { paidAmount }),
+      });
+    }
     return res.data;
   },
 
   // PUT /payments/{id}
+  // ⚠️ Backend ปฏิเสธถ้า payment.Status === "paid" → ต้อง PUT ก่อน PATCH status เสมอ
+  // ⚠️ ไม่ส่ง status / paidAmount ใน PUT เพราะ PutPaymentDto ไม่มี field เหล่านี้
   updatePayment: async (id, data) => {
-    const res = await paymentApi.put(`/payments/${id}`, data);
+    // กรอง undefined ออก เพราะ Backend PutPaymentDto จะ reject field ที่ไม่รู้จัก
+    const clean = Object.fromEntries(
+      Object.entries(data).filter(([, v]) => v !== undefined)
+    );
+    const res = await paymentApi.put(`/payments/${id}`, clean);
     return res.data;
   },
 
   // PATCH /payments/{id}/status
-  // เปลี่ยนสถานะอย่างเดียว เช่น { status: "paid", paidAmount: 3850 }
+  // เปลี่ยนสถานะ + บันทึก paidAmount
+  // Backend รับเฉพาะ { status, paidAmount } — ไม่มี note
   updatePaymentStatus: async (id, status, paidAmount = null) => {
     const res = await paymentApi.patch(`/payments/${id}/status`, {
       status,

@@ -57,9 +57,7 @@ const Meter = () => {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().slice(0, 7),
   );
-  const [recordDate, setRecordDate] = useState(
-    new Date().toISOString().split("T")[0],
-  );
+  const [recordDate, setRecordDate] = useState(new Date().toLocaleDateString('sv')); // sv คือฟอร์แมต YYYY-MM-DD
   const [meterType, setMeterType] = useState("water");
   const [activeFloor, setActiveFloor] = useState("1");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -176,13 +174,6 @@ const Meter = () => {
   };
 
   const [rooms, setRooms] = useState([]);
-
-  useEffect(() => {
-    if (!selectedDate) return;
-
-    // ใช้วันแรกของเดือนที่เลือก
-    setRecordDate(`${selectedDate}-01`);
-  }, [selectedDate]);
 
   useEffect(() => {
     if (cacheRef.current[selectedDate]) {
@@ -417,9 +408,6 @@ const Meter = () => {
               value={recordDate}
               onChange={(e) => {
                 const newDate = e.target.value;
-                if (newDate.startsWith(selectedDate)) {
-                  setRecordDate(newDate);
-                }
               }}
               className="w-full"
             />
