@@ -95,22 +95,21 @@ const UtilitySetting = () => {
     );
   };
 
-  return (
-    <>
+return (
+    <div className="min-h-screen flex flex-col pb-32"> {/* ✨ เพิ่ม pb-32 เพื่อไม่ให้แถบล่างทับเนื้อหาห้อง */}
       {/* Header */}
-      <div className="relative text-center mb-8">
+      <div className="relative text-center mb-8 px-4">
         <ExitButton
           onClick={() => navigate("/settings")}
           className="absolute p-2 right-0 hover:bg-gray-100 rounded-full transition-colors"
-        >
-        </ExitButton>
+        />
         <h1 className="text-3xl font-bold text-gray-800">
           กำหนดราคา ค่าน้ำ/ค่าไฟ ต่อหน่วย
         </h1>
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col items-center gap-6 mb-10">
+      <div className="flex flex-col items-center gap-6 mb-10 px-4">
         <div className="flex w-full max-w-2xl gap-4">
           <SearchBar
             value={searchTerm}
@@ -154,18 +153,19 @@ const UtilitySetting = () => {
       </div>
 
       {/* Room Layout per Floor */}
-      <div className="space-y-10">
+      <div className="space-y-10 px-4">
         {floorsConfig.map((roomCount, idx) => {
           const floor = idx + 1;
+          const floorRoomsData = Array.from({ length: roomCount }).map((_, roomIdx) => {
+            const roomNum = `${floor}${String(roomIdx + 1).padStart(2, "0")}`;
+            const roomInfo = roomsData.find((r) => r.roomNumber === roomNum) || { status: "available" };
+            return { roomNum, roomInfo };
+          });
+
           return (
-            <div
-              key={floor}
-              className="bg-gray-50 p-6 rounded-[35px] border border-gray-200"
-            >
+            <div key={floor} className="bg-gray-50 p-6 rounded-[35px] border border-gray-200">
               <div className="flex justify-between items-center mb-6 px-4">
-                <h2 className="text-xl font-bold text-gray-700">
-                  ชั้น {floor}
-                </h2>
+                <h2 className="text-xl font-bold text-gray-700">ชั้น {floor}</h2>
                 <SelectAllFloorButton
                   label="เลือกทั้งชั้น"
                   onClick={() => selectAllInFloor(floor, roomCount)}
@@ -173,21 +173,12 @@ const UtilitySetting = () => {
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6 justify-items-center">
-                {Array.from({ length: roomCount }).map((_, roomIdx) => {
-                  const roomNum = `${floor}${String(roomIdx + 1).padStart(2, "0")}`;
-                  const roomInfo = roomsData.find(
-                    (r) => r.roomNumber === roomNum,
-                  ) || { status: "available" };
+                {floorRoomsData.map(({ roomNum, roomInfo }) => {
                   const isSelected = selectedRooms.includes(roomNum);
-
-                  // Logic Filter
                   const matchesSearch = roomNum.includes(searchTerm);
-                  const matchesStatus =
-                    activeStatusFilters.length === 0 ||
-                    activeStatusFilters.includes(roomInfo.status);
+                  const matchesStatus = activeStatusFilters.length === 0 || activeStatusFilters.includes(roomInfo.status);
                   const isVisible = matchesSearch && matchesStatus;
 
-                  // สไตล์สีตามสถานะ
                   const statusStyles = {
                     occupied: "bg-white border-[#10b981] shadow-green-100",
                     overdue: "bg-white border-[#fb7185] shadow-[#fb7185]/10",
@@ -201,26 +192,16 @@ const UtilitySetting = () => {
                       key={roomNum}
                       onClick={() => toggleRoomSelection(roomNum)}
                       className={`relative w-full max-w-40 p-4 rounded-3xl border-2 transition-all duration-300 flex flex-col gap-2 cursor-pointer 
-                          ${isVisible ? "opacity-100 scale-100" : "opacity-20 scale-95 pointer-events-none"}
-                          ${isSelected ? "ring-4 ring-[#3498DB]/30 border-[#3498DB]" : statusStyles[roomInfo.status]}`}
+                        ${isVisible ? "opacity-100 scale-100" : "opacity-20 scale-95 pointer-events-none"}
+                        ${isSelected ? "ring-4 ring-[#3498DB]/30 border-[#3498DB]" : statusStyles[roomInfo.status]}`}
                     >
-                      <div
-                        className={`py-1.5 rounded-xl text-[13px] text-center font-bold ${roomInfo.electricPrice ? "bg-orange-100 text-orange-600" : "bg-gray-100 text-gray-400"}`}
-                      >
-                        {roomInfo.electricPrice
-                          ? `ค่าไฟ ${roomInfo.electricPrice} บาท`
-                          : "ค่าไฟ ยังไม่กำหนด"}
+                      <div className={`py-1.5 rounded-xl text-[13px] text-center font-bold ${roomInfo.electricPrice ? "bg-orange-100 text-orange-600" : "bg-gray-100 text-gray-400"}`}>
+                        {roomInfo.electricPrice ? `ค่าไฟ ${roomInfo.electricPrice} บาท` : "ค่าไฟ ยังไม่กำหนด"}
                       </div>
-                      <div
-                        className={`py-1.5 rounded-xl text-[13px] text-center font-bold ${roomInfo.waterPrice ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-400"}`}
-                      >
-                        {roomInfo.waterPrice
-                          ? `ค่าน้ำ ${roomInfo.waterPrice} บาท`
-                          : "ค่าน้ำ ยังไม่กำหนด"}
+                      <div className={`py-1.5 rounded-xl text-[13px] text-center font-bold ${roomInfo.waterPrice ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-400"}`}>
+                        {roomInfo.waterPrice ? `ค่าน้ำ ${roomInfo.waterPrice} บาท` : "ค่าน้ำ ยังไม่กำหนด"}
                       </div>
-                      <div className="text-center font-bold text-gray-800 text-lg py-1">
-                        {roomNum}
-                      </div>
+                      <div className="text-center font-bold text-gray-800 text-lg py-1">{roomNum}</div>
                       {isSelected && (
                         <div className="absolute -top-2 -right-2 bg-[#3498DB] text-white rounded-full p-1 shadow-md">
                           <CheckSquare size={18} />
@@ -235,16 +216,31 @@ const UtilitySetting = () => {
         })}
       </div>
 
-      {/* Filter Modal (กรองได้มากกว่า 1) */}
+      {/* ✨ แถบบันทึกข้อมูลชิดล่างสุด (Sticky/Fixed Footer) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-200 p-6 flex justify-center items-center gap-4 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <button 
+          onClick={() => setSelectedRooms([])}
+          className="px-10 py-3 rounded-2xl font-bold text-gray-500 hover:bg-gray-100 transition-all"
+        >
+          ล้างการเลือก
+        </button>
+        <button 
+          onClick={() => console.log("บันทึกข้อมูล:", selectedRooms)}
+          className="bg-[#f3a638] text-white px-12 py-3 rounded-2xl font-black text-lg shadow-lg hover:scale-105 active:scale-95 transition-all"
+        >
+          บันทึกการตั้งค่า ({selectedRooms.length} ห้อง)
+        </button>
+      </div>
+
+      {/* Modals */}
       <FilterModal
         isOpen={showFilterModal}
         onClose={() => setShowFilterModal(false)}
         title="สถานะห้อง"
         onClear={() => setActiveStatusFilters([])}
         onConfirm={() => setShowFilterModal(false)}
-        maxWidth="max-w-xl" // กำหนดความกว้างตามโครงเดิมของคุณ
+        maxWidth="max-w-xl"
       >
-        {/* ส่วนเนื้อหาภายในที่ต้องการให้เป็น 2 คอลัมน์ */}
         <div className="grid grid-cols-2 gap-4">
           {[
             { id: "occupied", label: "มีผู้เช่า" },
@@ -257,11 +253,9 @@ const UtilitySetting = () => {
               key={item.id}
               onClick={() => toggleStatusFilter(item.id)}
               className={`py-4 rounded-2xl text-base font-bold border-2 transition-all 
-          ${
-            activeStatusFilters.includes(item.id)
-              ? "border-[#F5A623] bg-[#FFF7ED] text-[#F5A623]"
-              : "border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200"
-          }`}
+                ${activeStatusFilters.includes(item.id) 
+                  ? "border-[#F5A623] bg-[#FFF7ED] text-[#F5A623]" 
+                  : "border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200"}`}
             >
               {item.label}
             </button>
@@ -281,7 +275,7 @@ const UtilitySetting = () => {
           }}
         />
       )}
-    </>
+    </div>
   );
 };
 
