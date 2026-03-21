@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Bell, Package, User, Phone, MessageSquare, Calendar, CreditCard, FileText, Plus, Trash2, ExternalLink, UserX, Edit3, AlertCircle, ShieldCheck, Car, Info, Mail, MapPin, HeartPulse, UserPlus,} from "lucide-react";
+import { FilePlus, ChevronDown , Bell, Package, User, Phone, MessageSquare, Calendar, CreditCard, FileText, Plus, Trash2, ExternalLink, UserX, Edit3, AlertCircle, ShieldCheck, Car, Info, Mail, MapPin, HeartPulse, UserPlus,} from "lucide-react";
 
 
 import { OrangeButton, ExitButton } from "../components/ActionButtons";
@@ -15,6 +15,9 @@ import { contractService } from "../api/ContractApi";
 import { tenantService } from "../api/TenantApi";
 import { requestService } from "../api/RequestApi"; 
 import { parcelService } from "../api/ParcelApi";
+
+//ดึง mock data
+import { initialContractTemplates} from "../data/contractData";
 
 const RoomDetail = () => {
   const { roomNumber } = useParams();
