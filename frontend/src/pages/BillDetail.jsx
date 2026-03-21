@@ -89,34 +89,49 @@ const generateResultToItems = (result, selectedDate) => {
   return items;
 };
 
-const itemsToPayload = (items) => {
-  const payload = {
-    roomRate: 0, electricalCost: 0, waterCost: 0,
-    internetCost: 0, laundryCost: 0, furnitureCost: 0,
-    discountCost: 0, discountDetail: null,
-    additionalCost: 0, additionalDetail: null,
-  };
-  const additionalItems = [];
-  let additionalTotal = 0;
-  let furnitureTotal = 0; 
-  
-  items.forEach((item) => {
-    const amountNum = Number(item.amount) || 0;
-    switch (item.type) {
-      case "rent":     payload.roomRate       = amountNum; break;
-      case "electric": payload.electricalCost = amountNum; break;
-      case "water":    payload.waterCost      = amountNum; break;
-      case "asset":    
-      case "damage":   furnitureTotal += amountNum; break;
-      case "discount":
-        payload.discountCost   = Math.abs(amountNum);
-        payload.discountDetail = (item.label || "ส่วนลด").substring(0, 100);
-        break;
-      default:
-        additionalTotal += amountNum;
-        if (item.label) additionalItems.push(`${item.label} (${amountNum.toLocaleString()} บาท)`);
-    }
-  });
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().slice(0, 7),
+  );
+
+  /////////////////Mockdata
+
+  //const [items, setItems] = useState([]);
+  // const [items, setItems] = useState([
+  //   { id: 1, type: "rent", amount: 3000, labels: {} },
+  //   {
+  //     id: 2,
+  //     type: "electric",
+  //     detail: "(451-351 = 100 หน่วย)",
+  //     amount: 500,
+  //     labels: {},
+  //   },
+  //   {
+  //     id: 3,
+  //     type: "water",
+  //     detail: "(1025-1020 = 5 หน่วย)",
+  //     amount: 50,
+  //     labels: {},
+  //   },
+  //   { id: 4, type: "discount", amount: -100, labels: {} },
+  // ]);
+
+  //mock data สำหรับsหน้าย้ายออก
+  //1. สร้าง State สำหรับเก็บรายการในตาราง
+  // const [items, setItems] = useState(initialData || []);
+
+  // // 2. **จุดสำคัญ** เพิ่ม useEffect เพื่อดักจับการเปลี่ยนแปลงจากหน้าแม่
+  // useEffect(() => {
+  //   // เมื่อ initialData ที่ส่งมาจาก CheckoutManager เปลี่ยนแปลง
+  //   // ให้สั่ง setItems เพื่ออัปเดตข้อมูลในตารางใหม่ทันที
+  //   setItems(initialData || []);
+  // }, [initialData]); 
+
+  // // 3. เมื่อมีการเพิ่ม/ลบรายการในตาราง (ลูกเปลี่ยน) ให้ส่งค่ากลับไปบอกแม่ด้วย
+  // useEffect(() => {
+  //   if (onDataChange) {
+  //     onDataChange(items);
+  //   }
+  // }, [items, onDataChange]);
 
   payload.furnitureCost = furnitureTotal;
   if (additionalTotal !== 0) {
@@ -126,7 +141,7 @@ const itemsToPayload = (items) => {
     payload.additionalDetail = detailString || null;
   }
   return payload;
-};
+
 
 /* ── Component ────────────────────────────────────────────────── */
 const BillDetail = ({

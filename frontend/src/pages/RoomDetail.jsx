@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Bell, Package, User, Phone, MessageSquare, Calendar, CreditCard, FileText, Plus, Trash2, ExternalLink, UserX, Edit3, AlertCircle, ShieldCheck, Car, Info, Mail, MapPin, HeartPulse, UserPlus,} from "lucide-react";
 
+
 import { OrangeButton, ExitButton } from "../components/ActionButtons";
 import RoomHeader from "../components/RoomHeader";
 import TenantInfoModal from "../components/TenantInfoModal";
@@ -221,9 +222,62 @@ const fetchRoomDetail = async () => {
     }
   };
 
+  //-- สร้างเอกสาร / เทมเพลต --
+  const [showDocOptions, setShowDocOptions] = useState(false);
+  // ในใช้งานจริง ส่วนนี้อาจจะมาจาก Context หรือ API Call
+  const activeTemplates = initialContractTemplates.filter(t => t.is_active);
+
+
+ const handleSelectTemplate = (template) => {
+    setShowDocOptions(false);
+    const processed = fillTemplateData(template.content, tenant, roomNumber);  
+    navigate(`/rooms/${roomNumber}/preview`, { 
+      state: { 
+        content: processed, 
+        title: template.name 
+      } 
+    });
+  };
+
   return (
     <div>
       <RoomHeader roomNumber={roomNumber}>
+        <div className="max-w-4xl mx-auto py-2">
+      <div className="flex justify-end items-end">
+        <div className="relative">
+          <button
+            onClick={() => setShowDocOptions(!showDocOptions)}
+            className="flex items-center gap-2 px-6 py-2.5 bg-[#f3a638] text-white rounded-xl font-black text-sm shadow-sm hover:bg-[#e6952e] transition-all"
+          >
+            <FilePlus size={18} />
+            สร้างเอกสาร
+            <ChevronDown size={16} className={`transition-transform ${showDocOptions ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showDocOptions && (
+            <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in duration-200">
+              <div className="p-2">
+                <p className="px-3 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">เลือกเทมเพลต</p>
+                {activeTemplates.map((temp) => (
+                  <button
+                    key={temp.id}
+                    onClick={() => handleSelectTemplate(temp)}
+                    className="w-full text-left px-4 py-3 text-sm font-bold text-gray-700 hover:bg-orange-50 hover:text-[#f3a638] rounded-xl transition-colors flex items-center gap-3"
+                  >
+                    <div className="w-2 h-2 bg-[#f3a638] rounded-full"></div>
+                    {temp.name}
+                  </button>
+                ))}
+                {activeTemplates.length === 0 && (
+                  <p className="px-4 py-3 text-xs text-gray-400 italic">ไม่มีเทมเพลตที่เปิดใช้งาน</p>
+                )}
+              </div>
+            </div>
+          )}
+      </div>
+      </div>
+        
+      </div>
         {tenant ? (
           /* --- กรณีมีผู้เช่า: แสดงข้อมูลทั้งหมด --- */
           <div className="space-y-6 mt-2">
@@ -273,7 +327,6 @@ const fetchRoomDetail = async () => {
                         </span>
                       </div>
                     </div>
-
                     <button
                       type="button" // ระบุ Type ป้องกันการ Submit Form โดยไม่ได้ตั้งใจ
                       onClick={(e) => {
@@ -291,7 +344,6 @@ const fetchRoomDetail = async () => {
               {/* Banner พัสดุ (ถ้ามี) */}
               {tenant.pendingParcels > 0 && (
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-blue-50 border border-blue-100 rounded-[25px] md:rounded-3xl text-blue-600 shadow-sm transition-all">
-                  {/* ส่วนข้อมูล (Icon + ข้อความ) */}
                   <div className="flex items-center gap-3 w-full md:w-auto">
                     <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shrink-0">
                       <Package size={28} />
@@ -318,7 +370,7 @@ const fetchRoomDetail = async () => {
             </div>
 
             {/* คอนเทนเนอร์หลัก: 1 คอลัมน์ในมือถือ (grid-cols-1) และ 2 คอลัมน์ในจอใหญ่ (lg:grid-cols-2) */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               {/* --- คอลัมน์ที่ 1: ข้อมูลผู้เช่า --- */}
               <section className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden h-full">
                 {/* Header */}
