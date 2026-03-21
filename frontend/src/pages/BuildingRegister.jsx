@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { X, ChevronRight, ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { apartmentService } from "../api/ApartmentApi";
+import { roomService } from "../api/RoomApi";
 
 const BuildingRegister = ({ buildingId = null }) => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  // const isEditMode = Boolean(buildingId);
-  const isEditMode = true; // ทดสอบโหมดแก้ไข แต่ยังไม่ได้ส่งข้อมูลใหม่กลับเมื่อบันทึก + testในตั้งค่า
+  const [savedBuildingId, setSavedBuildingId] = useState(null);
+  const isEditMode = Boolean(savedBuildingId || buildingId);
+  // const isEditMode = true; // ทดสอบโหมดแก้ไข แต่ยังไม่ได้ส่งข้อมูลใหม่กลับเมื่อบันทึก + testในตั้งค่า
 
   const handleClose = () => {
     if (!isEditMode) {
@@ -49,23 +52,55 @@ const BuildingRegister = ({ buildingId = null }) => {
 
   // --- ดึงข้อมูลเดิมกรณีแก้ไข (Edit Mode) ---
   useEffect(() => {
-    if (isEditMode) {
-      // ตัวอย่าง Mock ข้อมูลเก่าจาก Database
-      const mockOldData = {
-        Name: "หอพักสุขสบาย",
-        Phone: "0812345678",
-        Email: "contact@home.com",
-        LineID: "@home123",
-        Address:
-          "123/4 หมู่บ้านรวยทรัพย์ ซอย 5 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110",
-        PaymentDueStart: "25",
-        PaymentDueEnd: "5",
-        Floors: "2",
-      };
-      setFormData(mockOldData);
-      setRoomsPerFloor({ 1: "10", 2: "10" }); // ดึงจำนวนห้องเดิม
-    }
-  }, [buildingId, isEditMode]);
+    const initData = async () => {
+      try {
+        // 1. ดึงข้อมูลหอพัก
+        const apartments = await apartmentService.getAllApartment();
+        if (apartments && apartments.length > 0) {
+          const apartmentData = apartments[0];
+          setSavedBuildingId(apartmentData.id);
+
+          setFormData(prev => ({
+            ...prev,
+            Name: apartmentData.name || "",
+            Phone: apartmentData.phone || "",
+            Email: apartmentData.email || "",
+            LineID: apartmentData.lineId || "",
+            Address: apartmentData.address || "",
+            PaymentDueStart: apartmentData.paymentDueStart?.toString() || "",
+            PaymentDueEnd: apartmentData.paymentDueEnd?.toString() || "",
+          }));
+        }
+
+        // 2. ดึงข้อมูลห้อง (ตรวจสอบว่าชื่อฟิลด์ใน API คือ floor หรือ Floor)
+        const rooms = await roomService.getAllRooms();
+        console.log("Rooms from API:", rooms); // เปิด Console ดูเพื่อเช็คชื่อฟิลด์
+
+        if (rooms && rooms.length > 0) {
+          const counts = {};
+          let maxFloor = 0;
+
+          rooms.forEach(room => {
+            const f = parseInt(room.floor); // ใช้ floor ตัวเล็กตามรูปใน Console
+            if (!isNaN(f)) {
+              counts[f] = (counts[f] || 0) + 1;
+              if (f > maxFloor) maxFloor = f;
+            }
+          });
+
+          setRoomsPerFloor(counts);
+          setFormData(prev => ({
+            ...prev,
+            Floors: maxFloor.toString() // เพื่อให้ช่อง "จำนวนชั้น" ไม่ว่าง
+          }));
+        }
+      } catch (error) {
+        console.error("Error fetching initial data:", error);
+      }
+    };
+
+    initData();
+  }, []);
 
   // --- Input Validation & Mapping Logic ---
   const handleChange = (e) => {
@@ -119,8 +154,8 @@ const BuildingRegister = ({ buildingId = null }) => {
       if (billValue && billValue !== "") {
         // ถ้ามีการกรอกข้อมูลเข้ามา
         const billNum = Number(billValue);
-        if (isNaN(billNum) || billNum < 1 || billNum > 28) {
-          return "หากระบุวันออกบิล ต้องเป็นตัวเลขวันที่ 1 - 28 เท่านั้น";
+        if (isNaN(billNum) || billNum < 1 || billNum > 31) {
+          return "หากระบุวันออกบิล ต้องเป็นตัวเลขวันที่ 1 - 31 เท่านั้น";
         }
       }
 
@@ -128,8 +163,8 @@ const BuildingRegister = ({ buildingId = null }) => {
       const dueValue = formData.PaymentDueEnd;
       if (dueValue && dueValue !== "") {
         const dueNum = Number(dueValue);
-        if (isNaN(dueNum) || dueNum < 1 || dueNum > 28) {
-          return "หากระบุวันสิ้นสุดชำระ ต้องเป็นตัวเลขวันที่ 1 - 28 เท่านั้น";
+        if (isNaN(dueNum) || dueNum < 1 || dueNum > 31) {
+          return "หากระบุวันสิ้นสุดชำระ ต้องเป็นตัวเลขวันที่ 1 - 31 เท่านั้น";
         }
       }
       // --- 3. ตรวจสอบจำนวนชั้น ---
@@ -164,21 +199,37 @@ const BuildingRegister = ({ buildingId = null }) => {
   };
 
   // --- ปุ่มบันทึกขั้นตอนสุดท้าย ---
-  const handleSubmit = async () => {
-    const error = validateStep(3); // ใช้ฟังก์ชันตรวจวันที่ 1-28 ที่เราทำไว้
+const handleSubmit = async () => {
+    const error = validateStep();
     if (error) return alert(error);
 
-    if (isEditMode) {
-      // Logic สำหรับการ Update ข้อมูลเดิม
-      console.log("Updating building data...", formData);
-      alert("แก้ไขข้อมูลสำเร็จ!");
-    } else {
-      // Logic สำหรับการลงทะเบียนใหม่ เสร็จแล้วควรไปหน้า Setting หรือ Dashboard
-      console.log("Creating new building...", formData);
-      alert("ลงทะเบียนสำเร็จ!");
-    }
+    const targetId = savedBuildingId || buildingId;
 
-    navigate("/settings"); // เมื่อบันทึกเสร็จให้กลับไปหน้า Setting
+    const payload = {
+      Name: formData.Name,
+      Address: isEditMode ? formData.Address : `${formData.AddressNo} ${formData.Village} ${formData.SubDistrict} ${formData.District} ${formData.Province} ${formData.ZipCode}`,
+      Phone: formData.Phone,
+      LineId: formData.LineID,
+      Email: formData.Email,
+      PaymentDueStart: formData.PaymentDueStart ? parseInt(formData.PaymentDueStart) : null,
+      PaymentDueEnd: formData.PaymentDueEnd ? parseInt(formData.PaymentDueEnd) : null,
+    };
+
+    try {
+      if (isEditMode && targetId) {
+        // แก้ตรงนี้: ส่ง targetId แทน buildingId ที่อาจจะเป็น null
+        await apartmentService.putApartment(targetId, payload);
+        alert("แก้ไขข้อมูลสำเร็จ!");
+      } else {
+        await apartmentService.postApartment(payload);
+        alert("ลงทะเบียนหอพักสำเร็จ!");
+      }
+      navigate("/settings");
+    } catch (error) {
+      console.error("API Error:", error);
+      const errorMsg = error.response?.data?.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล";
+      alert(errorMsg);
+    }
   };
 
   return (
@@ -322,8 +373,8 @@ const BuildingRegister = ({ buildingId = null }) => {
                   onChange={handleChange}
                   //   type="number" เพื่อดักจับเฉพาะตัวเลข
                   min="1"
-                  max="28"
-                  placeholder="1-28"
+                  max="31"
+                  placeholder="1-31"
                 />
                 <InputField
                   label="วันสิ้นสุดชำระ"
@@ -332,8 +383,8 @@ const BuildingRegister = ({ buildingId = null }) => {
                   onChange={handleChange}
                   //   type="number"
                   min="1"
-                  max="28"
-                  placeholder="1-28"
+                  max="31"
+                  placeholder="1-31"
                 />
               </div>
               <InputField
@@ -360,11 +411,8 @@ const BuildingRegister = ({ buildingId = null }) => {
                       <div className="flex items-center gap-2">
                         <input
                           type="number"
-                          min="1"
-                          value={roomsPerFloor[i + 1] || ""}
-                          onChange={(e) =>
-                            handleRoomChange(i + 1, e.target.value)
-                          }
+                          value={roomsPerFloor[i + 1] || ""} // ค่าที่ได้จากการนับใน useEffect
+                          onChange={(e) => handleRoomChange(i + 1, e.target.value)}
                           className="w-16 text-center border-b border-gray-300 outline-none focus:border-orange-400 font-bold"
                         />
                         <span className="text-xs text-gray-400 font-bold">

@@ -23,6 +23,7 @@ import RoomReserve from "./pages/RoomReserve";
 import RoomMoveOut from "./pages/RoomMoveOut";
 import ContractSetting from "./pages/ContractSetting";
 import DocumentPreview from "./pages/DocumentPreview";
+import RoomContract from "./pages/RoomContract";
 
 // import RoomsFilter from "./pages/Rooms-filterModal";
 
@@ -58,7 +59,6 @@ function App() {
           </Layout>
         }
       />
-
       {/* <Route
         path="/rooms-nodata"
         element={
@@ -150,12 +150,19 @@ function App() {
           </Layout>
         }
       />
-
       <Route
         path="/rooms/:roomNumber"
         element={
           <Layout>
             <RoomDetail />
+          </Layout>
+        }
+      />
+      <Route
+        path="/rooms/contract/:roomNumber"
+        element={
+          <Layout>
+            <RoomContract />
           </Layout>
         }
       />

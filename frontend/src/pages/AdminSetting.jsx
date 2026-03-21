@@ -1,25 +1,8 @@
-import React, { useState, useRef } from "react";
-import {
-  User,
-  Phone,
-  Mail,
-  Lock,
-  Shield,
-  Save,
-  X,
-  Edit2,
-  Key,
-  Upload,
-  CheckCircle2,
-  AlertCircle,
-  Eye,
-  EyeOff,
-  Camera,
-  ChevronRight,
-} from "lucide-react";
-
+import React, { useState, useRef, useEffect } from "react";
+import {User, Phone, Mail, Lock, Shield, Save, X, Edit2, Key, Upload, CheckCircle2, AlertCircle, Eye, EyeOff, Camera, ChevronRight} from "lucide-react";
 import { ExitButton, ConfirmModal} from "../components/ActionButtons";
 import { useNavigate } from "react-router-dom";
+import { adminService } from "../api/AdminApi";
 
 // --- Sub-Components ---
 const DisplayItem = ({ label, value, icon: Icon, isFullWidth, isImage }) => (
@@ -47,21 +30,7 @@ const DisplayItem = ({ label, value, icon: Icon, isFullWidth, isImage }) => (
 );
 
 // เพิ่มส่วนแสดง Error ใน EditInput
-const EditInput = ({
-  label,
-  name,
-  value,
-  onChange,
-  type = "text",
-  isFullWidth,
-  required,
-  placeholder,
-  icon: Icon,
-  readOnly,
-  error,
-  showEye,
-  onEyeClick,
-  eyeOpen,
+const EditInput = ({ label, name, value, onChange, type = "text", isFullWidth, required, placeholder, icon: Icon, readOnly, error, showEye, onEyeClick, eyeOpen,
 }) => (
   <div
     className={`${isFullWidth ? "md:col-span-2" : "col-span-1"} flex flex-col gap-1`}
@@ -118,6 +87,9 @@ const AdminSetting = () => {
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
+  // ดึง ID จาก localStorage
+  const loggedInAdminId = localStorage.getItem("adminId");
+
   // เพิ่ม: สถานะการเปิด-ปิดตาของแต่ละช่องรหัสผ่าน
   const [eyeStates, setEyeStates] = useState({
     old: false,
@@ -126,15 +98,59 @@ const AdminSetting = () => {
   });
 
   const [adminData, setAdminData] = useState({
-    Id: "1",
-    Photo: null, // เพิ่ม: เก็บรูปโปรไฟล์
-    Title: "นาย",
-    FirstName: "สมชาย",
-    LastName: "ใจดี",
-    Phone: "0812345678",
-    Email: "somchai.admin@example.com",
+    Id: loggedInAdminId || "", // ใช้ ID ที่ได้จากการ Login
+    Photo: null,
+    Title: "",
+    FirstName: "",
+    LastName: "",
+    Phone: "",
+    Email: "",
     Signature: null,
   });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setAdminData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    
+    // ล้าง error ของฟิลด์นั้นๆ เมื่อผู้ใช้เริ่มพิมพ์ใหม่
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+  };
+
+  useEffect(() => {
+    const fetchAdmin = async () => {
+      // ตรวจสอบว่ามี ID ไหม ถ้าไม่มีให้เด้งไปหน้า Login
+      if (!loggedInAdminId) {
+        alert("กรุณาเข้าสู่ระบบก่อนใช้งาน");
+        navigate("/login");
+        return;
+      }
+
+      try {
+        const data = await adminService.getAdmin(loggedInAdminId);
+        setAdminData({
+          Id: data.id?.toString(),
+          Title: data.title,
+          FirstName: data.firstName,
+          LastName: data.lastName,
+          Phone: data.phone,
+          Email: data.email,
+          Signature: data.signature,
+          Photo: data.photo, 
+        });
+      } catch (error) {
+        console.error("Fetch Admin Error:", error);
+        if (error.response?.status === 404) {
+             alert("ไม่พบข้อมูลแอดมิน");
+        }
+      }
+    };
+    fetchAdmin();
+  }, [loggedInAdminId, navigate]);
 
   // เพิ่ม: สถานะข้อมูลรหัสผ่าน
   const [pwdData, setPwdData] = useState({
@@ -168,12 +184,41 @@ const AdminSetting = () => {
     }
   };
 
-  const handleConfirmSave = () => {
+const handleConfirmSave = async () => {
+    // 1. ปิด Modal ทันทีเมื่อกดยืนยัน
     setShowConfirm(false);
-    setIsEditing(false);
-    setShowPasswordForm(false); // ปิดฟอร์มรหัสผ่านหลังบันทึก
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 2000);
+
+    const payload = {
+      Title: adminData.Title,
+      FirstName: adminData.FirstName,
+      LastName: adminData.LastName,
+      Phone: adminData.Phone,
+      Email: adminData.Email,
+      Signature: adminData.Signature,
+      // ส่งรหัสผ่านใหม่ไปเฉพาะตอนที่เปิดฟอร์มรหัสผ่านและมีการกรอกข้อมูล
+      Password: showPasswordForm ? pwdData.new : null,
+    };
+
+    try {
+      // 2. เรียก API เพื่ออัปเดตข้อมูล
+      await adminService.updateAdmin(loggedInAdminId, payload);
+      
+      // 3. เมื่อสำเร็จ: ปิดโหมดแก้ไขและเคลียร์ฟอร์มรหัสผ่าน
+      setIsEditing(false);
+      setShowPasswordForm(false);
+      setPwdData({ old: "", new: "", confirm: "" });
+
+      // 4. แสดง Notification สำเร็จ
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
+
+      // (Optional) อาจจะดึงข้อมูลใหม่จาก API อีกรอบเพื่อให้มั่นใจว่าข้อมูลล่าสุด
+      // fetchAdmin(); 
+      
+    } catch (error) {
+      console.error("Update Error:", error);
+      alert(error.response?.data?.message || "บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    }
   };
 
   // ปรับปรุง: ให้รองรับทั้งการเลือกรูปโปรไฟล์และลายเซ็น
@@ -316,11 +361,9 @@ const AdminSetting = () => {
 
                 <EditInput
                   label="ชื่อจริง"
+                  name="FirstName" // ต้องมี name ให้ตรงกับ key ใน state
                   value={adminData.FirstName}
-                  onChange={(e) => {
-                    setAdminData({ ...adminData, FirstName: e.target.value });
-                    setErrors({ ...errors, FirstName: "" });
-                  }}
+                  onChange={handleChange} // ส่งฟังก์ชันที่เพิ่งสร้างไปใช้
                   icon={User}
                   required
                   error={errors.FirstName}
@@ -340,22 +383,19 @@ const AdminSetting = () => {
 
                 <EditInput
                   label="เบอร์โทรศัพท์"
+                  name="Phone"
                   value={adminData.Phone}
-                  onChange={(e) => {
-                    setAdminData({ ...adminData, Phone: e.target.value });
-                    setErrors({ ...errors, Phone: "" });
-                  }}
+                  onChange={handleChange}
                   icon={Phone}
                   required
-                  error={errors.Phone} // เพิ่ม error ตรงนี้
+                  error={errors.Phone}
                 />
 
                 <EditInput
                   label="อีเมล"
+                  name="Email"
                   value={adminData.Email}
-                  onChange={(e) =>
-                    setAdminData({ ...adminData, Email: e.target.value })
-                  }
+                  onChange={handleChange}
                   icon={Mail}
                 />
 

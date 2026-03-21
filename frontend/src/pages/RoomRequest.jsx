@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {  Inbox, } from 'lucide-react';
+import { Inbox, Loader2 } from 'lucide-react';
+
+// API Services
+import { requestService } from '../api/RequestApi'; // ✅ อิมพอร์ต service เข้ามาใช้งาน
 
 // Components
 import RoomHeader from '../components/RoomHeader';
@@ -16,55 +19,48 @@ const RoomRequest = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // --- 1. Initial Mock Data ---
-  useEffect(() => {
-    const allMockData = [
-      {
-        id: 1,
-        roomNumber: "201",
-        subject: "fix",
-        body: "ก๊อกน้ำอ่างล้างหน้าซึม มีน้ำหยดตลอดเวลา",
-        status: "pending",
-        requestDate: "2026-02-12",
-        appointmentDate: "2026-02-14",
-      },
-      {
-        id: 2,
-        roomNumber: "201",
-        subject: "clean",
-        body: "ขอรับบริการทำความสะอาดเตียงและดูดฝุ่น",
-        status: "finish",
-        requestDate: "2026-02-10",
-        appointmentDate: "2026-02-11",
-      },
-      {
-        id: 3,
-        roomNumber: "305",
-        subject: "leave",
-        body: "แจ้งย้ายออกสิ้นเดือนนี้ครับ",
-        status: "pending",
-        requestDate: "2026-02-14",
-        appointmentDate: "2026-02-28",
-      }
-    ];
-
+  // --- 1. Fetch Data จาก API ---
+  const fetchRoomRequests = async () => {
     setIsLoading(true);
-    // จำลองการโหลด 500ms ให้พอเห็น Loader
-    setTimeout(() => {
-      const filtered = allMockData.filter(req => req.roomNumber === roomNumber);
+    try {
+      // ดึงข้อมูลการแจ้งทั้งหมด
+      const data = await requestService.getRequests();
+      
+      // กรองเอาเฉพาะข้อมูลของห้องปัจจุบัน (เทียบเป็น String เพื่อความชัวร์)
+      const filtered = (data ?? []).filter(req => String(req.roomNumber) === String(roomNumber));
+      
+      // เรียงจากวันที่แจ้งล่าสุด (ถ้าต้องการให้เรียงตามเวลา)
+      filtered.sort((a, b) => new Date(b.requestDate || 0) - new Date(a.requestDate || 0));
+
       setRequests(filtered);
+    } catch (error) {
+      console.error("Error fetching room requests:", error);
+    } finally {
       setIsLoading(false);
-    },0);
+    }
+  };
+
+  useEffect(() => {
+    fetchRoomRequests();
   }, [roomNumber]);
 
-  // --- 2. Handlers (Local State Only) ---
+  // --- 2. Handlers (เชื่อมต่อ API) ---
   
   // เปลี่ยนสถานะด่วนผ่าน RequestItem
-  const handleChangeStatus = (id, newStatus) => {
-    setRequests(prev => 
-      prev.map(req => req.id === id ? { ...req, status: newStatus } : req)
-    );
-    console.log(`Updated ID ${id} to status: ${newStatus}`);
+  const handleChangeStatus = async (id, newStatus) => {
+    const targetReq = requests.find(r => r.id === id);
+    if (!targetReq) return;
+
+    try {
+      // อัปเดต UI ให้เปลี่ยนทันที (Optimistic Update) เพื่อความลื่นไหล
+      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
+      
+      const payload = { ...targetReq, status: newStatus };
+      await requestService.updateRequest(id, payload);
+    } catch (err) {
+      console.error("เปลี่ยนสถานะไม่สำเร็จ", err);
+      fetchRoomRequests(); // ถ้า Error ให้ดึงข้อมูลเก่ากลับมา
+    }
   };
 
   const handleItemClick = (req) => {
@@ -72,16 +68,34 @@ const RoomRequest = () => {
     setIsEditModalOpen(true);
   };
 
-  const handleEditSave = (formData) => {
-    setRequests(prev => 
-      prev.map(req => req.id === formData.id ? { ...req, ...formData } : req)
-    );
-    setIsEditModalOpen(false);
+  // บันทึกการแก้ไข
+  const handleEditSave = async (formData) => {
+    try {
+      const payload = {
+        ...formData,
+        cost: formData.cost ? Number(formData.cost) : null,
+        appointmentDate: formData.appointmentDate || null,
+      };
+
+      await requestService.updateRequest(formData.id, payload);
+      await fetchRoomRequests(); // โหลดข้อมูลใหม่หลังจากอัปเดตสำเร็จ
+      setIsEditModalOpen(false);
+    } catch (err) {
+      console.error("แก้ไขข้อมูลไม่สำเร็จ", err);
+      alert("แก้ไขข้อมูลไม่สำเร็จ");
+    }
   };
 
-  const handleDelete = (id) => {
-    setRequests(prev => prev.filter(req => req.id !== id));
-    setIsEditModalOpen(false);
+  // ลบการแจ้ง
+  const handleDelete = async (id) => {
+    try {
+      await requestService.deleteRequest(id);
+      await fetchRoomRequests(); // โหลดข้อมูลใหม่หลังจากลบสำเร็จ
+      setIsEditModalOpen(false);
+    } catch (err) {
+      console.error("ลบข้อมูลไม่สำเร็จ", err);
+      alert("ลบข้อมูลไม่สำเร็จ");
+    }
   };
 
   return (
@@ -92,14 +106,19 @@ const RoomRequest = () => {
           {/* ส่วนหัวหน้าจอ */}
           <div className="flex items-center gap-4">
             <h2 className="text-xl md:text-2xl font-black text-gray-700 flex items-center gap-3">
-              
               รายการการแจ้ง
             </h2>
           </div>
 
           {/* Content Section */}
           <main className="pb-10">
-            { requests.length > 0 ? (
+            {isLoading ? (
+              // แสดง Loading ระหว่างรอข้อมูลจาก API
+              <div className="py-24 flex flex-col items-center justify-center text-center">
+                <Loader2 size={40} className="text-orange-400 animate-spin mb-4" />
+                <p className="text-gray-400 font-bold">กำลังโหลดข้อมูล...</p>
+              </div>
+            ) : requests.length > 0 ? (
               <div className="grid grid-cols-1 gap-4">
                 {requests.map((req) => (
                   <RequestItem 
@@ -111,13 +130,12 @@ const RoomRequest = () => {
                 ))}
               </div>
             ) : (
-              /* --- กรณีไม่มีรายการ (Empty State) ตามสไตล์ที่คุณชอบ --- */
+              /* --- กรณีไม่มีรายการ (Empty State) --- */
               <div className="py-24 flex flex-col items-center justify-center text-center bg-gray-50 rounded-3xl border border-gray-200">
                 <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-gray-400 mb-6 border border-dashed border-gray-300">
                   <Inbox size={48} />
                 </div>
                 <h3 className="text-xl font-black text-gray-500">ไม่มีประวัติการแจ้ง</h3>
-                
               </div>
             )}
           </main>
@@ -134,7 +152,6 @@ const RoomRequest = () => {
           onDelete={handleDelete}
         />
       )}
-
     </>
   );
 };

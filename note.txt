@@ -7,6 +7,11 @@ how to run
     cd frontend
     npm run dev
 
+- ติดตั้ง react
+- ติดตั้ง dotnet
+- ติดตั้ง tailwind
+- ติดตั้ง npm install xlsx (excel)
+
 - appsetting.json (nn)
 {
   "Logging": {
@@ -37,3 +42,81 @@ how to run
 
 อีกไฟล์ dornitorydbcontext.cs ใน folder models
 - แก้ที่ comment
+
+************************************************************************************
+************************************************************************************
+ฝัง event ใน database
+[step 1]
+SET GLOBAL event_scheduler = ON;
+------------------------------------------------------------------------------------
+[step 2]
+DELIMITER //
+
+CREATE EVENT IF NOT EXISTS auto_update_contract_status
+ON SCHEDULE EVERY 1 DAY
+STARTS (CURRENT_DATE + INTERVAL 1 DAY) -- ตั้งให้เริ่มทำงานเที่ยงคืนของวันพรุ่งนี้ และทำซ้ำทุกวัน
+DO
+BEGIN
+    -- 1. เปลี่ยนสถานะจาก จอง (Reserved) เป็น เช่าอยู่ (Active) เมื่อถึงวันเข้าอยู่
+    UPDATE Contract 
+    SET Status = 'Active' 
+    WHERE Status = 'Reserved' AND StartDate <= CURRENT_DATE();
+
+    -- 2. เปลี่ยนสถานะจาก เช่าอยู่ (Active) เป็น หมดสัญญา (Expired) เมื่อเลยวันสิ้นสุด
+    UPDATE Contract 
+    SET Status = 'Expired' 
+    WHERE Status = 'Active' AND EndDate < CURRENT_DATE();
+END //
+
+DELIMITER ;
+------------------------------------------------------------------------------------
+[step 3]
+SHOW EVENTS;
+************************************************************************************
+************************************************************************************
+
+
+************************************************************************************
+************************************************************************************
+Noteeeee: 2 TRIGGER for update status kub
+
+DELIMITER //
+
+CREATE TRIGGER after_contract_update
+AFTER UPDATE ON Contract
+FOR EACH ROW
+BEGIN
+    -- 1. สัญญา 'Active' (เช่าอยู่) -> ห้องเป็น 'occupied'
+    IF NEW.Status = 'Active' AND OLD.Status != 'Active' THEN
+        UPDATE Room SET Status = 'occupied' WHERE Id = NEW.RoomId;
+        
+    -- 2. สัญญา 'Terminated' หรือ 'Cancle' -> ห้องกลับมาเป็น 'available' 
+    -- (ไม่รวม Expired ห้องจะได้ยังเป็น occupied อยู่)
+    ELSEIF NEW.Status IN ('Terminated', 'Cancle') AND OLD.Status NOT IN ('Terminated', 'Cancle') THEN
+        UPDATE Room SET Status = 'available' WHERE Id = NEW.RoomId;
+        
+    -- 3. สัญญา 'Reserved' (จอง) -> ห้องเป็น 'reserved'
+    ELSEIF NEW.Status = 'Reserved' AND OLD.Status != 'Reserved' THEN
+        UPDATE Room SET Status = 'reserved' WHERE Id = NEW.RoomId;
+    END IF;
+END //
+
+DELIMITER ;
+
+------------------------------------------------------------------------------------
+DELIMITER //
+
+CREATE TRIGGER after_contract_insert
+AFTER INSERT ON Contract
+FOR EACH ROW
+BEGIN
+    IF NEW.Status = 'Active' THEN
+        UPDATE Room SET Status = 'occupied' WHERE Id = NEW.RoomId;
+    ELSEIF NEW.Status = 'Reserved' THEN
+        UPDATE Room SET Status = 'reserved' WHERE Id = NEW.RoomId;
+    END IF;
+END //
+
+DELIMITER ;
+************************************************************************************
+************************************************************************************

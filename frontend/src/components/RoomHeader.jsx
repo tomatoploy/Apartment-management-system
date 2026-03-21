@@ -7,6 +7,7 @@ const RoomHeader = ({ roomNumber, children }) => {
 
   const menuItems = [
     { id: "main", label: "หน้าหลัก", path: `/rooms/${roomNumber}` },
+    { id: "contract", label: "สัญญา", path: `/rooms/contract/${roomNumber}` },
     { id: "bill", label: "บิล", path: `/rooms/billings/${roomNumber}` },
     { id: "request", label: "การแจ้ง", path: `/rooms/request/${roomNumber}` },
     { id: "moveout", label: "การย้ายออก", path: `/rooms/move-out/${roomNumber}` },

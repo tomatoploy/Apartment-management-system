@@ -43,9 +43,9 @@ public partial class DormitoryDbContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         //ploy
-        // => optionsBuilder.UseMySql("server=localhost;port=3306;user=root;password=Surawee2545;database=Dormitory", Microsoft.EntityFrameworkCore.ServerVersion.Parse("11.8.2-mariadb"));
+        => optionsBuilder.UseMySql("server=localhost;port=3306;user=root;password=Surawee2545;database=Dormitory", Microsoft.EntityFrameworkCore.ServerVersion.Parse("11.8.2-mariadb"));
         //nn
-        => optionsBuilder.UseMySql("server=100.71.138.33;port=3306;user=nongnut;password=Password123!;database=Dormitory", Microsoft.EntityFrameworkCore.ServerVersion.Parse("11.8.2-mariadb"));
+        // => optionsBuilder.UseMySql("server=100.71.138.33;port=3306;user=nongnut;password=Password123!;database=Dormitory", Microsoft.EntityFrameworkCore.ServerVersion.Parse("11.8.2-mariadb"));
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
@@ -114,7 +114,7 @@ public partial class DormitoryDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("PRIMARY");
 
             entity.Property(e => e.Id).HasColumnType("int(10) unsigned");
-            entity.Property(e => e.Category).HasColumnType("enum('service','utility','facility','maintenance','penalty','other')");
+            entity.Property(e => e.Category).HasColumnType("enum('service','utility','facility','maintenance','penalty','property','other')");
             entity.Property(e => e.Cost).HasPrecision(20, 3);
             entity.Property(e => e.Note).HasColumnType("text");
             entity.Property(e => e.Subject).HasMaxLength(50);
@@ -138,8 +138,7 @@ public partial class DormitoryDbContext : DbContext
             entity.Property(e => e.MonthlyRent).HasColumnType("decimal(20,3) unsigned");
             entity.Property(e => e.RoomId).HasColumnType("int(10) unsigned");
             entity.Property(e => e.Status)
-                .HasDefaultValueSql("'Pending'")
-                .HasColumnType("enum('Reserved','Pending','Active','Terminated','Expired')");
+                .HasColumnType("enum('Reserved','cancle','Active','Terminated','Expired')");
             entity.Property(e => e.TenantId).HasColumnType("int(10) unsigned");
 
             entity.HasOne(d => d.Room).WithMany(p => p.Contract)
@@ -200,7 +199,7 @@ public partial class DormitoryDbContext : DbContext
 
             entity.Property(e => e.Id).HasColumnType("int(10) unsigned");
             entity.Property(e => e.AdditionalCost).HasPrecision(20, 3);
-            entity.Property(e => e.AdditionalDetail).HasMaxLength(50);
+            entity.Property(e => e.AdditionalDetail).HasMaxLength(500);
             entity.Property(e => e.AdminId).HasColumnType("int(10) unsigned");
             entity.Property(e => e.ContractId).HasColumnType("int(10) unsigned");
             entity.Property(e => e.DiscountCost).HasPrecision(20, 3);
@@ -214,7 +213,7 @@ public partial class DormitoryDbContext : DbContext
             entity.Property(e => e.RoomRate).HasPrecision(20, 3);
             entity.Property(e => e.Status)
                 .HasDefaultValueSql("'unpaid'")
-                .HasColumnType("enum('paid','unpaid','overdue','longOverdue')");
+                .HasColumnType("enum('paid','unpaid')");
             entity.Property(e => e.TotalAmount).HasPrecision(20, 3);
             entity.Property(e => e.WaterPricePerUnit).HasPrecision(20, 3);
 

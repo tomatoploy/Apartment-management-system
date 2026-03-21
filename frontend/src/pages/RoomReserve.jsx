@@ -1,20 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  UserPlus,
-  Plus,
-  User,
-  Phone,
-  IdCard,
-  Calendar,
-  MapPin,
-  Home,
-  Wallet,
-  Trash2,
-  Pencil,
-  Save,
-  X,
-} from "lucide-react";
+import { UserPlus, Plus, User, Phone, IdCard, Calendar, MapPin, Home, Wallet, Trash2, Pencil, Save, X, FileSignature } from "lucide-react";
 
 // Components
 import RoomHeader from "../components/RoomHeader";
@@ -25,24 +11,18 @@ import {
 } from "../components/ActionButtons";
 import { DateInput } from "../components/DateController";
 
-/* ================= Styled Components (ตามที่คุณระบุ) ================= */
+// API Services
+import { tenantService } from "../api/TenantApi";
+import { contractService } from "../api/ContractApi";
+import { roomService } from "../api/RoomApi";
+
 const FieldLabel = ({ children, required }) => (
   <label className="text-[13px] font-bold text-gray-500 mb-2 text-left block">
     {children} {required && <span className="text-red-500">*</span>}
   </label>
 );
 
-const FormInput = ({
-  label,
-  name,
-  value,
-  onChange,
-  type = "text",
-  required,
-  placeholder,
-  isFullWidth,
-  options,
-  disabled,
+const FormInput = ({ label, name, value, onChange, type = "text", required, placeholder, isFullWidth, options, disabled,
 }) => (
   <div
     className={`${isFullWidth ? "md:col-span-2" : "col-span-1"} flex flex-col`}
@@ -86,8 +66,6 @@ const SectionHeader = ({ title, icon: Icon }) => (
   </div>
 );
 
-
-
 /* ================= Main Component ================= */
 const RoomReserve = () => {
   const { roomNumber } = useParams();
@@ -96,7 +74,12 @@ const RoomReserve = () => {
   // State สำหรับจัดการโหมดและข้อมูล
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [reserveData, setReserveData] = useState(null); // จำลองว่าห้องนี้มีการจองหรือไม่
+  const [reserveData, setReserveData] = useState(null);
+
+  //ID ของ Contract และ Tenant ที่ดึงมาจาก API เพื่อใช้ตอนอัปเดต
+  const [currentContractId, setCurrentContractId] = useState(null);
+  const [currentTenantId, setCurrentTenantId] = useState(null);
+  const [currentRoomId, setCurrentRoomId] = useState(null);
 
   // State สำหรับ Form
   const initialForm = {
@@ -116,64 +99,164 @@ const RoomReserve = () => {
   };
   const [formData, setFormData] = useState(initialForm);
 
-  // --- 4. Mock Data Logic (จำลองการดึงข้อมูล) ---
-  useEffect(() => {
-    // สมมติว่าห้อง 201 มีข้อมูลการจองอยู่แล้วเพื่อทดสอบโหมดแสดงผล/แก้ไข
-    if (roomNumber === "201" && !isAdding) {
-      const mockData = {
-        title: "นาย",
-        firstName: "สมชาย",
-        lastName: "สายลม",
-        phone: "0811234567",
-        nationalId: "1123456789001",
-        birthDate: "1990-01-01",
-        addressNo: "123/4 ม.5",
-        subDistrict: "สุเทพ",
-        district: "เมือง",
-        province: "เชียงใหม่",
-        zipCode: "50200",
-        checkInDate: "2026-03-01",
-        deposit: "5000",
-      };
-      setReserveData(mockData);
-      setFormData(mockData);
+// --- ดึงข้อมูลการจองจาก API ---
+useEffect(() => {
+  const fetchReservation = async () => {
+    try {
+      const allRooms = await roomService.getRoomOverview();
+      const targetRoom = allRooms.find(r => String(r.roomNumber) === String(roomNumber));
+      
+      if (!targetRoom) {
+        console.log("หาข้อมูลห้องไม่พบ");
+        return; 
+      }
+      
+      const actualRoomId = targetRoom.roomId || targetRoom.id;
+      setCurrentRoomId(actualRoomId); 
+
+      const allContracts = await contractService.getAllContracts();
+      const reservedContract = allContracts.find(
+        c => c.roomId === actualRoomId && c.status === "Reserved" 
+      );
+
+      if (reservedContract) {
+        const tenant = await tenantService.getTenant(reservedContract.tenantId);
+        
+        setCurrentContractId(reservedContract.id);
+        setCurrentTenantId(tenant.id);
+        
+        const mappedData = {
+          title: tenant.title,
+          firstName: tenant.firstName,
+          lastName: tenant.lastName,
+          phone: tenant.phone,
+          nationalId: tenant.nin,
+          birthDate: tenant.birthDate ? tenant.birthDate.split('T')[0] : "",
+          addressNo: tenant.address, 
+          checkInDate: reservedContract.startDate ? reservedContract.startDate.split('T')[0] : "",
+          deposit: reservedContract.deposit?.toString() || "0",
+        };
+
+        setReserveData(mappedData);
+        setFormData(mappedData);
+      } else {
+        setReserveData(null);
+      }
+    } catch (error) {
+      console.error("Error fetching reservation:", error);
     }
-  }, [roomNumber, isAdding]);
+  };
+
+  fetchReservation();
+}, [roomNumber, isAdding]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = () => {
+  // --- บันทึกข้อมูล (POST / PUT) ---
+  const handleSave = async () => {
     if (!formData.firstName) return alert("กรุณากรอกชื่อผู้จอง");
-    setReserveData(formData);
-    setIsAdding(false);
-    setIsEditing(false);
+
+    try {
+      const fullAddress = [
+        formData.addressNo, 
+        formData.subDistrict ? `ต.${formData.subDistrict}` : "", 
+        formData.district ? `อ.${formData.district}` : "", 
+        formData.province ? `จ.${formData.province}` : "", 
+        formData.zipCode
+      ].filter(Boolean).join(" ");
+
+      const tenantPayload = {
+        Nin: formData.nationalId || null,
+        Title: formData.title,
+        FirstName: formData.firstName,
+        LastName: formData.lastName,
+        Phone: formData.phone || null,
+        Address: fullAddress || null, 
+        BirthDate: formData.birthDate ? formData.birthDate : null, 
+      };
+
+      let savedTenantId = currentTenantId;
+
+      if (isAdding) {
+        const newTenant = await tenantService.postTenant(tenantPayload);
+        savedTenantId = newTenant.id;
+
+        const contractPayload = {
+          RoomId: currentRoomId,
+          TenantId: savedTenantId,
+          Status: "Reserved",
+          StartDate: formData.checkInDate,
+          EndDate: null, 
+          Deposit: parseInt(formData.deposit) || 0,
+        };
+        await contractService.postContract(contractPayload);
+        alert("เพิ่มการจองสำเร็จ");
+
+      } else if (isEditing) {
+        await tenantService.putTenant(currentTenantId, tenantPayload);
+        
+        const existingContract = await contractService.getContract(currentContractId);
+        await contractService.putContract(currentContractId, {
+          ...existingContract, 
+          StartDate: formData.checkInDate,
+          Deposit: parseInt(formData.deposit) || 0,
+        });
+        alert("อัปเดตข้อมูลสำเร็จ");
+      }
+
+      setReserveData(formData);
+      setIsAdding(false);
+      setIsEditing(false);
+      const refreshData = async () => {
+        await fetchReservation();
+      };
+
+      await refreshData();
+
+    } catch (error) {
+      console.error("Save error:", error);
+      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+    }
   };
 
-  const handleDelete = () => {
-    if (window.confirm("คุณต้องการลบข้อมูลการจองนี้ใช่หรือไม่?")) {
-      setReserveData(null);
-      setFormData(initialForm);
+  const handleDelete = async () => {
+    if (window.confirm("คุณต้องการยกเลิกการจองนี้ใช่หรือไม่? ข้อมูลจะถูกเปลี่ยนสถานะเป็น 'ยกเลิก'")) {
+      try {
+        const existingContract = await contractService.getContract(currentContractId);
+        
+        await contractService.putContract(currentContractId, {
+          ...existingContract,
+          Status: "Cancle" 
+        });
+
+        alert("ยกเลิกการจองเรียบร้อยแล้ว");
+        setReserveData(null);
+        setFormData(initialForm);
+        window.location.reload(); 
+      } catch (error) {
+        console.error("Cancel error:", error);
+        alert("ยกเลิกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      }
     }
   };
 
   const handleNumberChange = (e, maxLength=null) => {
-  const { name, value } = e.target;
-  const onlyNums = value.replace(/[^0-9]/g, "");
-
-  // บังคับ maxLength
-  if (onlyNums.length <= maxLength) {
-    setFormData((prev) => ({ ...prev, [name]: onlyNums }));
-  }
-};
+    const { name, value } = e.target;
+    const onlyNums = value.replace(/[^0-9]/g, "");
+    if (maxLength && onlyNums.length <= maxLength) {
+      setFormData((prev) => ({ ...prev, [name]: onlyNums }));
+    } else if (!maxLength) {
+      setFormData((prev) => ({ ...prev, [name]: onlyNums }));
+    }
+  };
 
   return (
     <div>
       <RoomHeader roomNumber={roomNumber}>
         <div className="max-w-4xl mx-auto pb-10">
-          {/* 2. กรณีไม่มีการจอง หน้าหลัก และ ไม่ได้อยู่ในโหมดเพิ่มข้อมูล */}
           {!reserveData && !isAdding ? (
             <div className="py-24 flex flex-col items-center justify-center text-center  bg-gray-50 rounded-3xl border border-gray-200 mt-4 max-w-4xl mx-auto">
               <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-gray-400 mb-3 border border-dashed border-gray-300">
@@ -190,11 +273,8 @@ const RoomReserve = () => {
             </div>
           ) : (
             <div className="bg-white rounded-3xl w-full max-w-4xl mx-auto flex flex-col overflow-hidden border border-gray-200 shadow-sm mt-4 h-[600px] md:h-[450px]">
-              {/* 3 & 4. ส่วนหัวแบบ Fixed/Sticky */}
-
-              {/* Sticky Header: จะติดอยู่ขอบบนเสมอเมื่อ Scroll */}
+              
               <div className="sticky top-0 z-30 p-5 md:p-6 border-b border-gray-200 flex items-center justify-between bg-white/95 backdrop-blur-sm rounded-t-3xl">
-                {/* ส่วนซ้าย: หัวข้อ */}
                 <div className="min-w-0">
                   <h2 className="text-lg md:text-xl font-black text-gray-700 flex items-center gap-3">
                     <div className="hidden md:flex w-10 h-10 bg-[#f3a638] rounded-xl items-center justify-center text-white shadow-sm shrink-0">
@@ -208,10 +288,8 @@ const RoomReserve = () => {
                   </h2>
                 </div>
 
-                {/* ส่วนขวา: เปลี่ยนปุ่มตามโหมด */}
                 <div className="flex items-center gap-2 shrink-0">
                   {isAdding || isEditing ? (
-                    // ✅ โหมด Edit/Add: แสดงปุ่ม ยกเลิก และ บันทึก ไว้ด้านบนแทน
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => {
@@ -231,9 +309,20 @@ const RoomReserve = () => {
                       <ExitButton onClick={() => navigate(-1)} />
                     </div>
                   ) : (
-                    // ✅ โหมดปกติ: แสดงปุ่ม แก้ไข, ลบ และ Exit
+                    // ✅ โหมดปกติ: แสดงปุ่ม ทำสัญญา, แก้ไข, ลบ และ Exit
                     <div className="flex items-center gap-1 md:gap-2">
-                      <div className="flex gap-1 border-r pr-2 mr-1 md:mr-2 border-gray-100">
+                      
+                      {/* ✨ ปุ่มทำสัญญา (แก้ Syntax ตรงนี้แล้ว) */}
+                      <button
+                        onClick={() => navigate(`/rooms/contract/${roomNumber}`, { state: { autoEdit: true } })}
+                        className="flex items-center gap-2 p-2 px-4 bg-green-100 text-green-700 hover:bg-green-200 rounded-xl font-bold transition-colors text-sm"
+                        title="ทำสัญญา"
+                      >
+                        <FileSignature size={18} />
+                        <span className="hidden md:inline">ทำสัญญา</span>
+                      </button>
+
+                      <div className="flex gap-1 border-r pr-2 mr-1 md:mr-2 border-gray-100 ml-1">
                         <button
                           onClick={() => setIsEditing(true)}
                           className="p-2 text-orange-400 hover:bg-orange-50 rounded-xl transition-colors"
@@ -258,7 +347,6 @@ const RoomReserve = () => {
               <div className="flex-1 overflow-y-auto px-8 md:px-10 custom-scrollbar ">
                 {" "}
                 {isAdding || isEditing ? (
-                  /* --- Form Mode --- */
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-15">
                     <SectionHeader title="รายละเอียดการจอง" icon={Home} />
                     <FormInput
@@ -280,8 +368,9 @@ const RoomReserve = () => {
                       label="ค่ามัดจำ (บาท)"
                       name="deposit"
                       value={formData.deposit}
-                      onChange={handleInputChange}
-                      type="number"
+                      onChange={(e) => handleNumberChange(e, 7)} 
+                      type="text" 
+                      inputMode="numeric" 
                     />
 
                     <SectionHeader title="ข้อมูลผู้จอง" icon={User} />
@@ -365,7 +454,6 @@ const RoomReserve = () => {
                     />
                   </div>
                 ) : (
-                  /* --- View Mode --- */
                   <div className="space-y-8 px-2 md:px-10 mt-10">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div className="space-y-5">
@@ -399,7 +487,7 @@ const RoomReserve = () => {
                         />
                         <InfoBox
                           label="ที่อยู่"
-                          value={`${reserveData.addressNo} ต.${reserveData.subDistrict} อ.${reserveData.district} จ.${reserveData.province} ${reserveData.zipCode}`}
+                          value={reserveData.addressNo}
                           icon={<MapPin size={18} />}
                         />
                       </div>
@@ -415,10 +503,9 @@ const RoomReserve = () => {
   );
 };
 
-// Component ย่อยสำหรับการแสดงข้อมูล (สไตล์ RoomDetail)
 const InfoBox = ({ label, value, icon, color = "text-gray-700" }) => (
   <div className="flex items-start gap-4">
-      <div className="flex justify-center items-center mt-1 text-orange-400 w-8 h-8 rounded-xl  bg-gray-50">
+    <div className="flex justify-center items-center mt-1 text-orange-400 w-8 h-8 rounded-xl bg-gray-50">
       {icon}
     </div>
     <div>
