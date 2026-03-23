@@ -49,13 +49,13 @@ const Settings = () => {
       path: "/settings/admin",
       icon: <User size={22} />,
     },
-    // {
-    //   id: 6,
-    //   title: "ตั้งค่าการเข้าถึงของแอดมิน",
-    //   description: "กำหนดสิทธิ์การใช้งานของผู้ดูแลระบบ",
-    //   path: "",
-    //   icon: <ShieldCheck size={22} />,
-    // },
+    {
+      id: 6,
+      title: "ตั้งค่าการเข้าถึงของแอดมิน",
+      description: "กำหนดสิทธิ์การใช้งานของผู้ดูแลระบบ",
+      path: "/settings/admin-access",
+      icon: <ShieldCheck size={22} />,
+    },
   ];
 
   return (

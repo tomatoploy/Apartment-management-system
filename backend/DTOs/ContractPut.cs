@@ -22,6 +22,6 @@ namespace Dormitory.DTOs
 
         public uint? InitialWaterUnit { get; set; }
 
-        public string? AttachedFile { get; set; }
+        public string? Note { get; set; }
     }
 }

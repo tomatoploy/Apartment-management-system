@@ -126,7 +126,7 @@ const CheckoutConfirmModal = ({
           {mode !== "absconded" && (
             <div className="bg-gray-100 p-6 rounded-[28px] border-2 border-dashed border-gray-200">
                 <label className="text-sm font-black text-gray-600 flex items-center gap-2 mb-3 px-1">
-                    <Banknote size={18} className="text-orange-500"/> ยอดเงินที่ {isRefund ? 'จ่ายคืน' : 'รับชำระ'} จริง
+                    <Banknote size={18} className="text-orange-500"/> ยอดเงินที่{isRefund ? 'จ่ายคืน' : 'รับชำระ'}จริง
                 </label>
                 <div className="relative">
                     <input 
@@ -281,7 +281,7 @@ const CheckoutManager = () => {
       if (activeContract.deposit && Number(activeContract.deposit) > 0) {
         setDeposits([{
           id: "dep-main",
-          label: "เงินประกันความเสียหาย",
+          label: "เงินประกัน",
           amount: Number(activeContract.deposit),
         }]);
       }
@@ -357,7 +357,7 @@ const CheckoutManager = () => {
         Deposit: Number(contract.deposit || contract.Deposit || 0),
         InitialElectricUnit: contract.initialElectricUnit || contract.InitialElectricUnit || 0,
         InitialWaterUnit: contract.initialWaterUnit || contract.InitialWaterUnit || 0,
-        AttachedFile: contract.attachedFile || contract.AttachedFile || null
+        Note: contract.Note || contract.Note || null
       };
       await contractService.putContract(contractId, cleanContract);
       

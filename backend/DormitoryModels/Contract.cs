@@ -28,7 +28,7 @@ public partial class Contract
     /// <summary>
     /// save a name of file
     /// </summary>
-    public string? AttachedFile { get; set; }
+    public string? Note { get; set; }
 
     public virtual ICollection<Payment> Payment { get; set; } = new List<Payment>();
 
