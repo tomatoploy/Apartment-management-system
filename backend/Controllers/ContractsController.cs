@@ -54,7 +54,7 @@ public class ContractsController : ControllerBase
             Deposit = dto.Deposit,
             InitialElectricUnit = dto.InitialElectricUnit,
             InitialWaterUnit = dto.InitialWaterUnit,
-            AttachedFile = dto.AttachedFile
+            Note = dto.Note
         };
 
         _db.Contract.Add(contract);
@@ -79,7 +79,7 @@ public class ContractsController : ControllerBase
         contract.Deposit = dto.Deposit;
         contract.InitialElectricUnit = dto.InitialElectricUnit;
         contract.InitialWaterUnit = dto.InitialWaterUnit;
-        contract.AttachedFile = dto.AttachedFile;
+        contract.Note = dto.Note;
  
         await _db.SaveChangesAsync();
  

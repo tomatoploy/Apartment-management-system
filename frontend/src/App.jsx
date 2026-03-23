@@ -24,6 +24,7 @@ import RoomMoveOut from "./pages/RoomMoveOut";
 import ContractSetting from "./pages/ContractSetting";
 import DocumentPreview from "./pages/DocumentPreview";
 import RoomContract from "./pages/RoomContract";
+import AdminAccessSetting from "./pages/AdminAccessSetting";
 
 // import RoomsFilter from "./pages/Rooms-filterModal";
 
@@ -219,6 +220,14 @@ function App() {
         element={
           <Layout>
             <ContractSetting />
+          </Layout>
+        }
+      />
+      <Route
+        path="/settings/admin-access"
+        element={
+          <Layout>
+            <AdminAccessSetting />
           </Layout>
         }
       />

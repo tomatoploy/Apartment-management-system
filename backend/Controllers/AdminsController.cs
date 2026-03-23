@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Dormitory.DTOs;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Dormitory.Controllers;
 
@@ -35,6 +34,17 @@ public class AdminsController : ControllerBase
         return (Convert.ToBase64String(hashBytes), salt);
     }
 
+    // 🌟 1. เพิ่ม GetAll สำหรับดึงรายชื่อไปแสดงและค้นหาเบอร์โทร
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<object>>> GetAll()
+    {
+        var admins = await _db.Admin
+            .Select(a => new { a.Id, a.Title, a.FirstName, a.LastName, a.Phone, a.Email, a.IsDisabled })
+            .ToListAsync();
+        
+        return Ok(admins);
+    }
+
     [HttpGet]
     [Route("{Id}")]
     public async Task<ActionResult<Admin>> GetAdmin(uint id)
@@ -54,21 +64,12 @@ public class AdminsController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        //เช็ก Email / Phone ซ้ำ
+        // เช็ก Email / Phone ซ้ำ
         var existingAdmin = await _db.Admin.FirstOrDefaultAsync(a =>
             a.Phone == p.Phone ||
             (p.Email != null && a.Email == p.Email)
         );
         
-        // if (existingAdmin != null)
-        // {
-        //     //ซ้ำ = เปิดใช้งาน account เดิม
-        //     existingAdmin.IsDisabled = 0;
-
-        //     await _db.SaveChangesAsync();
-        //     return Ok(new {message = "Admin already exists, account re-activated",id = existingAdmin.Id});
-        // }
-
         if (existingAdmin != null)
         {
             if (existingAdmin.IsDisabled == 1)
@@ -125,8 +126,15 @@ public class AdminsController : ControllerBase
 
     [HttpPut]
     [Route("{Id}")]
-    public async Task<IActionResult> Put(uint id, [FromBody] DTOs.PutAdmin p)
+    // 🌟 2. เพิ่มพารามิเตอร์ requesterId เพื่อเช็คสิทธิ์การแก้ไข
+    public async Task<IActionResult> Put(uint id, [FromBody] DTOs.PutAdmin p, [FromQuery] uint requesterId)
     {
+        // ล็อกไม่ให้แก้ไขข้อมูลคนอื่น
+        if (id != requesterId)
+        {
+            return StatusCode(403, new { message = "คุณไม่มีสิทธิ์แก้ไขข้อมูลของผู้ดูแลระบบท่านอื่น" });
+        }
+
         var admin = await _db.Admin.FirstOrDefaultAsync(a => a.Id == id && a.IsDisabled == 0);
 
         if (admin == null)
@@ -148,7 +156,7 @@ public class AdminsController : ControllerBase
         admin.Email = p.Email;
         admin.Signature = p.Signature;
         
-        //เปลี่ยนรหัสผ่านเฉพาะตอนที่ส่งมา
+        // เปลี่ยนรหัสผ่านเฉพาะตอนที่ส่งมา
         if (!string.IsNullOrWhiteSpace(p.Password))
         {
             var (hash, salt) = HashPassword(p.Password);
@@ -161,6 +169,18 @@ public class AdminsController : ControllerBase
         return Ok(new { message = "Updated successfully", id = admin.Id });
     }
 
+    // 🌟 3. เพิ่ม Endpoint สำหรับเปิด-ปิดการใช้งาน (ใช้ร่วมกับหน้าจัดสิทธิ์ได้)
+    [HttpPatch("{id}/status")]
+    public async Task<IActionResult> UpdateStatus(uint id, [FromBody] bool isDisabled)
+    {
+        var admin = await _db.Admin.FindAsync(id);
+        if (admin == null) return NotFound();
+
+        admin.IsDisabled = (byte)(isDisabled ? 1 : 0);
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "Status updated successfully" });
+    }
+
     [HttpDelete]
     [Route("{Id}")]
     public async Task<IActionResult> DeleteAdmin(uint id)
@@ -170,7 +190,7 @@ public class AdminsController : ControllerBase
         if (admin == null)
             return NotFound(new { message = "Admin not found" });
 
-        //ลบ permission ของ admin คนนี้ทั้งหมด
+        // ลบ permission ของ admin คนนี้ทั้งหมด
         var permissions = await _db.Permission
             .Where(p => p.AdminId == id)
             .ToListAsync();

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom"; 
-import { Calendar, CreditCard, Edit3, Save, Zap, XCircle, FileText, UserX, FileSignature, Upload, Download, History, CheckCircle2, Clock } from "lucide-react";
+import { Calendar, CreditCard, Edit3, Save, Zap, Droplets, XCircle, FileText, UserX, FileSignature, Upload, Download, History, CheckCircle2, Clock } from "lucide-react";
 import axios from "axios"; 
 
 import RoomHeader from "../components/RoomHeader";
@@ -11,6 +11,31 @@ import { toThaiDate } from "../components/DateController";
 import { roomService } from "../api/RoomApi";
 import { contractService } from "../api/ContractApi";
 import { tenantService } from "../api/TenantApi";
+import { constantService } from "../api/ConstantApi";
+
+/* ── Helpers: การอ่านค่าและดึง Tag จาก Note ────────────────── */
+const parseDefaultRentFromNote = (note) => {
+  if (!note) return null;
+  const match = note.match(/\{ค่าเช่า:\s*([\d,]+)฿?\}/);
+  if (!match) return null;
+  const num = Number(match[1].replace(/,/g, ""));
+  return isNaN(num) ? null : num;
+};
+
+const parseElecTag  = (note) => note?.match(/\{ใช้ไฟ:\s*([^}]+)\}/)?.[1]?.trim() ?? null;
+const parseWaterTag = (note) => note?.match(/\{ใช้น้ำ:\s*([^}]+)\}/)?.[1]?.trim() ?? null;
+const parseContractElecRate  = (note) => note?.match(/\{ค่าไฟ:\s*([\d.]+)\s*฿/)?.[1] ?? null;
+const parseContractWaterRate = (note) => note?.match(/\{ค่าน้ำ:\s*([\d.]+)\s*฿/)?.[1] ?? null;
+
+// ฟังก์ชันสำหรับล้าง Tag ออกจากข้อความ Note ก่อนแสดงผลให้ User ดู
+const cleanNoteForDisplay = (note) => {
+  if (!note) return "";
+  return note.replace(/\{ใช้ไฟ:[^}]+\}/g, "")
+             .replace(/\{ใช้น้ำ:[^}]+\}/g, "")
+             .replace(/\{ค่าไฟ:[^}]+\}/g, "")
+             .replace(/\{ค่าน้ำ:[^}]+\}/g, "")
+             .trim();
+};
 
 const RoomContract = () => {
   const { roomNumber } = useParams();
@@ -20,10 +45,21 @@ const RoomContract = () => {
   const [contract, setContract] = useState(null);
   const [historyContracts, setHistoryContracts] = useState([]); 
   const [roomId, setRoomId] = useState(null);
+  const [fullRoom, setFullRoom] = useState(null); // เก็บ Room Object เต็มๆ สำหรับอัปเดต
+  const [rawRoomNote, setRawRoomNote] = useState(""); 
+  const [defaultRentFromRoom, setDefaultRentFromRoom] = useState(null); 
   
   const [isEditing, setIsEditing] = useState(false);
   const [isRenewing, setIsRenewing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // States สำหรับ อัตราค่าน้ำ-ไฟ
+  const [elecConst, setElecConst] = useState(null);
+  const [waterConst, setWaterConst] = useState(null);
+  const [elecMode, setElecMode] = useState("constant"); // "constant" | "custom"
+  const [waterMode, setWaterMode] = useState("constant"); // "constant" | "custom"
+  const [elecRate, setElecRate] = useState("");
+  const [waterRate, setWaterRate] = useState("");
 
   const [formData, setFormData] = useState({
     startDate: "",
@@ -32,52 +68,94 @@ const RoomContract = () => {
     deposit: 0,
     initialElectricUnit: 0,
     initialWaterUnit: 0,
-    attachedFile: "", 
+    Note: "", 
   });
 
   const [selectedFile, setSelectedFile] = useState(null); 
 
-  // --- ดึงข้อมูลสัญญา ---
+  // --- ดึงข้อมูลสัญญาและ Constants ---
   const fetchContract = async () => {
     setIsLoading(true);
     try {
+      // 1. ดึง Constants
+      const constRes = await constantService.getConstants().catch(() => []);
+      const allConst = Array.isArray(constRes) ? constRes : (constRes.$values || constRes.data || []);
+      setElecConst(allConst.find(c => c.subject?.toLowerCase().includes("electricity") || c.subject?.includes("ไฟ")));
+      setWaterConst(allConst.find(c => c.subject?.toLowerCase().includes("water") || c.subject?.includes("น้ำ")));
+
+      // 2. ดึงข้อมูลห้อง
       const allRooms = await roomService.getRoomOverview();
       const targetRoom = allRooms.find(r => String(r.roomNumber) === String(roomNumber));
       if (!targetRoom) return setIsLoading(false);
       
+      setFullRoom(targetRoom);
       const rId = targetRoom.roomId || targetRoom.id;
       setRoomId(rId);
 
+      const note = targetRoom.note ?? targetRoom.Note ?? targetRoom.roomNote ?? "";
+      setRawRoomNote(note);
+      const defaultRent = parseDefaultRentFromNote(note);
+      setDefaultRentFromRoom(defaultRent);
+
+      // อ่าน Tag จากห้อง (ถ้ามี)
+      const rElec = parseElecTag(note);
+      const rWater = parseWaterTag(note);
+
+      // 3. ดึงสัญญา
       const allContracts = await contractService.getAllContracts();
       const roomContracts = allContracts.filter(c => c.roomId === rId);
 
-      // 1. หาสัญญาปัจจุบัน (Active หรือ Reserved)
-      const activeContract = roomContracts.find(c => c.status === "Active") || 
-                             roomContracts.find(c => c.status === "Reserved");
+      const activeContract = roomContracts.find(c => c.status === "Active") || roomContracts.find(c => c.status === "Reserved");
 
-      // 2. หาประวัติสัญญาเก่า (Expired, Cancle, Terminated) แล้วเรียงจากใหม่ไปเก่า
       let history = roomContracts
         .filter(c => c.status !== "Active" && c.status !== "Reserved")
         .sort((a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0));
       
       if (activeContract) {
-        // ✨ กรองเอาเฉพาะประวัติสัญญาเก่าที่เป็นของ "ผู้เช่าคนปัจจุบัน" เท่านั้น
         history = history.filter(c => c.tenantId === activeContract.tenantId);
-
         setContract(activeContract);
+
+        const rentValue = activeContract.monthlyRent || defaultRent || 0;
+        const cNote = activeContract.Note || activeContract.note || activeContract.attachedFile || "";
+
         setFormData({
           startDate: activeContract.startDate ? activeContract.startDate.split('T')[0] : "",
           endDate: activeContract.endDate ? activeContract.endDate.split('T')[0] : "",
-          monthlyRent: activeContract.monthlyRent || 0,
+          monthlyRent: rentValue,
           deposit: activeContract.deposit || 0,
           initialElectricUnit: activeContract.initialElectricUnit || 0,
           initialWaterUnit: activeContract.initialWaterUnit || 0,
-          attachedFile: activeContract.attachedFile || "",
+          Note: cleanNoteForDisplay(cNote), // นำ Tag ออกก่อนแสดงผลในช่อง Input Note
         });
+
+        // ✨ ตรวจสอบ Rate จาก Contract Note (มีคัสตอมไหม)
+        const cElec = parseContractElecRate(cNote);
+        const cWater = parseContractWaterRate(cNote);
+
+        if (cElec) {
+          setElecMode("custom");
+          setElecRate(cElec);
+        } else {
+          setElecMode("constant");
+          setElecRate("");
+        }
+
+        if (cWater) {
+          setWaterMode("custom");
+          setWaterRate(cWater);
+        } else {
+          setWaterMode("constant");
+          setWaterRate("");
+        }
 
         if (location.state?.autoEdit || activeContract.status === "Reserved") {
           setIsEditing(true);
         }
+      } else if (defaultRent) {
+        setFormData(prev => ({ ...prev, monthlyRent: defaultRent }));
+        // ถ้าไม่มีสัญญา ให้อิงตาม Note ห้อง
+        setElecMode(rElec === "constant" ? "constant" : "custom");
+        setWaterMode(rWater === "constant" ? "constant" : "custom");
       }
 
       setHistoryContracts(history);
@@ -102,7 +180,7 @@ const RoomContract = () => {
     const file = e.target.files[0];
     if (file) {
       setSelectedFile(file);
-      setFormData(prev => ({ ...prev, attachedFile: file.name }));
+      setFormData(prev => ({ ...prev, Note: file.name }));
     }
   };
 
@@ -117,27 +195,30 @@ const RoomContract = () => {
         .sort((a, b) => new Date(b.recordDate) - new Date(a.recordDate));
       
       const latestMeter = roomMeters[0]; 
-      
+      const renewRent = contract.monthlyRent || defaultRentFromRoom || 0;
       const today = new Date().toISOString().split('T')[0];
+
       setFormData({
         startDate: today, 
         endDate: "", 
-        monthlyRent: contract.monthlyRent, 
+        monthlyRent: renewRent,
         deposit: contract.deposit, 
         initialElectricUnit: latestMeter ? latestMeter.electricityUnit : (contract.initialElectricUnit || 0),
         initialWaterUnit: latestMeter ? latestMeter.waterUnit : (contract.initialWaterUnit || 0),
-        attachedFile: "", 
+        Note: cleanNoteForDisplay(contract.Note || ""), 
       });
       setSelectedFile(null);
 
     } catch (error) {
       console.error("Error fetching latest meters:", error);
       alert("ไม่สามารถดึงข้อมูลมิเตอร์ล่าสุดได้ ระบบจะใช้ข้อมูลจากสัญญาเดิม");
+      const renewRent = contract.monthlyRent || defaultRentFromRoom || 0;
       setFormData({
         ...formData,
         startDate: new Date().toISOString().split('T')[0],
         endDate: "",
-        attachedFile: "",
+        monthlyRent: renewRent,
+        Note: cleanNoteForDisplay(contract.Note || ""),
       });
     }
   };
@@ -145,8 +226,36 @@ const RoomContract = () => {
   // --- บันทึกการแก้ไข / ต่อสัญญา ---
   const handleSave = async () => {
     try {
+      // 1. ประกอบ Tag ค่าน้ำ-ค่าไฟ เข้าไปใน Contract Note
+      let finalContractNote = formData.Note || "";
+      finalContractNote = finalContractNote.replace(/\{ค่าไฟ:[^}]+\}/g, "").replace(/\{ค่าน้ำ:[^}]+\}/g, "").trim();
+
+      if (elecMode === "custom" && elecRate) finalContractNote += ` {ค่าไฟ: ${elecRate}฿/หน่วย}`;
+      if (waterMode === "custom" && waterRate) finalContractNote += ` {ค่าน้ำ: ${waterRate}฿/หน่วย}`;
+      finalContractNote = finalContractNote.trim();
+
+      // 2. ประกอบ Tag ค่าน้ำ-ค่าไฟ เข้าไปใน Room Note
+      let finalRoomNote = rawRoomNote || "";
+      finalRoomNote = finalRoomNote.replace(/\{ใช้ไฟ:[^}]+\}/g, "").replace(/\{ใช้น้ำ:[^}]+\}/g, "").trim();
+
+      if (elecMode === "constant") finalRoomNote += ` {ใช้ไฟ: constant}`;
+      if (waterMode === "constant") finalRoomNote += ` {ใช้น้ำ: constant}`;
+      finalRoomNote = finalRoomNote.trim();
+
+      // บันทึก Note ห้อง ถ้าเปลี่ยนไปจากเดิม
+      if (fullRoom && finalRoomNote !== rawRoomNote) {
+        await roomService.updateRoom(fullRoom.roomId || fullRoom.id, {
+          id: fullRoom.roomId || fullRoom.id,
+          number: String(fullRoom.roomNumber),
+          building: fullRoom.roomBuilding || "",
+          floor: String(fullRoom.roomFloor || "1"),
+          status: fullRoom.roomStatus || "available",
+          note: finalRoomNote.substring(0, 500)
+        });
+      }
+
+      // บันทึกสัญญา
       if (isRenewing) {
-        // --- 🟢 กรณีต่อสัญญา ---
         await contractService.putContract(contract.id, { ...contract, status: "Expired" });
 
         const newContractPayload = {
@@ -159,7 +268,7 @@ const RoomContract = () => {
           Deposit: Number(formData.deposit),
           InitialElectricUnit: Number(formData.initialElectricUnit) || null,
           InitialWaterUnit: Number(formData.initialWaterUnit) || null,
-          AttachedFile: formData.attachedFile || null, 
+          Note: finalContractNote || null, 
         };
         await contractService.postContract(newContractPayload);
 
@@ -178,7 +287,6 @@ const RoomContract = () => {
         alert("ต่อสัญญาและบันทึกข้อมูลเรียบร้อยแล้ว!");
 
       } else {
-        // --- 🔵 กรณีแก้ไขสัญญาเดิม หรือ ทำสัญญาใหม่จากหน้าจอง ---
         const isFirstTimeMeter = 
           (!contract.initialElectricUnit && formData.initialElectricUnit > 0) || 
           (!contract.initialWaterUnit && formData.initialWaterUnit > 0);
@@ -192,7 +300,7 @@ const RoomContract = () => {
           deposit: Number(formData.deposit),
           initialElectricUnit: Number(formData.initialElectricUnit) || null,
           initialWaterUnit: Number(formData.initialWaterUnit) || null,
-          attachedFile: formData.attachedFile || null, 
+          Note: finalContractNote || null, 
         };
         
         await contractService.putContract(contract.id, updatedContract);
@@ -217,7 +325,7 @@ const RoomContract = () => {
       setIsRenewing(false);
       setSelectedFile(null);
       if (location.state?.autoEdit) {
-        window.history.replaceState({}, document.title) 
+        window.history.replaceState({}, document.title); 
       }
       fetchContract(); 
 
@@ -281,8 +389,9 @@ const RoomContract = () => {
                         } else {
                            setIsEditing(false); 
                            setIsRenewing(false); 
-                           setFormData({...contract, startDate: contract.startDate?.split('T')[0] || "", endDate: contract.endDate?.split('T')[0] || "", attachedFile: contract.attachedFile || ""}); 
+                           setFormData({...contract, startDate: contract.startDate?.split('T')[0] || "", endDate: contract.endDate?.split('T')[0] || "", Note: cleanNoteForDisplay(contract.Note || "")}); 
                            setSelectedFile(null); 
+                           fetchContract(); // Reset UI States
                         }
                       }} 
                       className="flex items-center gap-2 p-2 px-5 bg-gray-100 text-gray-500 rounded-xl font-bold hover:bg-gray-200 transition-all text-sm">
@@ -293,6 +402,8 @@ const RoomContract = () => {
               </div>
 
               <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                {/* Column 1 */}
                 <div className="space-y-6">
                   <h3 className="text-md font-bold text-[#f3a638] flex items-center gap-2 border-b pb-2">
                     <Calendar size={18} /> ระยะเวลาเช่า
@@ -306,7 +417,27 @@ const RoomContract = () => {
                     <CreditCard size={18} /> ค่าใช้จ่าย
                   </h3>
                   <div className="grid grid-cols-2 gap-4">
-                    <InputGroup label="ค่าเช่า (บาท/เดือน)" name="monthlyRent" type="number" value={formData.monthlyRent} onChange={handleChange} disabled={!isEditing} />
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[13px] font-bold text-gray-500 ml-1 flex items-center gap-1.5">
+                        ค่าเช่า (บาท/เดือน)
+                        {defaultRentFromRoom && (
+                          <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-600">
+                            default จากห้อง
+                          </span>
+                        )}
+                      </label>
+                      <input
+                        type="number"
+                        name="monthlyRent"
+                        value={formData.monthlyRent}
+                        onChange={handleChange}
+                        disabled={!isEditing}
+                        placeholder={defaultRentFromRoom ? `${defaultRentFromRoom.toLocaleString()} (default)` : ""}
+                        className={`w-full p-3 border rounded-xl font-medium focus:outline-none transition-all
+                          ${!isEditing ? "bg-gray-50 border-gray-100 text-gray-500 cursor-not-allowed" : "bg-white border-gray-300 text-gray-800 focus:border-[#f3a638] focus:ring-1 focus:ring-[#f3a638]"}
+                          ${isEditing && defaultRentFromRoom ? "border-amber-200" : ""}`}
+                      />
+                    </div>
                     <InputGroup label="เงินมัดจำ (บาท)" name="deposit" type="number" value={formData.deposit} onChange={handleChange} disabled={!isEditing} />
                   </div>
 
@@ -324,14 +455,14 @@ const RoomContract = () => {
                           </div>
                         </div>
                         <div className="text-center text-xs font-bold text-gray-400">หรือระบุ Path/URL ของไฟล์:</div>
-                        <input type="text" name="attachedFile" value={formData.attachedFile} onChange={handleChange} placeholder="/path/to/contract.pdf" className="w-full p-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#f3a638]" />
+                        <input type="text" name="Note" value={formData.Note} onChange={handleChange} placeholder="/path/to/contract.pdf" className="w-full p-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#f3a638]" />
                       </div>
                     ) : (
                       <div className="flex items-center justify-between p-3.5 bg-gray-50 border border-gray-200 rounded-xl">
                         <span className="text-sm font-bold text-gray-700 truncate w-3/4">
-                          {formData.attachedFile ? formData.attachedFile : "ไม่มีเอกสารแนบ"}
+                          {formData.Note ? formData.Note : "ไม่มีเอกสารแนบ"}
                         </span>
-                        {formData.attachedFile && (
+                        {formData.Note && (
                           <button className="p-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors" title="ดาวน์โหลด/ดูไฟล์">
                             <Download size={16} />
                           </button>
@@ -341,9 +472,54 @@ const RoomContract = () => {
                   </div>
                 </div>
 
+                {/* Column 2 */}
                 <div className="space-y-6">
+                  {/* ✨ ส่วนอัตราค่าน้ำ-ไฟ */}
                   <h3 className="text-md font-bold text-[#f3a638] flex items-center gap-2 border-b pb-2">
-                    <Zap size={18} /> มิเตอร์น้ำ-ไฟ เริ่มต้น
+                    <Zap size={18} /> อัตราค่าน้ำ-ไฟ (สำหรับห้องนี้)
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    {/* ค่าไฟ */}
+                    <div className={`p-4 rounded-2xl border transition-colors ${elecMode === 'custom' ? 'bg-orange-50/50 border-orange-200' : 'bg-gray-50/50 border-gray-200'}`}>
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-sm font-black text-orange-600 flex items-center gap-1.5"><Zap size={14} fill="currentColor"/> อัตราค่าไฟฟ้า</span>
+                      </div>
+                      <div className="flex bg-white rounded-xl p-1 border border-gray-200 mb-3 shadow-sm">
+                         <button type="button" disabled={!isEditing} onClick={() => setElecMode('constant')} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${elecMode === 'constant' ? 'bg-orange-100 text-orange-700' : 'text-gray-400'}`}>เรทส่วนกลาง</button>
+                         <button type="button" disabled={!isEditing} onClick={() => setElecMode('custom')} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${elecMode === 'custom' ? 'bg-orange-100 text-orange-700' : 'text-gray-400'}`}>กำหนดเอง</button>
+                      </div>
+                      {elecMode === 'custom' ? (
+                         <div className="relative">
+                           <input disabled={!isEditing} type="number" min="0" step="0.5" value={elecRate} onChange={e => setElecRate(e.target.value)} placeholder="ระบุเรทราคาใหม่" className="w-full border border-gray-300 focus:border-orange-400 rounded-xl p-2.5 text-sm font-bold pr-16 outline-none disabled:bg-gray-100"/>
+                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">฿/หน่วย</span>
+                         </div>
+                      ) : (
+                         <p className="text-xs font-bold text-gray-500 text-center py-2.5 bg-white rounded-xl border border-gray-100">ใช้เรทส่วนกลางของหอพัก: {elecConst?.cost || "-"} ฿/หน่วย</p>
+                      )}
+                    </div>
+
+                    {/* ค่าน้ำ */}
+                    <div className={`p-4 rounded-2xl border transition-colors ${waterMode === 'custom' ? 'bg-blue-50/50 border-blue-200' : 'bg-gray-50/50 border-gray-200'}`}>
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-sm font-black text-blue-600 flex items-center gap-1.5"><Droplets size={14} fill="currentColor"/> อัตราค่าน้ำประปา</span>
+                      </div>
+                      <div className="flex bg-white rounded-xl p-1 border border-gray-200 mb-3 shadow-sm">
+                         <button type="button" disabled={!isEditing} onClick={() => setWaterMode('constant')} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${waterMode === 'constant' ? 'bg-blue-100 text-blue-700' : 'text-gray-400'}`}>เรทส่วนกลาง</button>
+                         <button type="button" disabled={!isEditing} onClick={() => setWaterMode('custom')} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${waterMode === 'custom' ? 'bg-blue-100 text-blue-700' : 'text-gray-400'}`}>กำหนดเอง</button>
+                      </div>
+                      {waterMode === 'custom' ? (
+                         <div className="relative">
+                           <input disabled={!isEditing} type="number" min="0" step="0.5" value={waterRate} onChange={e => setWaterRate(e.target.value)} placeholder="ระบุเรทราคาใหม่" className="w-full border border-gray-300 focus:border-blue-400 rounded-xl p-2.5 text-sm font-bold pr-16 outline-none disabled:bg-gray-100"/>
+                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">฿/หน่วย</span>
+                         </div>
+                      ) : (
+                         <p className="text-xs font-bold text-gray-500 text-center py-2.5 bg-white rounded-xl border border-gray-100">ใช้เรทส่วนกลางของหอพัก: {waterConst?.cost || "-"} ฿/หน่วย</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <h3 className="text-md font-bold text-[#f3a638] flex items-center gap-2 border-b pb-2 mt-8">
+                    <Clock size={18} /> มิเตอร์น้ำ-ไฟ เริ่มต้น
                   </h3>
                   <div className={`p-5 rounded-2xl border space-y-4 ${isRenewing ? "bg-green-50/50 border-green-100" : "bg-orange-50/50 border-orange-100"}`}>
                     <p className={`text-xs font-bold mb-4 ${isRenewing ? "text-green-600" : "text-orange-600"}`}>
@@ -394,8 +570,8 @@ const RoomContract = () => {
                             {hc.monthlyRent?.toLocaleString() || "0"} ฿
                           </td>
                           <td className="p-3 text-center">
-                            {hc.attachedFile ? (
-                              <button className="text-blue-500 hover:text-blue-700 mx-auto" title={hc.attachedFile}>
+                            {cleanNoteForDisplay(hc.Note) ? (
+                              <button className="text-blue-500 hover:text-blue-700 mx-auto" title={cleanNoteForDisplay(hc.Note)}>
                                 <FileText size={16} />
                               </button>
                             ) : "-"}

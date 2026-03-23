@@ -89,12 +89,12 @@ const fetchRoomDetail = async () => {
         );
 
         const mappedDocuments = tenantRoomContracts
-          .filter(c => c.attachedFile)
+          .filter(c => c.Note)
           .map((c, index) => ({
             id: c.id,
             name: `สัญญาเช่า_${roomNumber}_ฉบับที่${index + 1}`,
             date: c.startDate ? c.startDate.split('T')[0] : "-",
-            fileData: c.attachedFile
+            fileData: c.Note
           }));
 
         // Request

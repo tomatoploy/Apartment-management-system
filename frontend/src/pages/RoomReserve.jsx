@@ -99,8 +99,6 @@ const RoomReserve = () => {
   };
   const [formData, setFormData] = useState(initialForm);
 
-// --- ดึงข้อมูลการจองจาก API ---
-useEffect(() => {
   const fetchReservation = async () => {
     try {
       const allRooms = await roomService.getRoomOverview();
@@ -147,6 +145,8 @@ useEffect(() => {
     }
   };
 
+// --- ดึงข้อมูลการจองจาก API ---
+useEffect(() => {
   fetchReservation();
 }, [roomNumber, isAdding]);
 
@@ -155,6 +155,7 @@ useEffect(() => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // --- บันทึกข้อมูล (POST / PUT) ---
   // --- บันทึกข้อมูล (POST / PUT) ---
   const handleSave = async () => {
     if (!formData.firstName) return alert("กรุณากรอกชื่อผู้จอง");
@@ -168,57 +169,68 @@ useEffect(() => {
         formData.zipCode
       ].filter(Boolean).join(" ");
 
+      // ✨ ปรับ Payload ให้สะอาด (Clean)
+      // ฟิลด์ไหนว่างให้ส่งเป็น null เพื่อให้ .NET ทำงานได้ถูกต้อง
       const tenantPayload = {
         Nin: formData.nationalId || null,
-        Title: formData.title,
+        Title: formData.title || null,
         FirstName: formData.firstName,
-        LastName: formData.lastName,
+        LastName: formData.lastName || null,
         Phone: formData.phone || null,
         Address: fullAddress || null, 
+        // ⚠️ สำคัญมาก: ถ้าวันที่ว่างต้องส่ง null ห้ามส่ง ""
         BirthDate: formData.birthDate ? formData.birthDate : null, 
       };
 
-      let savedTenantId = currentTenantId;
-
       if (isAdding) {
+        // 1. สร้าง Tenant ใหม่
         const newTenant = await tenantService.postTenant(tenantPayload);
-        savedTenantId = newTenant.id;
-
+        
+        // 2. สร้าง Contract (Reserved)
         const contractPayload = {
-          RoomId: currentRoomId,
-          TenantId: savedTenantId,
+          RoomId: Number(currentRoomId),
+          TenantId: Number(newTenant.id),
           Status: "Reserved",
-          StartDate: formData.checkInDate,
+          StartDate: formData.checkInDate || new Date().toISOString().split('T')[0], // ป้องกันวันที่ว่าง
           EndDate: null, 
           Deposit: parseInt(formData.deposit) || 0,
         };
+        
         await contractService.postContract(contractPayload);
         alert("เพิ่มการจองสำเร็จ");
 
       } else if (isEditing) {
+        // แก้ไข Tenant
         await tenantService.putTenant(currentTenantId, tenantPayload);
         
+        // แก้ไข Contract
         const existingContract = await contractService.getContract(currentContractId);
         await contractService.putContract(currentContractId, {
           ...existingContract, 
-          StartDate: formData.checkInDate,
+          StartDate: formData.checkInDate || existingContract.startDate,
           Deposit: parseInt(formData.deposit) || 0,
         });
         alert("อัปเดตข้อมูลสำเร็จ");
       }
 
-      setReserveData(formData);
       setIsAdding(false);
       setIsEditing(false);
-      const refreshData = async () => {
-        await fetchReservation();
-      };
-
-      await refreshData();
+      await fetchReservation(); // ดึงข้อมูลใหม่
 
     } catch (error) {
-      console.error("Save error:", error);
-      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      console.error("Save error detail:", error);
+      
+      // ✨ วิธีดูว่า Server ฟ้องว่าผิดตรงไหน (สำคัญมาก!)
+      if (error.response && error.response.data) {
+        console.log("Validation Errors from Server:", error.response.data);
+        // ถ้ามีรายละเอียดข้อผิดพลาดจาก .NET เช่น "The Nin field is required"
+        const serverError = error.response.data.errors 
+          ? JSON.stringify(error.response.data.errors) 
+          : error.response.data;
+        alert("ข้อมูลไม่ถูกต้อง: " + serverError);
+      } else {
+        alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่ค่ะ");
+      }
     }
   };
 
@@ -408,6 +420,7 @@ useEffect(() => {
                       name="nationalId"
                       value={formData.nationalId}
                       onChange={(e) => handleNumberChange(e, 13)}
+                      required
                     />
                     <DateInput
                       label="วันเดือนปีเกิด"

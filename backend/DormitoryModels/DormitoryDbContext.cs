@@ -129,8 +129,8 @@ public partial class DormitoryDbContext : DbContext
             entity.HasIndex(e => e.TenantId, "TenantIdTContract");
 
             entity.Property(e => e.Id).HasColumnType("int(10) unsigned");
-            entity.Property(e => e.AttachedFile)
-                .HasMaxLength(50)
+            entity.Property(e => e.Note)
+                .HasMaxLength(500)
                 .HasComment("save a name of file");
             entity.Property(e => e.Deposit).HasColumnType("decimal(20,3) unsigned");
             entity.Property(e => e.InitialElectricUnit).HasColumnType("int(10) unsigned");
