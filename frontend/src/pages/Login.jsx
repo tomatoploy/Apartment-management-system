@@ -3,17 +3,16 @@ import { Phone, Lock, Loader2 } from "lucide-react";
 import logo from "../assets/AMS-logo.png";
 import { useNavigate } from "react-router-dom";
 import { adminService } from "../api/AdminApi";
-import { permissionService } from "../api/PermissionApi"; // 🌟 Import Permission Service เพิ่ม
+import { permissionService } from "../api/PermissionApi";
 
 const Login = () => {
-  const navigate = useNavigate();  //ใช้ Router
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     phone: "",
     password: ""
   });
   
-  // 🌟 เพิ่ม State สำหรับแสดงสถานะกำลังโหลด
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -26,7 +25,13 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true); // เริ่มหมุน Loading
+    
+    if (!formData.phone || !formData.password) {
+      alert("กรุณากรอกหมายเลขโทรศัพท์และรหัสผ่าน");
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
       const payload = {
@@ -34,38 +39,46 @@ const Login = () => {
         password: formData.password
       };
 
-      // 1. ตรวจสอบรหัสผ่าน (Login)
+      // 1. ตรวจสอบเบอร์โทรและรหัสผ่าน (Login)
       const res = await adminService.loginAdmin(payload); 
       
-      if (res.adminId) {
+      if (res && res.adminId) {
         try {
-          // 🌟 2. ตรวจสอบสิทธิ์การเข้าถึง (Permission)
-          const permissions = await permissionService.getPermissionsByAdmin(res.adminId);
+          // 2. ตรวจสอบสิทธิ์การเข้าถึง (Permission) ว่ามีสิทธิ์ในหอพักใดๆ หรือไม่
+          const permissionsRes = await permissionService.getPermissionsByAdmin(res.adminId);
           
-          // ถ้าไม่มีข้อมูลสิทธิ์ส่งกลับมา (เป็น null/undefined หรือ array ว่าง)
-          if (!permissions || permissions.length === 0) {
-            alert("บัญชีของคุณยังไม่ได้รับสิทธิ์เข้าใช้งานระบบหอพักนี้ กรุณาติดต่อผู้ดูแลระบบค่ะ");
-            setIsLoading(false);
-            return; // บล็อกไว้แค่นี้ ไม่ให้ไปหน้า dashboard
+          // ดึง Array สิทธิ์ออกมา (รองรับรูปแบบ response ที่ต่างกัน)
+          let permissions = [];
+          if (Array.isArray(permissionsRes)) {
+              permissions = permissionsRes;
+          } else if (permissionsRes && permissionsRes.$values) {
+              permissions = permissionsRes.$values;
+          } else if (permissionsRes && permissionsRes.data) {
+              permissions = Array.isArray(permissionsRes.data) ? permissionsRes.data : permissionsRes.data.$values || [];
           }
 
-          // 3. ผ่านทั้งคู่ -> เก็บ adminId ไว้ในเครื่อง
+          // 🌟 3. ตรวจสอบความถูกต้อง: ถ้าสิทธิ์เป็น Array ว่าง แปลว่าไม่มีสิทธิ์!
+          if (permissions.length === 0) {
+            alert("บัญชีของคุณยังไม่ได้รับสิทธิ์เข้าใช้งานระบบหอพักนี้ กรุณาติดต่อผู้ดูแลระบบค่ะ");
+            setIsLoading(false);
+            return; // ⛔️ หยุดการทำงานตรงนี้ ไม่ให้ไปต่อ!
+          }
+
+          // 4. มีสิทธิ์ครบถ้วน -> เก็บ adminId ไว้ในเครื่องแล้วไปหน้า Dashboard
           localStorage.setItem("adminId", res.adminId);
-          
-          console.log("login success:", res);
+          console.log("Login success! Permissions found:", permissions);
           navigate("/dashboard");
 
         } catch (permErr) {
-          // กรณี API คืนค่า 204 No Content (ไม่มีสิทธิ์) หรือ Error อื่นๆ
-          console.log("permission error:", permErr);
+          // กรณี API ยิงไปเช็ค Permission แล้วคืนค่า Error (เช่น 404, 204)
+          console.log("Permission check failed or empty:", permErr);
           alert("บัญชีของคุณยังไม่ได้รับสิทธิ์เข้าใช้งานระบบหอพักนี้ กรุณาติดต่อผู้ดูแลระบบค่ะ");
           setIsLoading(false);
-          return;
+          return; // ⛔️ หยุดการทำงานตรงนี้ ไม่ให้ไปต่อ!
         }
       }
     } catch (err) {
-      console.log("login error:", err.response?.data);
-      // แสดงข้อความ Error จาก API (ถ้ามี)
+      console.log("Login error:", err.response?.data);
       alert(err.response?.data?.message || "หมายเลขโทรศัพท์หรือรหัสผ่านไม่ถูกต้อง");
     } finally {
       setIsLoading(false);
@@ -73,11 +86,8 @@ const Login = () => {
   };
 
   return (
-    // 1. พื้นหลัง
     <div className="min-h-screen w-full flex items-center justify-center bg-[#FFEDD5] p-4">
-      {/* 2. กล่อง Login แบบกระจก (Glassmorphism) */}
       <div className="bg-white/90 backdrop-blur-sm w-full max-w-sm rounded-[40px] p-10 shadow-2xl flex flex-col items-center">
-        {/* 3. โลโก้ตึกและชื่อระบบ */}
         <div className="flex flex-col items-center mb-8 text-center">
           <div className="w-20 mb-2">
             <img src={logo} alt="AMS Logo" />
@@ -88,9 +98,7 @@ const Login = () => {
           </p>
         </div>
 
-        {/* 4. ฟอร์มกรอกข้อมูล */}
         <form className="w-full space-y-4" onSubmit={handleSubmit}>
-          {/* ช่องหมายเลขโทรศัพท์ */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Phone size={18} className="text-gray-400" />
@@ -105,7 +113,6 @@ const Login = () => {
             />
           </div>
 
-          {/* ช่องรหัสผ่าน */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Lock size={18} className="text-gray-400" />
@@ -121,21 +128,16 @@ const Login = () => {
             />
           </div>
 
-          {/* จดจำรหัสผ่าน และ ลืมรหัสผ่าน */}
           <div className="flex items-center justify-between px-1">
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" className="w-4 h-4 accent-orange-400" disabled={isLoading} />
               <span className="text-xs font-bold text-gray-500">จดจำการเข้าสู่ระบบ</span>
             </label>
-            <a
-              href="#"
-              className="text-xs font-bold text-gray-500 hover:text-orange-500 transition-colors"
-            >
+            <a href="#" className="text-xs font-bold text-gray-500 hover:text-orange-500 transition-colors">
               ลืมรหัสผ่าน ?
             </a>
           </div>
 
-          {/* 5. ปุ่มกด  */}
           <div className="pt-4 space-y-3">
             <button
               type="submit"

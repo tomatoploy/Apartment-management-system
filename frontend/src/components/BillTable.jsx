@@ -14,15 +14,15 @@ const BillTable = ({
 }) => {
   return (
     <>
- {/* แสดงเฉพาะ Table */}
+      {/* แสดงเฉพาะ Table */}
       <div className="overflow-x-auto rounded-3xl border border-gray-300 mb-8 max-w-4xl mx-auto ">
         <table className="w-full table-fixed">
           <thead className="bg-gray-200 text-gray-600">
             <tr>
               <th className="hidden md:table-cell p-4 w-12 text-center"></th>
               <th className="p-4 text-left">รายการ</th>
-              <th className="p-4 text-right w-24 md:w-32">จำนวนเงิน</th>
-              <th className="p-4 w-16 md:w-28 text-center">จัดการ</th>
+              <th className="p-4 text-right w-28 md:w-32">จำนวนเงิน</th>
+              <th className="p-4 w-20 md:w-28 text-center">จัดการ</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-300">
@@ -44,7 +44,7 @@ const BillTable = ({
                       rows={2}
                     />
                   ) : (
-                    <div className="whitespace-pre-wrap wrap-break-words text-gray-700 text-sm md:text-base leading-snug">
+                    <div className="whitespace-pre-wrap break-words text-gray-700 text-sm md:text-base leading-snug">
                       {getItemLabel(item, selectedDate)}
                     </div>
                   )}
@@ -54,21 +54,32 @@ const BillTable = ({
                   {editingId === item.id ? (
                     <input
                       type="number"
-                      value={Math.abs(form.amount)}
+                      value={Math.abs(form.amount)} // ตอนแก้ให้แสดงเป็นค่าบวกเสมอ
                       onChange={(e) => {
                         const v = Number(e.target.value);
                         setForm({
                           ...form,
-                          amount: item.type === "discount" ? -v : v,
+                          amount: item.type === "discount" ? -Math.abs(v) : Math.abs(v), // บังคับส่วนลดติดลบเสมอ
                         });
                       }}
                       className="w-full border border-gray-200 rounded-xl px-2 py-2 outline-none text-right text-sm focus:outline-none focus:border-[#f3a638] transition-all"
                     />
                   ) : (
+                    // ✨ Logic ใส่สี: ส่วนลด (เขียว), ค่าปรับ/เพิ่มเติม (แดง), ปกติ (เทา/ดำ)
                     <span
-                      className={`font-bold text-sm md:text-base ${item.amount < 0 ? "text-red-600" : "text-gray-700"}`}
+                      className={`font-bold text-sm md:text-base ${
+                        item.type === "discount"
+                          ? "text-green-600"
+                          : item.type === "other" ||
+                            item.type === "penalty" ||
+                            item.type === "damage" ||
+                            item.type === "asset"
+                          ? "text-red-500"
+                          : "text-gray-800"
+                      }`}
                     >
-                      {item.amount.toLocaleString()}
+                      {item.type === "discount" ? "-" : ""}
+                      {Math.abs(item.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </span>
                   )}
                 </td>
@@ -86,13 +97,13 @@ const BillTable = ({
                       <>
                         <button
                           onClick={() => startEdit(item)}
-                          className="p-1.5 bg-[#ffe3c2] rounded-lg text-orange-500 hover:bg-[#ffdaaf]"
+                          className="p-1.5 bg-[#ffe3c2] rounded-lg text-orange-500 hover:bg-[#ffdaaf] transition-colors"
                         >
                           <Pencil size={16} />
                         </button>
                         <button
                           onClick={() => deleteItem(item.id)}
-                          className="p-1.5 bg-red-100 rounded-lg text-red-500 hover:bg-red-200"
+                          className="p-1.5 bg-red-100 rounded-lg text-red-500 hover:bg-red-200 transition-colors"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -102,16 +113,18 @@ const BillTable = ({
                 </td>
               </tr>
             ))}
+            
+            {/* ส่วนสรุปยอดรวม */}
             <tr className="bg-gray-100 border-t border-gray-300">
               <td className="hidden md:table-cell p-4"></td>
-              <td className="p-4 text-right ">
-                รวม
+              <td className="p-4 text-right font-bold text-gray-700">
+                รวมยอดสุทธิ
               </td>
-              <td className="p-4 text-right">
-                <span className="text-[18px]  font-black text-blue-400">
-                  {total.toLocaleString()}
+              <td className="p-4 text-right whitespace-nowrap">
+                <span className="text-[18px] font-black text-blue-500">
+                  {total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
-                <span className="ml-5">
+                <span className="ml-2 font-bold text-gray-600">
                   บาท
                 </span>
               </td>
@@ -123,4 +136,5 @@ const BillTable = ({
     </>
   );
 };
+
 export default BillTable;
