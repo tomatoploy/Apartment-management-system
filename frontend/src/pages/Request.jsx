@@ -27,7 +27,7 @@ const STATUS_CONFIG = {
 
 const SORT_OPTIONS = {
   latest: { label: "เรียงตามวันที่ล่าสุด", value: "latest" },
-  room_asc: { label: "เรียงตามเลขห้อง (มาก → น้อย)", value: "room_asc" },
+  room_asc: { label: "เรียงตามเลขห้อง (น้อย → มาก)", value: "room_asc" },
   room_desc: { label: "เรียงตามเลขห้อง (มาก → น้อย)", value: "room_desc" },
 };
 

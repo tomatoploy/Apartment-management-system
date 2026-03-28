@@ -10,6 +10,12 @@ const adminApi = axios.create({
 });
 
 export const adminService = {
+    // 🌟 เพิ่มฟังก์ชันนี้เข้าไปครับ
+    getAll: async () => {
+        const response = await adminApi.get("/Admins");
+        return response.data;
+    },
+
     getAdmin: async (id) => {
         const response = await adminApi.get(`/Admins/${id}`);
         return response.data;

@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FilePlus, ChevronDown , Bell, Package, User, Phone, MessageSquare, Calendar, CreditCard, FileText, Plus, Trash2, ExternalLink, UserX, Edit3, AlertCircle, ShieldCheck, Car, Info, Mail, MapPin, HeartPulse, UserPlus,} from "lucide-react";
-
+import { 
+  FilePlus, ChevronDown, Bell, Package, User, Phone, MessageSquare, 
+  Calendar, CreditCard, FileText, Plus, Trash2, ExternalLink, UserX, 
+  Edit3, AlertCircle, ShieldCheck, Car, Info, Mail, MapPin, HeartPulse, 
+  UserPlus 
+} from "lucide-react";
 
 import { OrangeButton, ExitButton } from "../components/ActionButtons";
 import RoomHeader from "../components/RoomHeader";
@@ -9,15 +13,22 @@ import TenantInfoModal from "../components/TenantInfoModal";
 import { toThaiDate } from "../components/DateController";
 import ContractAlertBanner from "../components/ContractAlertBanner";
 
-// API Services (อย่าลืม import เข้ามานะคะ)
+// API Services
 import { roomService } from "../api/RoomApi";
 import { contractService } from "../api/ContractApi";
 import { tenantService } from "../api/TenantApi";
 import { requestService } from "../api/RequestApi"; 
 import { parcelService } from "../api/ParcelApi";
 
-//ดึง mock data
-import { initialContractTemplates} from "../data/contractData";
+// Helper function ช่วยสกัด Array จาก API 
+const extractArray = (res) => {
+  if (!res) return [];
+  if (Array.isArray(res)) return res;
+  if (res.$values) return res.$values;
+  if (res.data && Array.isArray(res.data)) return res.data;
+  if (res.data?.$values) return res.data.$values;
+  return [];
+};
 
 const RoomDetail = () => {
   const { roomNumber } = useParams();
@@ -25,14 +36,11 @@ const RoomDetail = () => {
   const [tenant, setTenant] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // --- ฟังก์ชันดึงข้อมูล (แยกออกมาเพื่อให้เรียกใช้ซ้ำได้ตอน Save) ---
-const fetchRoomDetail = async () => {
+  const fetchRoomDetail = async () => {
     setIsLoading(true);
     try {
-      // 1. หา ID ของห้องปัจจุบัน
-      const allRooms = await roomService.getRoomOverview();
+      const allRooms = extractArray(await roomService.getRoomOverview());
       const targetRoom = allRooms.find(r => String(r.roomNumber) === String(roomNumber));
       
       if (!targetRoom) {
@@ -43,14 +51,12 @@ const fetchRoomDetail = async () => {
       
       const actualRoomId = targetRoom.roomId || targetRoom.id;
 
-      // 2. หาสัญญาของห้องนี้ ที่สถานะเป็น "Active" หรือ "Expired"
-      const allContracts = await contractService.getAllContracts();
+      const allContracts = extractArray(await contractService.getAllContracts());
       const relevantContracts = allContracts.filter(
         c => c.roomId === actualRoomId && (c.status === "Active" || c.status === "Expired")
       );
 
       if (relevantContracts.length > 0) {
-        // ✨ คัดกรองหาสัญญาล่าสุด
         let latestContract = relevantContracts.find(c => c.status === "Active");
         
         if (!latestContract) {
@@ -59,7 +65,6 @@ const fetchRoomDetail = async () => {
           latestContract = expiredContracts[0];
         }
 
-        // --- ✨ Logic คำนวณวันคงเหลือ/หมดอายุสัญญา ---
         const today = new Date();
         today.setHours(0, 0, 0, 0); 
         const endDate = latestContract.endDate ? new Date(latestContract.endDate) : null;
@@ -80,28 +85,28 @@ const fetchRoomDetail = async () => {
             }
         }
 
-        // 3. ดึงข้อมูลผู้เช่าจากสัญญาที่ใหม่ที่สุด
         const t = await tenantService.getTenant(latestContract.tenantId);
         
-        // 4. ดึงเอกสารจาก *ทุกสัญญา* ของผู้เช่าคนนี้ในห้องนี้
-        const tenantRoomContracts = allContracts.filter(
-          c => c.roomId === actualRoomId && c.tenantId === latestContract.tenantId
-        );
+        const tenantRoomContracts = relevantContracts
+          .filter(c => c.tenantId === latestContract.tenantId)
+          .sort((a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0));
 
-        const mappedDocuments = tenantRoomContracts
-          .filter(c => c.attachedFile)
-          .map((c, index) => ({
-            id: c.id,
-            name: `สัญญาเช่า_${roomNumber}_ฉบับที่${index + 1}`,
-            date: c.startDate ? c.startDate.split('T')[0] : "-",
-            fileData: c.attachedFile
-          }));
+        const mappedDocuments = tenantRoomContracts.map((c, index) => {
+            const startDateStr = c.startDate ? c.startDate.split('T')[0] : "-";
+            return {
+              id: `contract_${c.id || c.Id}`,
+              name: index === 0 ? `สัญญาเช่า (ฉบับปัจจุบัน)` : `สัญญาเช่า (ฉบับเก่า ${toThaiDate(startDateStr)})`,
+              date: startDateStr,
+              type: "contract",
+              refId: c.id || c.Id,
+              isCurrent: index === 0 
+            };
+        });
 
-        // Request
         let hasPendingReq = false;
         let pendingReqData = null;
         try {
-          const allRequests = await requestService.getRequests();
+          const allRequests = extractArray(await requestService.getRequests());
           const pendingRequests = allRequests.filter(req => 
             String(req.roomNumber) === String(roomNumber) && req.status === "pending"
           );
@@ -111,42 +116,42 @@ const fetchRoomDetail = async () => {
           }
         } catch (err) { console.error(err); }
 
-        // Parcel
         let pendingParcelsCount = 0;
         try {
-          const allParcels = await parcelService.getParcels(); 
+          const allParcels = extractArray(await parcelService.getParcels()); 
           const uncollected = allParcels.filter(p => 
             String(p.roomNumber) === String(roomNumber) && !p.pickupDate
           );
           pendingParcelsCount = uncollected.length;
         } catch (err) { console.error(err); }
 
-        // จัดรูปข้อมูลส่งให้ State
+        // ✨ อุดรอยรั่ว Uncontrolled Input โดยบังคับให้ค่าที่ null กลายเป็น "" เสมอ
         setTenant({
-          id: t.id,
-          nin: t.nin,
-          title: t.title,
-          firstName: t.firstName,
-          lastName: t.lastName,
-          nickName: t.nickName || "-",
-          phone: t.phone,
-          address: t.address || "-",
-          birthDate: t.birthDate ? t.birthDate.split('T')[0] : "-",
-          lineId: t.lineId || "-",
-          email: t.email || "-",
-          note: t.note || "",
-          altName: t.altName,
-          altPhone: t.altPhone,
-          altRelationship: t.altRelationship,
-          vehicleNum1: t.vehicleNum1,
-          vehicleDetail1: t.vehicleDetail1,
-          vehicleNum2: t.vehicleNum2,
-          vehicleDetail2: t.vehicleDetail2,
-          keyCard1: t.keyCard1,
-          keyCard2: t.keyCard2,
-          keyCard3: t.keyCard3,
-          isLaundryService: t.isLaundryService,
-          internetDeviceCount: t.internetDeviceCount,
+          id: t.id || t.Id,
+          nin: t.nin ?? t.Nin ?? "",
+          title: t.title ?? t.Title ?? "",
+          firstName: t.firstName ?? t.FirstName ?? "",
+          lastName: t.lastName ?? t.LastName ?? "",
+          nickName: t.nickName ?? t.NickName ?? "",
+          phone: t.phone ?? t.Phone ?? "",
+          address: t.address ?? t.Address ?? "",
+          birthDate: t.birthDate || t.BirthDate ? (t.birthDate || t.BirthDate).split('T')[0] : "",
+          lineId: t.lineId ?? t.LineId ?? "",
+          email: t.email ?? t.Email ?? "",
+          note: t.note ?? t.Note ?? "",
+          altName: t.altName ?? t.AltName ?? "",
+          altPhone: t.altPhone ?? t.AltPhone ?? "",
+          altRelationship: t.altRelationship ?? t.AltRelationship ?? "",
+          vehicleNum1: t.vehicleNum1 ?? t.VehicleNum1 ?? "",
+          vehicleDetail1: t.vehicleDetail1 ?? t.VehicleDetail1 ?? "",
+          vehicleNum2: t.vehicleNum2 ?? t.VehicleNum2 ?? "",
+          vehicleDetail2: t.vehicleDetail2 ?? t.VehicleDetail2 ?? "",
+          keyCard1: t.keyCard1 ?? t.KeyCard1 ?? "",
+          keyCard2: t.keyCard2 ?? t.KeyCard2 ?? "",
+          keyCard3: t.keyCard3 ?? t.KeyCard3 ?? "",
+          isLaundryService: Boolean(t.isLaundryService ?? t.IsLaundryService ?? false),
+          internetDeviceCount: Number(t.internetDeviceCount ?? t.InternetDeviceCount ?? 0),
+          
           contractStatus: latestContract.status,
           checkInDate: latestContract.startDate ? latestContract.startDate.split('T')[0] : "-",
           contractEndDate: latestContract.endDate ? latestContract.endDate.split('T')[0] : "-",
@@ -155,7 +160,6 @@ const fetchRoomDetail = async () => {
           hasPendingNotification: hasPendingReq, 
           pendingRequestData: pendingReqData,
           pendingParcels: pendingParcelsCount, 
-          // ✨ เพิ่มสถานะแจ้งเตือนสัญญา
           isContractUrgent,
           isContractExpired,
           daysLeftUntilExpiry: daysLeft,
@@ -175,118 +179,68 @@ const fetchRoomDetail = async () => {
     fetchRoomDetail();
   }, [roomNumber]);
 
-  // --- ฟังก์ชันบันทึกข้อมูลการแก้ไข (จาก Modal) ---
   const handleUpdateTenant = async (updatedData) => {
     try {
-      // ดึงข้อมูลผู้เช่าต้นฉบับจาก API เพื่อป้องกันฟิลด์อื่นๆ หาย
-      const originalTenant = await tenantService.getTenant(tenant.id);
-      
-      // เอาข้อมูลที่แก้จาก Modal มาผสมกับข้อมูลเก่า
+      const originalTenantRes = await tenantService.getTenant(tenant.id);
+      const base = originalTenantRes?.data ?? originalTenantRes;
+
+      // แปลงค่าให้ชัวร์ว่าเป็นตัวเลข
+      let deviceCount = parseInt(updatedData.internetDeviceCount ?? updatedData.InternetDeviceCount, 10);
+      if (isNaN(deviceCount)) deviceCount = 0;
+
+      // ✨ สร้าง Payload ตรงๆ ไม่ใช้ ...base เพื่อป้องกันปัญหาคีย์ซ้ำตัวเล็ก-ใหญ่ (Case Sensitivity Conflict ใน C#)
       const payload = {
-        ...originalTenant,
-        title: updatedData.title,
-        firstName: updatedData.firstName,
-        lastName: updatedData.lastName,
-        nickName: updatedData.nickName,
-        phone: updatedData.phone,
-        lineId: updatedData.lineId,
-        email: updatedData.email,
-        nin: updatedData.nin,
-        address: updatedData.address,
-        note: updatedData.note,
-        
-        // ข้อมูลส่วนตัวอื่นๆ
-        altName: updatedData.altName,
-        altPhone: updatedData.altPhone,
-        altRelationship: updatedData.altRelationship,
-        vehicleNum1: updatedData.vehicleNum1,
-        vehicleDetail1: updatedData.vehicleDetail1,
-        vehicleNum2: updatedData.vehicleNum2,
-        vehicleDetail2: updatedData.vehicleDetail2,
-        keyCard1: updatedData.keyCard1,
-        keyCard2: updatedData.keyCard2,
-        keyCard3: updatedData.keyCard3,
-        isLaundryService: updatedData.isLaundryService,
-        internetDeviceCount: updatedData.internetDeviceCount,
+        nin:                updatedData.nin || null,
+        title:              updatedData.title || null,
+        firstName:          updatedData.firstName || "",
+        lastName:           updatedData.lastName || null,
+        nickName:           updatedData.nickName || null,
+        phone:              updatedData.phone || "",
+        address:            updatedData.address || null,
+        birthDate:          updatedData.birthDate || null,
+        lineId:             updatedData.lineId || null,
+        email:              updatedData.email || null,
+        photo:              base.photo ?? base.Photo ?? null, // ดึง Photo เดิมมาใส่
+        altName:            updatedData.altName || null,
+        altPhone:           updatedData.altPhone || null,
+        altRelationship:    updatedData.altRelationship || null,
+        vehicleNum1:        updatedData.vehicleNum1 || null,
+        vehicleDetail1:     updatedData.vehicleDetail1 || null,
+        vehicleNum2:        updatedData.vehicleNum2 || null,
+        vehicleDetail2:     updatedData.vehicleDetail2 || null,
+        keyCard1:           updatedData.keyCard1 || null,
+        keyCard2:           updatedData.keyCard2 || null,
+        keyCard3:           updatedData.keyCard3 || null,
+        isLaundryService:   Boolean(updatedData.isLaundryService),
+        internetDeviceCount: deviceCount,
+        note:               updatedData.note || null,
       };
 
-      // ยิง API PUT เพื่ออัปเดตข้อมูลผู้เช่า
       await tenantService.putTenant(tenant.id, payload);
-      
+
       alert("อัปเดตข้อมูลผู้เช่าสำเร็จ");
-      setIsModalOpen(false); // ปิด Modal
-      
-      // ดึงข้อมูลใหม่มาแสดงผล
-      await fetchRoomDetail(); 
-      
+      setIsModalOpen(false);
+      await fetchRoomDetail();
     } catch (error) {
       console.error("Update error:", error);
       alert("เกิดข้อผิดพลาดในการอัปเดตข้อมูล");
     }
   };
 
-  //-- สร้างเอกสาร / เทมเพลต --
-  const [showDocOptions, setShowDocOptions] = useState(false);
-  // ในใช้งานจริง ส่วนนี้อาจจะมาจาก Context หรือ API Call
-  const activeTemplates = initialContractTemplates.filter(t => t.is_active);
-
-
- const handleSelectTemplate = (template) => {
-    setShowDocOptions(false);
-    const processed = fillTemplateData(template.content, tenant, roomNumber);  
-    navigate(`/rooms/${roomNumber}/preview`, { 
-      state: { 
-        content: processed, 
-        title: template.name 
-      } 
-    });
+  const handleDocumentClick = (doc) => {
+    if (doc.isCurrent) {
+      navigate(`/rooms/contract/${roomNumber}`);
+    } else {
+      navigate(`/rooms/contract-history/${roomNumber}?contractId=${doc.refId}`);
+    }
   };
 
   return (
     <div>
       <RoomHeader roomNumber={roomNumber}>
-        <div className="max-w-4xl mx-auto py-2">
-      <div className="flex justify-end items-end">
-        <div className="relative">
-          <button
-            onClick={() => setShowDocOptions(!showDocOptions)}
-            className="flex items-center gap-2 px-6 py-2.5 bg-[#f3a638] text-white rounded-xl font-black text-sm shadow-sm hover:bg-[#e6952e] transition-all"
-          >
-            <FilePlus size={18} />
-            สร้างเอกสาร
-            <ChevronDown size={16} className={`transition-transform ${showDocOptions ? 'rotate-180' : ''}`} />
-          </button>
-
-          {showDocOptions && (
-            <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in duration-200">
-              <div className="p-2">
-                <p className="px-3 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">เลือกเทมเพลต</p>
-                {activeTemplates.map((temp) => (
-                  <button
-                    key={temp.id}
-                    onClick={() => handleSelectTemplate(temp)}
-                    className="w-full text-left px-4 py-3 text-sm font-bold text-gray-700 hover:bg-orange-50 hover:text-[#f3a638] rounded-xl transition-colors flex items-center gap-3"
-                  >
-                    <div className="w-2 h-2 bg-[#f3a638] rounded-full"></div>
-                    {temp.name}
-                  </button>
-                ))}
-                {activeTemplates.length === 0 && (
-                  <p className="px-4 py-3 text-xs text-gray-400 italic">ไม่มีเทมเพลตที่เปิดใช้งาน</p>
-                )}
-              </div>
-            </div>
-          )}
-      </div>
-      </div>
-        
-      </div>
         {tenant ? (
-          /* --- กรณีมีผู้เช่า: แสดงข้อมูลทั้งหมด --- */
           <div className="space-y-6 mt-2">
-            {/* 1 & 2: Banners ถ้ามีการแจ้งเตือนค้างก็จะแสดง */}
             <div className="flex flex-col gap-4 max-w-4xl mx-auto">
-              {/* ✨ แสดงแบนเนอร์แจ้งเตือนสัญญา (ลำดับความสำคัญสูงสุด) */}
               {(tenant.isContractUrgent || tenant.isContractExpired) && (
                 <ContractAlertBanner 
                   isExpired={tenant.isContractExpired}
@@ -311,14 +265,12 @@ const fetchRoomDetail = async () => {
                     <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-2xl md:bg-transparent p-3 md:p-0">
                       <div>
                         <p className="text-[12px] font-black text-red-400">เรื่อง</p>
-                        {/* ดึงจาก API จริง */}
                         <p className="text-sm font-bold text-gray-700 truncate">
                           {tenant.pendingRequestData.subject || "แจ้งซ่อม/บริการ"}
                         </p>
                       </div>
                       <div>
                         <p className="text-[12px] font-black text-red-400">วันที่แจ้ง</p>
-                         {/* ดึงจาก API จริง */}
                         <p className="text-sm font-bold text-gray-700">
                           {toThaiDate(tenant.pendingRequestData.requestDate?.split('T')[0])}
                         </p>
@@ -331,9 +283,9 @@ const fetchRoomDetail = async () => {
                       </div>
                     </div>
                     <button
-                      type="button" // ระบุ Type ป้องกันการ Submit Form โดยไม่ได้ตั้งใจ
+                      type="button" 
                       onClick={(e) => {
-                        e.stopPropagation(); // ป้องกัน Event Bubble
+                        e.stopPropagation(); 
                         navigate(`/rooms/request/${roomNumber}`);
                       }}
                       className="w-full md:w-auto text-[#ea3720] font-black text-sm underline underline-offset-4 hover:text-red-700 transition-all shrink-0 cursor-pointer z-10"
@@ -344,7 +296,6 @@ const fetchRoomDetail = async () => {
                 </div>
               )}
 
-              {/* Banner พัสดุ (ถ้ามี) */}
               {tenant.pendingParcels > 0 && (
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-blue-50 border border-blue-100 rounded-[25px] md:rounded-3xl text-blue-600 shadow-sm transition-all">
                   <div className="flex items-center gap-3 w-full md:w-auto">
@@ -352,12 +303,10 @@ const fetchRoomDetail = async () => {
                       <Package size={28} />
                     </div>
                     <span className="font-bold text-sm md:text-base leading-tight">
-                      มีพัสดุที่ยังไม่ได้รับ จำนวน {tenant.pendingParcels}{" "}
-                      รายการ
+                      มีพัสดุที่ยังไม่ได้รับ จำนวน {tenant.pendingParcels} รายการ
                     </span>
                   </div>
 
-                  {/* ปุ่มดูรายละเอียด พัสดุ */}
                   <button
                     type="button" 
                     onClick={(e) => {
@@ -372,11 +321,8 @@ const fetchRoomDetail = async () => {
               )}
             </div>
 
-            {/* คอนเทนเนอร์หลัก: 1 คอลัมน์ในมือถือ (grid-cols-1) และ 2 คอลัมน์ในจอใหญ่ (lg:grid-cols-2) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-              {/* --- คอลัมน์ที่ 1: ข้อมูลผู้เช่า --- */}
               <section className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden h-full">
-                {/* Header */}
                 <div className="p-3 md:p-5 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50/20">
                   <h3 className="text-xl font-black text-gray-700 flex items-center gap-3">
                     <div className="w-10 h-10 bg-[#f3a638] rounded-xl flex items-center justify-center text-white shrink-0">
@@ -394,7 +340,6 @@ const fetchRoomDetail = async () => {
                   </div>
                 </div>
 
-                {/* รายการข้อมูลแบบเรียงลงมา */}
                 <div className="px-8 md:px-24 py-5 flex flex-col gap-y-4 md:gap-y-6">
                   <InfoItem
                     label="ชื่อ - นามสกุล"
@@ -435,55 +380,43 @@ const fetchRoomDetail = async () => {
                 </div>
               </section>
 
-              {/* --- คอลัมน์ที่ 2: เอกสาร & หมายเหตุ --- */}
-              {/* รายการเอกสาร */}
               <section className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden h-full flex flex-col">
-                {/* Header: ดีไซน์ใหม่เน้นความโปร่ง */}
                 <div className="p-3 md:p-5 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50/20">
-                  {/* Icon ทรงมนที่ดูซอฟต์ลง */}
                   <h3 className="text-xl font-black text-gray-700 flex items-center gap-3">
                     <div className="w-10 h-10 bg-orange-50 rounded-2xl flex items-center justify-center text-[#f3a638] shrink-0 ">
                       <FileText size={24} />
                     </div>
                     ไฟล์เอกสาร
                   </h3>
-
-                  <OrangeButton
-                    label="เพิ่มไฟล์"
-                    icon={Plus}
-                    className="flex-1 py-2! px-4! text-xs!"
-                  />
                 </div>
 
-                {/* Body: พื้นที่สำหรับรายการเอกสาร */}
                 <div className="p-5 flex-1 bg-gray-50/30">
                   <div className="space-y-3">
-                    {/* ตรงนี้คือส่วนที่คุณจะนำ Map Document มาใส่ */}
                     {tenant.documents.length > 0 ? (
                       tenant.documents.map((doc) => (
-                        <div
+                        <button
                           key={doc.id}
-                          className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-2xl hover:border-orange-200 hover:shadow-sm transition-all group"
+                          onClick={() => handleDocumentClick(doc)}
+                          className="w-full text-left flex items-center justify-between p-4 bg-white border border-gray-200 rounded-2xl hover:border-orange-300 hover:shadow-md transition-all group focus:outline-none focus:ring-2 focus:ring-orange-200"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="p-2 bg-gray-50 rounded-lg text-gray-400 group-hover:text-[#f3a638] group-hover:bg-orange-50 transition-colors">
+                            <div className="p-2 rounded-lg transition-colors text-gray-400 bg-gray-50 group-hover:text-[#f3a638] group-hover:bg-orange-50">
                               <FileText size={18} />
                             </div>
                             <div>
-                              <p className="text-sm font-black text-gray-700 leading-tight">
+                              <p className="text-sm font-black text-gray-700 leading-tight group-hover:text-gray-900 transition-colors">
                                 {doc.name}
                               </p>
                               <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">
-                                {toThaiDate(doc.date)}
+                                บันทึกเมื่อ: {toThaiDate(doc.date)}
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center w-8 h-8 bg-red-50 rounded-full justify-center group-hover:bg-red-100">
-                            <button className="p-2 text-gray-400 hover:text-red-500 transition-colors">
-                              <Trash2 size={18} />
-                            </button>
+                          
+                          <div className="text-gray-300 group-hover:text-[#f3a638] transition-colors pr-2">
+                            <ExternalLink size={18} />
                           </div>
-                        </div>
+                        </button>
                       ))
                     ) : (
                       <div className="py-12 flex flex-col items-center justify-center text-center opacity-40">
@@ -496,8 +429,6 @@ const fetchRoomDetail = async () => {
                   </div>
                 </div>
 
-                {/* Footer: หมายเหตุ (ถ้ามี) */}
-                {/* แสดงส่วนหมายเหตุเฉพาะในกรณีที่มีข้อมูลเท่านั้น */}
                 {tenant.note && (
                   <div className="p-5 bg-orange-50/50 border-t border-orange-100">
                     <div className="flex items-center gap-2 mb-1">
@@ -515,8 +446,6 @@ const fetchRoomDetail = async () => {
             </div>
           </div>
         ) : (
-
-          /* --- กรณีไม่มีผู้เช่า (ห้องว่าง) --- */
           <div className="py-24 flex flex-col items-center justify-center text-center  bg-gray-50 rounded-3xl border border-gray-200 mt-4 max-w-4xl mx-auto">
             <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-gray-400 mb-3 border border-dashed border-gray-300">
               <UserPlus size={48} />
@@ -525,14 +454,11 @@ const fetchRoomDetail = async () => {
             <OrangeButton
               label="เพิ่มผู้เช่าใหม่"
               icon={Plus}
-              // ส่ง roomNumber ไปกับ URL
               onClick={() => navigate(`/rooms/${roomNumber}/add-tenant`)}
             />
           </div>
         )}
       </RoomHeader>
-
-      {/* แสดงข้อมูลผู้เช่า */}
 
       {isModalOpen && (
         <TenantInfoModal
@@ -546,7 +472,6 @@ const fetchRoomDetail = async () => {
   );
 };
 
-// Component ย่อย
 const InfoItem = ({ label, value, icon, valueClassName = "text-gray-800" }) => (
   <div className="flex items-start gap-3">
     {icon && (

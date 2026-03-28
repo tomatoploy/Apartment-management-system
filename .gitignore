@@ -21,3 +21,4 @@ logs
 *.ntvs*
 *.njsproj
 *.sw?
+node_modules

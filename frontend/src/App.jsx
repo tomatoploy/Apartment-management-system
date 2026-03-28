@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
@@ -24,6 +24,10 @@ import RoomMoveOut from "./pages/RoomMoveOut";
 import ContractSetting from "./pages/ContractSetting";
 import DocumentPreview from "./pages/DocumentPreview";
 import RoomContract from "./pages/RoomContract";
+import AdminAccessSetting from "./pages/AdminAccessSetting";
+import liff from '@line/liff';
+import TenantDashboard from "./pages/TenantDashboard";
+import RoomContractHistory from './pages/RoomContractHistory';
 
 // import RoomsFilter from "./pages/Rooms-filterModal";
 
@@ -33,6 +37,26 @@ function App() {
     // profileImage:
     //   "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200",
   };
+
+  const [lineProfile, setLineProfile] = useState(null);
+
+  useEffect(() => {
+    const initLiff = async () => {
+      try {
+        await liff.init({ liffId: "2009589803-MHTgHpCD" });
+        if (liff.isLoggedIn()) {
+          const profile = await liff.getProfile();
+          setLineProfile(profile);
+          console.log("LINE UserID:", profile.userId);
+          // 💡 พลอยสามารถเอา profile.userId นี้ส่งไปเช็คที่ Backend 
+          // เพื่อดูว่า UserId นี้อยู่ห้องไหนได้ค่ะ
+        }
+      } catch (err) {
+        console.error("LIFF Init Error", err);
+      }
+    };
+    initLiff();
+  }, []);
 
   return (
     <Routes>
@@ -221,6 +245,29 @@ function App() {
             <ContractSetting />
           </Layout>
         }
+      />
+      <Route
+        path="/settings/admin-access"
+        element={
+          <Layout>
+            <AdminAccessSetting />
+          </Layout>
+        }
+      />
+
+      <Route 
+        path="/rooms/contract-history/:roomNumber"
+        element={
+          <Layout>
+            <RoomContractHistory />
+          </Layout>
+        }
+      />
+
+      {/* 🌟 เพิ่ม Route ใหม่สำหรับผู้เช่า*/}
+      <Route 
+        path="/tenant/dashboard" 
+        element={<TenantDashboard profile={lineProfile} />} 
       />
 
       {/* <Route path="/rooms/:roomNumber/bill" element={<Layout><RoomBill /></Layout>} /> */}
