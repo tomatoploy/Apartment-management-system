@@ -7,11 +7,15 @@ import {
   CheckCircle2, Download, Plus, Pencil, Trash2, Loader2,
   FileText, X, AlertCircle, LayoutGrid, Save, Scissors,
   Eye, EyeOff, Search, ChevronLeft, ChevronRight, Check,
-  Undo, Redo, Printer, Image as ImageIcon, Rows, Columns
+  Undo, Redo, Printer, Image as ImageIcon, Rows, Columns, Lock
 } from "lucide-react";
 import { documentService } from "../api/DocumentApi";
 import { adminService } from "../api/AdminApi";
 import logoImg from "../assets/logo.png";
+
+// ✨ นำเข้า Template บิลทั้ง 2 ตัว
+import BillMonthlyPrintTemplate from "../components/BillMonthlyPrintTemplate";
+import BillSummaryPrintTemplate from "../components/BillSummaryPrintTemplate";
 
 // ─── 🌟 1. ตั้งค่า Quill Formats แบบ Native ─────────────────────────
 
@@ -55,20 +59,16 @@ const QUILL_MODULES = {
       redo: function() { this.quill.history.redo(); }
     }
   },
-  table: true, // ✅ เปิดใช้งานระบบตารางแท้ของ Quill
+  table: true, 
   history: { delay: 500, maxStack: 100, userOnly: true },
   clipboard: { matchVisual: false }, 
   keyboard: {
     bindings: {
-      // ✅ แก้ปัญหาเคอร์เซอร์เด้งไปช่องค้นหาตอนกด Tab
       tab: {
         key: 9, 
         handler: function(range, context) { 
-          // insertText ลงไป
           this.quill.insertText(range.index, '\u00A0\u00A0\u00A0\u00A0', 'user'); 
-          // ขยับเคอร์เซอร์ไปหลังช่องว่างที่เพิ่งใส่
           this.quill.setSelection(range.index + 4, 'user');
-          // คืนค่า false เพื่อป้องกันไม่ให้เบราว์เซอร์ทำงาน Default (กระโดดไปช่องอื่น)
           return false; 
         },
       }
@@ -93,6 +93,25 @@ const VAR_CATS = [
 ];
 
 const MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+
+// ✨ เอกสารพิเศษ (อ่านได้อย่างเดียว)
+const SPECIAL_DOCS = [
+  { id: 'bill_monthly', name: 'ใบแจ้งหนี้ / ใบเสร็จรับเงิน (บิลรายเดือน)' },
+  { id: 'bill_summary', name: 'ใบสรุปยอดเรียกเก็บประจำเดือน' }
+];
+
+// ข้อมูลจำลองสำหรับแสดงตัวอย่างบิลให้สวยงาม
+const mockBillItems = [
+  { id: 1, type: 'rent', label: 'ค่าเช่าห้อง', amount: 4500, detail: '' },
+  { id: 2, type: 'electric', label: 'ค่าไฟฟ้า', amount: 350, detail: '1200 - 1250 = 50 * 7' },
+  { id: 3, type: 'water', label: 'ค่าน้ำประปา', amount: 150, detail: '' },
+];
+
+const mockSummaryRooms = [
+  { roomNumber: '101', tenantFirstName: 'สมชาย ใจดี', rent: 4500, water: 150, electric: 350, other: 0, discount: 0, total: 5000, hasBill: true },
+  { roomNumber: '102', tenantFirstName: 'สมหญิง รักดี', rent: 5000, water: 100, electric: 400, other: 0, discount: 0, total: 5500, hasBill: true },
+  { roomNumber: '103', tenantFirstName: 'มานะ อดทน', rent: 4500, water: 150, electric: 200, other: 100, discount: 0, total: 4950, hasBill: true },
+];
 
 const renderPreview = (html, adminName, adminId) => {
   if (!html) return "";
@@ -135,24 +154,15 @@ const EditorToolbar = memo(({ currentSize, onSizeChange, onInsertImage, onShowTa
       <button className="ql-redo tbtn" title="ทำซ้ำ"><Redo size={14}/></button>
       <span className="w-px h-6 bg-gray-300 mx-1"/>
 
-      {/* ✅ Dropdown ขนาดอักษรแก้บั๊กเมนูหนี (Hover + สะพานล่องหน) */}
       <div className="relative group flex items-center h-8 z-50">
         <div className="flex items-center justify-between w-20 px-2 h-full rounded border border-gray-300 bg-white cursor-pointer group-hover:border-orange-400 transition-colors">
           <span className="text-xs font-bold text-gray-700">{currentSize || '16px'}</span>
           <span className="text-[8px] text-gray-400">▼</span>
         </div>
-        
-        {/* สะพานล่องหน (bridge) กันเมาส์หลุดออกจากพื้นที่ */}
         <div className="absolute top-full left-0 w-full h-3 bg-transparent"></div>
-        
-        {/* เมนู Dropdown */}
         <div className="absolute top-[calc(100%+4px)] left-0 w-20 bg-white border border-gray-200 shadow-xl rounded-lg py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
           {SIZES.map(s => (
-            <div 
-              key={s} 
-              onMouseDown={(e) => { e.preventDefault(); onSizeChange(s); }}
-              className="px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-orange-50 hover:text-orange-600 cursor-pointer transition-colors"
-            >
+            <div key={s} onMouseDown={(e) => { e.preventDefault(); onSizeChange(s); }} className="px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-orange-50 hover:text-orange-600 cursor-pointer transition-colors">
               {s}
             </div>
           ))}
@@ -248,12 +258,11 @@ const TablePicker = memo(({ onClose, onInsert }) => {
   );
 });
 
-/* ─── Utils ตรวจจับตำแหน่งเซลล์ตาราง ─────────────────────────────────────────────── */
 const getActiveCell = () => {
   const selection = window.getSelection();
   if (selection.rangeCount > 0) {
     let node = selection.getRangeAt(0).startContainer;
-    if (node.nodeType === 3) node = node.parentNode; // ถ้าเมาส์อยู่ตรงข้อความ ให้ดึง tag แม่มา
+    if (node.nodeType === 3) node = node.parentNode;
     return node.closest('td, th');
   }
   return null;
@@ -277,8 +286,6 @@ const ContractTemplate = () => {
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPreview, setIsPreview] = useState(false);
-  
-  // ✅ สวิตช์ Auto-save
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
 
   const [showTable, setShowTable] = useState(false);
@@ -290,20 +297,21 @@ const ContractTemplate = () => {
   const [sideSearch, setSideSearch] = useState("");
   const [activeVarCat, setActiveVarCat] = useState(0);
 
-  const selDoc = docs.find(d => d.id === selId) ?? null;
+  // ✨ ตรวจสอบว่าเป็นเอกสารพิเศษหรือไม่
+  const isSpecialDoc = selId === 'bill_monthly' || selId === 'bill_summary';
+  const selDoc = docs.find(d => d.id === selId) ?? SPECIAL_DOCS.find(d => d.id === selId) ?? null;
 
-  // Auto-save
+  // Auto-save (ข้ามถ้าเป็นเอกสารพิเศษ)
   useEffect(() => {
-    if (!autoSaveEnabled || !isDirty || !selDoc || isPreview) return;
+    if (!autoSaveEnabled || !isDirty || !selDoc || isPreview || isSpecialDoc) return;
     const timer = setTimeout(() => {
       handleSave();
     }, 3000);
     return () => clearTimeout(timer);
-  }, [content, isDirty, selDoc, isPreview, autoSaveEnabled]);
+  }, [content, isDirty, selDoc, isPreview, autoSaveEnabled, isSpecialDoc]);
 
-  // ระบบ Resize รูปภาพและเซลล์ตาราง
   useEffect(() => {
-    if (!selId || isPreview) return;
+    if (!selId || isPreview || isSpecialDoc) return;
     const timer = setTimeout(() => {
       const editor = quillRef.current?.getEditor();
       if (!editor) return;
@@ -325,7 +333,6 @@ const ContractTemplate = () => {
       };
 
       const onMouseDownEditor = (e) => {
-        // จัดการคลิกที่รูปภาพ
         if (e.target.tagName === 'IMG') {
           removeResizer();
           activeImg = e.target;
@@ -368,7 +375,6 @@ const ContractTemplate = () => {
           removeResizer();
         }
 
-        // จัดการคลิกเส้นขอบตาราง
         const td = e.target.closest("td, th");
         if (td) {
           const nearRight = Math.abs(e.clientX - td.getBoundingClientRect().right) <= 10;
@@ -414,7 +420,7 @@ const ContractTemplate = () => {
       };
     }, 500);
     return () => clearTimeout(timer);
-  }, [selId, isPreview]);
+  }, [selId, isPreview, isSpecialDoc]);
 
   const fetchAll = useCallback(async () => {
     setLoadingDocs(true);
@@ -440,10 +446,12 @@ const ContractTemplate = () => {
   const showToast = (msg, type = "success") => setToast({ message: msg, type });
 
   const selectDoc = useCallback((doc) => {
-    setSelId(doc.id); setContent(doc.content ?? ""); setIsDirty(false); setIsPreview(false);
+    setSelId(doc.id); 
+    setContent(doc.content ?? ""); 
+    setIsDirty(false); 
+    setIsPreview(false);
   }, []);
 
-  // ✅ แก้ปัญหา error: getFormat is not a function ตอนคลุมดำ
   const handleSelectionChange = useCallback((range) => {
     if (range) {
       lastSelection.current = range;
@@ -507,41 +515,29 @@ const ContractTemplate = () => {
     };
   }, []);
 
-  // ✅ แทรกตารางโดยใช้ฟังก์ชันตารางแท้ (Native) ของ Quill (แก้ปัญหาการเพิ่มแถวสลับคอลัมน์)
   const insertTable = useCallback((rows, cols) => {
     setShowTable(false);
     const q = quillRef.current?.getEditor();
     if (!q) return;
-    
     if (lastSelection.current) q.setSelection(lastSelection.current);
     const tableModule = q.getModule('table');
     tableModule.insertTable(rows, cols);
     setIsDirty(true);
   }, []);
 
-  // ✅ การเพิ่ม/ลบ แถวและคอลัมน์ ผ่านตารางแท้ของ Quill
   const handleAddRow = useCallback(() => {
     const q = quillRef.current?.getEditor();
-    if (q) {
-      q.getModule('table').insertRowBelow();
-      setIsDirty(true);
-    }
+    if (q) { q.getModule('table').insertRowBelow(); setIsDirty(true); }
   }, []);
 
   const handleAddCol = useCallback(() => {
     const q = quillRef.current?.getEditor();
-    if (q) {
-      q.getModule('table').insertColumnRight();
-      setIsDirty(true);
-    }
+    if (q) { q.getModule('table').insertColumnRight(); setIsDirty(true); }
   }, []);
 
   const handleDeleteTable = useCallback(() => {
     const q = quillRef.current?.getEditor();
-    if (q) {
-      q.getModule('table').deleteTable();
-      setIsDirty(true);
-    }
+    if (q) { q.getModule('table').deleteTable(); setIsDirty(true); }
   }, []);
 
   const insertPageBreak = useCallback(() => {
@@ -575,7 +571,7 @@ const ContractTemplate = () => {
 
   const handleSave = async () => {
     const q = quillRef.current?.getEditor();
-    if (!q || !selDoc || !isDirty) return;
+    if (!q || !selDoc || !isDirty || isSpecialDoc) return;
 
     setIsSaving(true);
     try {
@@ -642,6 +638,7 @@ const ContractTemplate = () => {
   };
 
   const filteredDocs = sideSearch ? docs.filter(d => d.name.toLowerCase().includes(sideSearch.toLowerCase())) : docs;
+  const filteredSpecialDocs = sideSearch ? SPECIAL_DOCS.filter(d => d.name.toLowerCase().includes(sideSearch.toLowerCase())) : SPECIAL_DOCS;
 
   return (
     <>
@@ -650,8 +647,8 @@ const ContractTemplate = () => {
           <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
             <ExitButton onClick={() => navigate("/settings")} />
             <div className="text-right">
-              <h1 className="font-black text-gray-800 text-sm">เทมเพลตสัญญา</h1>
-              <p className="text-[10px] font-bold text-gray-400 mt-0.5">{docs.length} เอกสาร</p>
+              <h1 className="font-black text-gray-800 text-sm">เทมเพลตเอกสาร</h1>
+              <p className="text-[10px] font-bold text-gray-400 mt-0.5">{docs.length + SPECIAL_DOCS.length} รายการ</p>
             </div>
           </div>
           
@@ -668,25 +665,45 @@ const ContractTemplate = () => {
           <div className="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
             {loadingDocs ? (
               <div className="flex flex-col items-center py-10 gap-2 text-gray-400"><Loader2 size={24} className="animate-spin text-gray-300" /></div>
-            ) : filteredDocs.length === 0 ? (
-              <div className="flex flex-col items-center py-10 gap-2 text-gray-300"><FileText size={28} /><p className="text-xs font-bold">ไม่มีเอกสาร</p></div>
-            ) : filteredDocs.map(doc => {
-              const active = doc.id === selId;
-              return (
-                <div key={doc.id} onClick={() => selectDoc(doc)} className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all relative border-l-4 ${active ? "bg-orange-50 border-orange-400 shadow-sm" : "bg-transparent border-transparent hover:bg-gray-50"}`}>
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${active ? "bg-orange-100 text-orange-500" : "bg-gray-100 text-gray-400 group-hover:bg-white group-hover:text-gray-600"}`}>
-                    <FileText size={16} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className={`text-sm font-black truncate ${active ? "text-orange-900" : "text-gray-700"}`}>{doc.name}</p>
-                  </div>
-                  <div className={`flex gap-0.5 transition-opacity ${active ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
-                    <button onClick={e => { e.stopPropagation(); setSelId(doc.id); setNameModal("rename"); }} className={`p-1.5 rounded-lg transition-colors ${active ? "text-orange-500 hover:text-orange-600 hover:bg-orange-100" : "text-gray-400 hover:bg-gray-200"}`}><Pencil size={14} /></button>
-                    <button onClick={e => { e.stopPropagation(); setDeleteTarget(doc); }} className={`p-1.5 rounded-lg transition-colors ${active ? "text-red-400 hover:text-red-600 hover:bg-red-50" : "text-gray-400 hover:bg-red-100 hover:text-red-500"}`}><Trash2 size={14} /></button>
-                  </div>
-                </div>
-              );
-            })}
+            ) : (
+              <>
+                {/* ✨ รายการแบบฟอร์มพิเศษ (ดูได้อย่างเดียว) */}
+                {filteredSpecialDocs.map(doc => {
+                  const active = doc.id === selId;
+                  return (
+                    <div key={doc.id} onClick={() => selectDoc(doc)} className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all relative border-l-4 ${active ? "bg-blue-50 border-blue-400 shadow-sm" : "bg-transparent border-transparent hover:bg-gray-50"}`}>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${active ? "bg-blue-100 text-blue-500" : "bg-gray-100 text-gray-400 group-hover:bg-white group-hover:text-gray-600"}`}>
+                        <Lock size={14} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-xs font-black truncate ${active ? "text-blue-900" : "text-gray-600"}`}>{doc.name}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {filteredSpecialDocs.length > 0 && <div className="my-3 mx-2 border-b border-gray-100"></div>}
+
+                {/* รายการเอกสารสัญญาปกติ */}
+                {filteredDocs.map(doc => {
+                  const active = doc.id === selId;
+                  return (
+                    <div key={doc.id} onClick={() => selectDoc(doc)} className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all relative border-l-4 ${active ? "bg-orange-50 border-orange-400 shadow-sm" : "bg-transparent border-transparent hover:bg-gray-50"}`}>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${active ? "bg-orange-100 text-orange-500" : "bg-gray-100 text-gray-400 group-hover:bg-white group-hover:text-gray-600"}`}>
+                        <FileText size={16} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-sm font-black truncate ${active ? "text-orange-900" : "text-gray-700"}`}>{doc.name}</p>
+                      </div>
+                      <div className={`flex gap-0.5 transition-opacity ${active ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+                        <button onClick={e => { e.stopPropagation(); setSelId(doc.id); setNameModal("rename"); }} className={`p-1.5 rounded-lg transition-colors ${active ? "text-orange-500 hover:text-orange-600 hover:bg-orange-100" : "text-gray-400 hover:bg-gray-200"}`}><Pencil size={14} /></button>
+                        <button onClick={e => { e.stopPropagation(); setDeleteTarget(doc); }} className={`p-1.5 rounded-lg transition-colors ${active ? "text-red-400 hover:text-red-600 hover:bg-red-50" : "text-gray-400 hover:bg-red-100 hover:text-red-500"}`}><Trash2 size={14} /></button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            )}
           </div>
         </aside>
 
@@ -701,38 +718,50 @@ const ContractTemplate = () => {
               <div className="bg-white px-6 py-4 flex items-center justify-between border-b border-gray-200 shrink-0 z-30 shadow-sm">
                 <div className="flex items-center gap-3">
                   <h2 className="text-xl font-black text-gray-800">{selDoc.name}</h2>
-                  {isDirty && !isSaving && <span className="px-2 py-1 bg-amber-50 text-amber-600 text-[10px] font-bold rounded-md border border-amber-200">ยังไม่บันทึก</span>}
+                  {!isSpecialDoc && isDirty && !isSaving && <span className="px-2 py-1 bg-amber-50 text-amber-600 text-[10px] font-bold rounded-md border border-amber-200">ยังไม่บันทึก</span>}
                 </div>
                 <div className="flex items-center gap-4">
-                  {/* ✅ สวิตช์ Auto-save ที่หนูหวงแหน */}
-                  {!isPreview && (
-                    <label className="flex items-center gap-2 cursor-pointer mr-2">
-                      <span className="text-xs font-bold text-gray-500">Auto save</span>
-                      <div className="relative">
-                        <input type="checkbox" className="sr-only" checked={autoSaveEnabled} onChange={() => setAutoSaveEnabled(!autoSaveEnabled)} />
-                        <div className={`block w-9 h-5 rounded-full transition-colors ${autoSaveEnabled ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                        <div className={`dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform ${autoSaveEnabled ? 'translate-x-4' : ''}`}></div>
-                      </div>
-                    </label>
-                  )}
+                  {/* ✨ แถบเมนูด้านบน (ถ้าเป็นเอกสารพิเศษ ให้แสดงป้ายแจ้งเตือนแทนปุ่มแก้ไข) */}
+                  {isSpecialDoc ? (
+                    <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-xl border border-gray-200">
+                       <Lock size={14} className="text-gray-500" />
+                       <span className="text-xs font-bold text-gray-600">แบบฟอร์มระบบ (ดูตัวอย่างเท่านั้น)</span>
+                    </div>
+                  ) : (
+                    <>
+                      {!isPreview && (
+                        <label className="flex items-center gap-2 cursor-pointer mr-2">
+                          <span className="text-xs font-bold text-gray-500">Auto save</span>
+                          <div className="relative">
+                            <input type="checkbox" className="sr-only" checked={autoSaveEnabled} onChange={() => setAutoSaveEnabled(!autoSaveEnabled)} />
+                            <div className={`block w-9 h-5 rounded-full transition-colors ${autoSaveEnabled ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                            <div className={`dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform ${autoSaveEnabled ? 'translate-x-4' : ''}`}></div>
+                          </div>
+                        </label>
+                      )}
 
-                  <button onClick={() => setIsPreview(!isPreview)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 font-bold text-sm transition-all ${isPreview ? "bg-blue-50 text-blue-600 border-blue-200 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
-                    {isPreview ? <EyeOff size={16} /> : <Eye size={16} />} {isPreview ? "กลับไปแก้ไข" : "ดูตัวอย่าง"}
-                  </button>
-                  {!isPreview && (
-                    <button onClick={handleSave} disabled={!isDirty || isSaving} className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#5cb85c] text-white font-black text-sm disabled:opacity-50 hover:bg-green-600 transition-all shadow-md shadow-green-100 active:scale-95">
-                      {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} บันทึก
-                    </button>
-                  )}
-                  {isPreview && (
-                    <button onClick={handlePrintAndSavePDF} className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 text-white font-black text-sm hover:bg-blue-700 transition-all shadow-md active:scale-95">
-                      <Printer size={16} /> พิมพ์ / ดาวน์โหลด PDF
-                    </button>
+                      <button onClick={() => setIsPreview(!isPreview)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 font-bold text-sm transition-all ${isPreview ? "bg-blue-50 text-blue-600 border-blue-200 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}>
+                        {isPreview ? <EyeOff size={16} /> : <Eye size={16} />} {isPreview ? "กลับไปแก้ไข" : "ดูตัวอย่าง"}
+                      </button>
+
+                      {!isPreview && (
+                        <button onClick={handleSave} disabled={!isDirty || isSaving} className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#5cb85c] text-white font-black text-sm disabled:opacity-50 hover:bg-green-600 transition-all shadow-md shadow-green-100 active:scale-95">
+                          {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} บันทึก
+                        </button>
+                      )}
+                      
+                      {isPreview && (
+                        <button onClick={handlePrintAndSavePDF} className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 text-white font-black text-sm hover:bg-blue-700 transition-all shadow-md active:scale-95">
+                          <Printer size={16} /> พิมพ์ / ดาวน์โหลด PDF
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
 
-              {!isPreview && (
+              {/* Toolbar สำหรับเอกสารปกติ */}
+              {!isPreview && !isSpecialDoc && (
                 <div className="bg-white shrink-0 z-20 shadow-sm border-b border-gray-200 flex flex-col relative z-40">
                   <div className="flex items-center gap-3 px-4 py-2 bg-orange-50/30">
                     <select 
@@ -754,36 +783,52 @@ const ContractTemplate = () => {
                   </div>
 
                   <EditorToolbar 
-                    currentSize={currentSize}
-                    onSizeChange={handleSizeChange}
-                    onInsertImage={handleInsertImage}
-                    onShowTablePicker={() => setShowTable(true)} 
-                    onAddRow={handleAddRow}
-                    onAddCol={handleAddCol}
-                    onDeleteTable={handleDeleteTable}
-                    onInsertPageBreak={insertPageBreak} 
+                    currentSize={currentSize} onSizeChange={handleSizeChange}
+                    onInsertImage={handleInsertImage} onShowTablePicker={() => setShowTable(true)} 
+                    onAddRow={handleAddRow} onAddCol={handleAddCol}
+                    onDeleteTable={handleDeleteTable} onInsertPageBreak={insertPageBreak} 
                   />
                 </div>
               )}
 
-              <div className="flex-1 overflow-y-auto bg-gray-200 py-10 px-4 custom-scrollbar relative z-10">
-                <div id="pdf-print-area" className="bg-white shadow-2xl border border-gray-300 w-[210mm] min-h-[297mm] transition-all relative mx-auto">
-                  {!isPreview ? (
-                    <ReactQuill 
-                      ref={quillRef} 
-                      theme="snow" 
-                      value={content} 
-                      onChange={(v, d, s) => { if (s === 'user') { setContent(v); setIsDirty(true); } }} 
-                      onChangeSelection={handleSelectionChange}
-                      modules={QUILL_MODULES} 
-                      formats={QUILL_FORMATS} 
-                      placeholder="เริ่มพิมพ์เนื้อหาสัญญา หรือเลือกตัวแปรด้านบนมาวางได้เลย..."
-                      className="contract-editor h-full" 
-                    />
-                  ) : (
-                    <div className="contract-preview ql-editor" dangerouslySetInnerHTML={{ __html: renderPreview(content, adminName, adminId) }} />
-                  )}
-                </div>
+              {/* ✨ ส่วนแสดงผลหลัก (รวมเอกสารพิเศษ และ เอกสารปกติ) */}
+              <div className={`flex-1 overflow-y-auto bg-gray-200 py-10 px-4 custom-scrollbar relative z-10 preview-special-doc ${isSpecialDoc ? "flex flex-col items-center" : ""}`}>
+                
+                {isSpecialDoc ? (
+                  // ✅ แสดงเอกสารพิเศษ (นำ Template มาเรียกใช้ตรงๆ พร้อม Mock Data)
+                  <>
+                    {selId === 'bill_monthly' && (
+                      <div className="shadow-2xl bg-white w-[210mm] h-[297mm] shrink-0 border border-gray-300">
+                        <BillMonthlyPrintTemplate items={mockBillItems} roomNumber="101" total={5000} adminName={adminName} />
+                      </div>
+                    )}
+                    {selId === 'bill_summary' && (
+                      <div className="shadow-2xl bg-white w-[210mm] min-h-[297mm] shrink-0 border border-gray-300">
+                        <BillSummaryPrintTemplate rooms={mockSummaryRooms} selectedDate={new Date().toISOString().slice(0, 7)} />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  // ✅ แสดงเอกสารสัญญาแบบปกติ (แก้ไขได้ หรือดูพรีวิว)
+                  <div id="pdf-print-area" className="bg-white shadow-2xl border border-gray-300 w-[210mm] min-h-[297mm] transition-all relative mx-auto">
+                    {!isPreview ? (
+                      <ReactQuill 
+                        ref={quillRef} 
+                        theme="snow" 
+                        value={content} 
+                        onChange={(v, d, s) => { if (s === 'user') { setContent(v); setIsDirty(true); } }} 
+                        onChangeSelection={handleSelectionChange}
+                        modules={QUILL_MODULES} 
+                        formats={QUILL_FORMATS} 
+                        placeholder="เริ่มพิมพ์เนื้อหาสัญญา หรือเลือกตัวแปรด้านบนมาวางได้เลย..."
+                        className="contract-editor h-full" 
+                      />
+                    ) : (
+                      <div className="contract-preview ql-editor" dangerouslySetInnerHTML={{ __html: renderPreview(content, adminName, adminId) }} />
+                    )}
+                  </div>
+                )}
+                
               </div>
             </>
           )}
@@ -811,7 +856,9 @@ const ContractTemplate = () => {
         @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         .scale-in { animation: scaleIn 0.2s ease-out forwards; }
 
-        /* ✅ CSS บังคับฟอนต์ให้ออกมาเป็นขนาดจริงๆ */
+        /* บังคับ Override คลาสที่ซ่อนไว้ในตอนพริ้นต์ให้แสดงผลบนจอ */
+        .preview-special-doc .hidden { display: block !important; }
+
         .ql-editor [style*="font-size: 10px"] { font-size: 10px !important; }
         .ql-editor [style*="font-size: 12px"] { font-size: 12px !important; }
         .ql-editor [style*="font-size: 14px"] { font-size: 14px !important; }
@@ -843,7 +890,6 @@ const ContractTemplate = () => {
           line-height: 1.5;
           color: #000000;
           min-height: 297mm;
-          /* ✅ เมาส์เห็นชัดๆ ไปเลยจ้า */
           caret-color: #000000 !important; 
           background-image: linear-gradient(to bottom, transparent 267mm, #e2e8f0 267mm, #e2e8f0 268mm, transparent 268mm);
           background-size: 100% 297mm;
@@ -857,10 +903,8 @@ const ContractTemplate = () => {
            padding-bottom: 0 !important;
         }
 
-        /* ✅ เปลี่ยนรูปภาพเป็น inline-block ให้จัดเรียงซ้าย/กลาง/ขวาได้ตามใจ */
         .ql-editor img { max-width: 100%; height: auto; display: inline-block; margin: 5px; }
 
-        /* ✅ ตาราง (จัดการด้วยปุ่มของ Quill Native) */
         .ql-editor table, .contract-preview table {
           border: 1px solid #000000 !important;
           border-collapse: collapse !important;
