@@ -209,7 +209,6 @@ const BillDetail = ({
   const [tenantInfo, setTenantInfo] = useState(null);
   const [adminInfo, setAdminInfo] = useState(null);
 
-  // ดึง ID ของคนที่ Login 
   const currentAdminId = localStorage.getItem("adminId") ? Number(localStorage.getItem("adminId")) : 1;
 
   const total = useMemo(() => 
@@ -256,7 +255,6 @@ const BillDetail = ({
       } catch (e) {}
       if (apartment) setApartmentInfo(apartment);
 
-      // ✨ พระเอกของเรา! ตรงนี้จะไปดึงข้อมูลของคนที่ล็อกอินจริงๆ แล้ว
       try { 
         const adm = await adminService.getAdmin(currentAdminId); 
         setAdminInfo(adm); 
@@ -282,7 +280,8 @@ const BillDetail = ({
 
       const endDay = apartment?.paymentDueEnd || 5;
       const dueDate = new Date(year, month, endDay); 
-      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const today = new Date(); 
+      today.setHours(0, 0, 0, 0);
 
       const rawRooms = extractArray(allRooms);
       const targetRoom = rawRooms.find((r) => String(r.roomNumber) === String(roomNumber));
@@ -292,7 +291,7 @@ const BillDetail = ({
       setRoomId(rId);
 
       const contract = extractArray(allContracts).find((c) => Number(c.roomId) === Number(rId) && (c.status === "Active" || c.status === "Reserved"));
-      if (!contract) { setLoadError("ห้องนี้ไม่มีสัญญา Active "); return; }
+      if (!contract) { setLoadError("ห้องนี้ไม่มีสัญญา Active"); return; }
       setContractId(contract.id || contract.Id);
       
       const tId = contract.tenantId || contract.TenantId;
@@ -323,6 +322,18 @@ const BillDetail = ({
         setPaymentStatus(existing.status?.toLowerCase() ?? "unpaid");
         setItems(paymentToItems(existing, selectedDate));
       } else {
+        // 🌟 LOGIC สำคัญ: ป้องกันการสร้างบิลย้อนหลัง
+        // เช็คว่าเดือนที่เลือก (selectedMonth) น้อยกว่าเดือนปัจจุบัน (currentMonth) หรือไม่
+        const selectedMonthObj = new Date(year, month - 1, 1);
+        const currentMonthObj = new Date(today.getFullYear(), today.getMonth(), 1);
+
+        if (selectedMonthObj < currentMonthObj) {
+          // ถ้าเป็นอดีตและไม่พบบิลเก่า จะบล็อกการโชว์ Preview และเด้งแสดง Error แทน
+          setLoadError("ไม่มีการออกบิลในเดือนนี้ (ไม่อนุญาตให้สร้างบิลย้อนหลัง)");
+          setIsLoading(false);
+          return;
+        }
+
         const result = await paymentService.generatePayment(contract.id || contract.Id, year, month).catch(()=>({}));
         if (result.calculationNote) {
           const eMatch = result.calculationNote.match(/ไฟ:\s*\(([\d.]+)-([\d.]+)\)\*([\d.]+)/);
@@ -447,13 +458,15 @@ const BillDetail = ({
     
     setIsSaving(true);
     try {
-      const recordDate = new Date().toISOString().split("T")[0];
+      // 🌟 LOGIC สำคัญ: ใช้วันที่ 1 ของเดือนที่เลือก แทนวันที่ปัจจุบัน
+      // ป้องกันบั๊กเซฟผิดเดือนในฐานข้อมูล เวลาที่กดสร้างบิลของเดือนในอนาคต/ปัจจุบัน
+      const recordDate = `${selectedDate}-01`; 
       
       const payload = { 
         ...itemsToPayload(currentItems), 
         contractId, 
         recordDate, 
-        adminId: currentAdminId // บันทึกลงฐานข้อมูลด้วย ID ของคนที่ล็อกอินอยู่
+        adminId: currentAdminId
       };
 
       if (paymentId) await paymentService.updatePayment(paymentId, payload);
@@ -541,8 +554,11 @@ const BillDetail = ({
           </div>
         ) : loadError ? (
           <div className="py-24 flex flex-col items-center justify-center text-center bg-gray-50 rounded-[40px] border border-gray-200 mt-4 max-w-4xl mx-auto px-6">
-            <p className="text-red-500 font-bold mb-4">{loadError}</p>
-            <WhiteButton label="ลองใหม่" onClick={loadBillData} />
+            <p className="text-gray-400 font-bold mb-4">{loadError}</p>
+            {/* ซ่อนปุ่ม "สร้างบิลใหม่" และ "ลองใหม่" เพื่อไม่ให้กดฝืนสร้างบิลย้อนหลัง */}
+            {loadError !== "ไม่มีการออกบิลในเดือนนี้ (ไม่อนุญาตให้สร้างบิลย้อนหลัง)" && (
+               <WhiteButton label="ลองใหม่" onClick={loadBillData} />
+            )}
           </div>
         ) : items && items.length > 0 ? (
           <>

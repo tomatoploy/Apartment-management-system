@@ -393,6 +393,7 @@ useEffect(() => {
                       onChange={handleInputChange}
                       type="select"
                       options={["นาย", "นาง", "นางสาว"]}
+                      required
                     />
                     <FormInput
                       label="ชื่อ"
@@ -406,6 +407,7 @@ useEffect(() => {
                       name="lastName"
                       value={formData.lastName}
                       onChange={handleInputChange}
+                      required
                     />
                     <FormInput
                       label="เบอร์โทรศัพท์"
@@ -414,6 +416,7 @@ useEffect(() => {
                       type="tel"
                       onChange={(e) => handleNumberChange(e, 10)}
                       placeholder="08XXXXXXXX"
+                      required
                     />
                     <FormInput
                       label="เลขบัตรประชาชน"

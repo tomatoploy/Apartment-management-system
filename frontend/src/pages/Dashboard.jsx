@@ -2,22 +2,21 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
 import {
-  Home, Banknote, DoorOpen, Package, PlusCircle, Loader2,
-  Users, ArrowRight, CheckCircle2, TrendingUp, Calendar,
-  Bell, BellRing, AlertTriangle, Clock, Zap, RefreshCw,
-  FileText, Wrench, ChevronRight, Activity, Droplets,
-  UserCheck, AlertCircle, X, ArrowUpRight, BarChart2
+  Home, DoorOpen, Package, CheckCircle2, Calendar,
+  Clock, RefreshCw, Wrench, ChevronRight, Activity,
+  UserCheck, AlertCircle, BarChart2, ArrowRight,
+  Sparkles, Banknote, FileText, LogOut, Wallet
 } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
    CONFIG
 ───────────────────────────────────────────── */
 const API_BASE = 'http://localhost:5252';
-const REFRESH_INTERVAL = 60_000; // 60 วินาที
+const REFRESH_INTERVAL = 60_000;
 
 /* ─────────────────────────────────────────────
    HELPERS
@@ -52,10 +51,15 @@ const fmt = (n) => Number(n || 0).toLocaleString('th-TH', { minimumFractionDigit
 
 const MONTH_TH = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 
+const getFloorFromRoomNumber = (roomNumber) => {
+  const numStr = String(roomNumber || '').replace(/\D/g, '');
+  if (numStr.length >= 3) return numStr.substring(0, numStr.length - 2);
+  return '1';
+};
+
 /* ─────────────────────────────────────────────
    SMALL COMPONENTS
 ───────────────────────────────────────────── */
-
 const PulseDot = ({ color = 'bg-emerald-400' }) => (
   <span className="relative flex h-2.5 w-2.5">
     <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${color} opacity-60`} />
@@ -63,60 +67,33 @@ const PulseDot = ({ color = 'bg-emerald-400' }) => (
   </span>
 );
 
-const StatCard = ({ label, value, subtext, icon: Icon, accent, trend, onClick }) => (
-  <button
-    onClick={onClick}
-    className="group bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all text-left w-full hover:-translate-y-0.5 active:scale-[0.98]"
-  >
-    <div className="flex items-start justify-between mb-3">
-      <div className={`p-2.5 rounded-xl ${accent.bg}`}>
-        <Icon size={20} className={accent.text} strokeWidth={2.5} />
-      </div>
-      {trend !== undefined && (
-        <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5
-          ${trend >= 0 ? 'text-emerald-700 bg-emerald-50' : 'text-red-600 bg-red-50'}`}>
-          <ArrowUpRight size={11} className={trend < 0 ? 'rotate-180' : ''} />
-          {Math.abs(trend)}%
-        </span>
-      )}
+const MiniStat = ({ label, value, icon: Icon, colorClass, bgClass }) => (
+  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3.5 sm:p-4 flex items-center gap-3">
+    <div className={`p-2.5 rounded-xl shrink-0 ${bgClass}`}>
+      <Icon size={18} className={colorClass} />
     </div>
-    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">{label}</p>
-    <p className="text-2xl font-black text-gray-900 leading-none">{value}</p>
-    {subtext && <p className="text-[11px] font-semibold text-gray-400 mt-2">{subtext}</p>}
-  </button>
+    <div className="min-w-0 flex-1">
+      <p className="text-[10px] sm:text-[11px] font-bold text-gray-400 uppercase tracking-wider truncate mb-0.5">{label}</p>
+      <p className="text-lg sm:text-xl font-black text-gray-900 leading-none truncate">{value}</p>
+    </div>
+  </div>
 );
 
-const NotifBadge = ({ count }) =>
-  count > 0 ? (
-    <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-full ring-2 ring-white">
-      {count > 99 ? '99+' : count}
-    </span>
-  ) : null;
-
 const AlertRow = ({ icon: Icon, color, bg, title, sub, badge, onClick }) => (
-  <button
-    onClick={onClick}
-    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors text-left group"
-  >
-    <div className={`p-2 rounded-lg shrink-0 ${bg}`}>
-      <Icon size={15} className={color} />
-    </div>
+  <button onClick={onClick} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors text-left group">
+    <div className={`p-2 rounded-lg shrink-0 ${bg}`}><Icon size={15} className={color} /></div>
     <div className="flex-1 min-w-0">
       <p className="text-sm font-bold text-gray-800 truncate">{title}</p>
       <p className="text-[11px] font-medium text-gray-400 truncate">{sub}</p>
     </div>
-    {badge && (
-      <span className={`shrink-0 text-[10px] font-black px-2 py-0.5 rounded-full ${badge.style}`}>
-        {badge.label}
-      </span>
-    )}
+    {badge && <span className={`shrink-0 text-[10px] font-black px-2 py-0.5 rounded-full ${badge.style}`}>{badge.label}</span>}
     <ChevronRight size={14} className="text-gray-300 group-hover:text-gray-500 shrink-0" />
   </button>
 );
 
 const SectionHeader = ({ title, action, actionLabel }) => (
-  <div className="flex items-center justify-between mb-4">
-    <h2 className="text-base font-black text-gray-800">{title}</h2>
+  <div className="flex items-center justify-between mb-3 sm:mb-4">
+    <h2 className="text-sm sm:text-base font-black text-gray-800">{title}</h2>
     {action && (
       <button onClick={action} className="text-xs font-bold text-[#f3a638] hover:text-orange-600 flex items-center gap-1">
         {actionLabel} <ChevronRight size={12} />
@@ -131,7 +108,7 @@ const ChartTooltip = ({ active, payload, label }) => {
     <div className="bg-white border border-gray-100 shadow-lg rounded-xl p-3 text-xs">
       <p className="font-black text-gray-700 mb-2">{label}</p>
       {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color }} className="font-bold">
+        <p key={`tt-${i}`} style={{ color: p.color }} className="font-bold">
           {p.name}: ฿{fmt(p.value)}
         </p>
       ))}
@@ -148,46 +125,54 @@ const Dashboard = () => {
 
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(new Date());
-  const [showNotif, setShowNotif] = useState(false);
   const [chartMode, setChartMode] = useState('month'); 
   const [apartmentName, setApartmentName] = useState('');
   const [adminName, setAdminName] = useState('');
 
   const [raw, setRaw] = useState({
     rooms: [], contracts: [], payments: [], requests: [],
-    parcels: [], tenants: [], utilityMeters: [], documents: []
+    parcels: [], tenants: [], documents: []
   });
 
   const fetchAll = useCallback(async () => {
     try {
       const adminId = localStorage.getItem('adminId') || 1;
-
+      
       const [
         adminRes, aptRes, rooms, contracts, payments,
-        requests, parcels, tenants, utilityMeters, documents
+        requests, parcels, tenants, documents
       ] = await Promise.allSettled([
         axios.get(`${API_BASE}/Admins/${adminId}`).catch(() => null),
         axios.get(`${API_BASE}/Apartments`).then(r => arr(r.data)),
-        get('/Rooms'),
-        get('/Contracts'),
-        get('/Payments'),
-        get('/Requests'),
-        get('/Parcels'),
-        get('/Tenants'),
-        get('/UtilityMeters'),
+        get('/Rooms'), get('/Contracts'), get('/Payments'),
+        get('/Requests'), get('/Parcels'), get('/Tenants'),
         get('/Documents'),
       ]);
 
       const resolve = (r) => r.status === 'fulfilled' ? r.value : (Array.isArray(r.value) ? [] : null);
-
-      const admin = resolve(adminRes);
-      if (admin?.value) {
-        const a = admin.value;
-        setAdminName(`${a.firstName || ''} ${a.lastName || ''}`.trim() || 'ผู้ดูแลระบบ');
+      
+      const adminData = adminRes.status === 'fulfilled' && adminRes.value ? adminRes.value.data : null;
+      
+      if (adminData && adminData.firstName) { 
+        setAdminName(`${adminData.firstName} ${adminData.lastName || ''}`.trim());
+      } else if (adminData && adminData.FirstName) { 
+        setAdminName(`${adminData.FirstName} ${adminData.LastName || ''}`.trim());
+      } else {
+        let localName = 'ผู้ดูแลระบบ';
+        try {
+          const userStr = localStorage.getItem('user');
+          if (userStr) {
+            const userObj = JSON.parse(userStr);
+            if (userObj.firstName) localName = `${userObj.firstName} ${userObj.lastName || ''}`.trim();
+            else if (userObj.FirstName) localName = `${userObj.FirstName} ${userObj.LastName || ''}`.trim();
+            else if (userObj.username) localName = userObj.username;
+          }
+        } catch(e) {}
+        setAdminName(localName);
       }
 
       const apts = resolve(aptRes) || [];
-      setApartmentName(Array.isArray(apts) && apts[0]?.name ? apts[0].name : 'ระบบจัดการหอพัก');
+      setApartmentName(apts[0]?.name || 'ระบบจัดการหอพัก');
 
       setRaw({
         rooms: resolve(rooms) || [],
@@ -196,7 +181,6 @@ const Dashboard = () => {
         requests: resolve(requests) || [],
         parcels: resolve(parcels) || [],
         tenants: resolve(tenants) || [],
-        utilityMeters: resolve(utilityMeters) || [],
         documents: resolve(documents) || [],
       });
 
@@ -215,570 +199,454 @@ const Dashboard = () => {
   }, [fetchAll]);
 
   const computed = useMemo(() => {
-    const { rooms, contracts, payments, requests, parcels, tenants, utilityMeters } = raw;
+    const { rooms, contracts, payments, requests, parcels } = raw;
     const now = new Date();
     const curYear = now.getFullYear();
     const curMonth = now.getMonth();
 
-    const totalRooms = rooms.length;
-    const occupied = rooms.filter(r => r.status?.toLowerCase() === 'occupied').length;
-    const available = rooms.filter(r => r.status?.toLowerCase() === 'available').length;
-    const maintenance = rooms.filter(r => ['maintenance', 'close'].includes(r.status?.toLowerCase())).length;
-    const occupancyRate = totalRooms ? Math.round((occupied / totalRooms) * 100) : 0;
+    const contractByRoom = {};
+    contracts.forEach(c => {
+      const status = (c.status || c.Status || "").toLowerCase();
+      if (status === "active" || status === "reserved") {
+        const rId = Number(c.roomId || c.RoomId);
+        if (rId) contractByRoom[rId] = c;
+      }
+    });
 
-    const paidThisMonth = payments.filter(p => {
-      const d = new Date(p.recordDate || p.createdAt);
-      return p.status?.toLowerCase() === 'paid' && d.getFullYear() === curYear && d.getMonth() === curMonth;
-    }).reduce((s, p) => s + Number(p.paidAmount || p.totalAmount || 0), 0);
+    const overdueCountByContract = {};
+    const currentMonthStatusByContract = {};
+    payments.forEach(p => {
+      const cid = Number(p.contractId || p.ContractId);
+      const status = (p.status || p.Status || "").toLowerCase();
+      const d = new Date(p.recordDate || p.createdAt || p.RecordDate);
+      if (!isNaN(d)) {
+        if (status === "unpaid") overdueCountByContract[cid] = (overdueCountByContract[cid] || 0) + 1;
+        if (d.getFullYear() === curYear && d.getMonth() === curMonth) {
+          currentMonthStatusByContract[cid] = status;
+        }
+      }
+    });
 
-    const overdue = payments.filter(p =>
-      p.status?.toLowerCase() === 'unpaid' && new Date(p.dueDate || p.recordDate) < now
-    );
+    const parcelMap = {};
+    parcels.forEach(p => {
+      if (!p.pickupDate) parcelMap[p.roomId || p.RoomId] = true;
+    });
 
-    const expiringContracts = contracts.filter(c => {
-      const d = daysUntil(c.endDate);
-      return c.status === 'Active' && d >= 0 && d <= 30;
-    }).sort((a, b) => daysUntil(a.endDate) - daysUntil(b.endDate));
+    const reqCounts = { fix: 0, clean: 0, leave: 0, other: 0 };
+    const requestMap = {};
+    requests.forEach(r => {
+      if (r.status !== "finish" && r.status !== "cancel") {
+        const rId = r.roomId || r.RoomId;
+        if (rId) {
+          if (!requestMap[rId]) requestMap[rId] = [];
+          requestMap[rId].push(r);
+        }
+        const sub = (r.subject || "").toLowerCase();
+        if (reqCounts[sub] !== undefined) reqCounts[sub]++;
+        else reqCounts.other++;
+      }
+    });
 
-    const pendingRequests = requests.filter(r =>
-      ['pending', 'open', 'new'].includes(r.status?.toLowerCase())
-    );
+    const waitingParcelsCount = parcels.filter(p => !p.pickupDate).length;
 
-    const waitingParcels = parcels.filter(p =>
-      ['waiting', 'received', 'new'].includes(p.status?.toLowerCase())
-    );
+    const expiringContractsCount = contracts.filter(c => {
+      const d = daysUntil(c.endDate || c.EndDate);
+      const status = (c.status || c.Status || "").toLowerCase();
+      return status === 'active' && d >= 0 && d <= 30;
+    }).length;
+
+    const normalizedRooms = rooms.map(room => {
+      const roomId = Number(room.roomId || room.id || room.Id);
+      const contract = contractByRoom[roomId];
+      const contractId = Number(contract?.id || contract?.Id || 0);
+      const icons = [];
+      const overdueCount = overdueCountByContract[contractId] || 0;
+      const currentMonthPay = currentMonthStatusByContract[contractId];
+      
+      let finalStatus = (room.roomStatus || room.status || "available").toLowerCase();
+      if (currentMonthPay === "paid") finalStatus = "occupied";
+      else if (currentMonthPay === "unpaid" || overdueCount > 0) finalStatus = "overdue";
+      else if (finalStatus === "close") finalStatus = "maintenance";
+
+      if (finalStatus === "reserved") icons.push("moveIn");
+      if (parcelMap[roomId]) icons.push("package");
+      
+      const roomReqs = requestMap[roomId] || [];
+      roomReqs.forEach((req) => {
+        const sub = (req.subject || "").toLowerCase();
+        if (["fix", "clean", "leave", "other"].includes(sub) && !icons.includes(sub)) icons.push(sub);
+      });
+
+      return {
+        ...room, id: roomId, floor: String(room.roomFloor || room.floor || getFloorFromRoomNumber(room.number || room.roomNumber)),
+        status: finalStatus, icons, waitingParcelsCount, expiringContractsCount
+      };
+    });
+
+    const totalRooms = normalizedRooms.length;
+    const occupied = normalizedRooms.filter(r => r.status === 'occupied').length;
+    const reserved = normalizedRooms.filter(r => r.status === 'reserved').length;
+    const available = normalizedRooms.filter(r => r.status === 'available').length;
+    const maintenance = normalizedRooms.filter(r => ['maintenance', 'close'].includes(r.status)).length;
+    // 🌟 คำนวณอัตราเข้าพัก โดยดึงจาก Room table โดยตรง 🌟
+    const rawOccupied = rooms.filter(r => (r.status || r.roomStatus || '').toLowerCase() === 'occupied').length;
+    const rawReserved = rooms.filter(r => (r.status || r.roomStatus || '').toLowerCase() === 'reserved').length;
+    const occupancyRate = rooms.length ? Math.round(((rawOccupied + rawReserved) / rooms.length) * 100) : 0;
+
+    let paidThisMonth = 0;
+    let unpaidThisMonth = 0;
+
+    payments.forEach(p => {
+      const d = new Date(p.recordDate || p.createdAt || p.RecordDate);
+      if (d.getFullYear() === curYear && d.getMonth() === curMonth) {
+        const status = (p.status || p.Status || "").toLowerCase();
+        const amt = Number(p.paidAmount || p.totalAmount || p.PaidAmount || p.TotalAmount || 0);
+        if (status === 'paid') paidThisMonth += amt;
+        else if (status === 'unpaid') unpaidThisMonth += amt;
+      }
+    });
+
+    const allUnpaidPayments = payments.filter(p => (p.status || p.Status || "").toLowerCase() === 'unpaid').sort((a, b) => new Date(a.recordDate || a.RecordDate) - new Date(b.recordDate || b.RecordDate));
 
     const todayTasks = [];
     contracts.forEach(c => {
       if (isToday(c.startDate)) {
-        const room = rooms.find(r => r.id === c.roomId);
-        todayTasks.push({ type: 'moveIn', title: `ห้อง ${room?.number || c.roomId} ย้ายเข้า`, sub: 'เริ่มสัญญาวันนี้' });
+        const room = normalizedRooms.find(r => r.id === c.roomId);
+        todayTasks.push({ id: `in-${c.id}`, type: 'moveIn', title: `ห้อง ${room?.number || c.roomId} ย้ายเข้า`, sub: 'เริ่มสัญญาวันนี้' });
       }
       if (isToday(c.endDate)) {
-        const room = rooms.find(r => r.id === c.roomId);
-        todayTasks.push({ type: 'moveOut', title: `ห้อง ${room?.number || c.roomId} ย้ายออก`, sub: 'สิ้นสุดสัญญาวันนี้' });
+        const room = normalizedRooms.find(r => r.id === c.roomId);
+        todayTasks.push({ id: `out-${c.id}`, type: 'moveOut', title: `ห้อง ${room?.number || c.roomId} ย้ายออก`, sub: 'สิ้นสุดสัญญาวันนี้' });
       }
-    });
-    parcels.forEach(p => {
-      if (isToday(p.createdAt || p.receivedDate)) {
-        const room = rooms.find(r => r.id === p.roomId);
-        todayTasks.push({ type: 'parcel', title: `พัสดุ ห้อง ${room?.number || p.roomId}`, sub: p.shippingCompany || 'พัสดุใหม่' });
-      }
-    });
-
-    const alerts = [];
-    overdue.forEach(p => {
-      const room = rooms.find(r => r.id === p.roomId);
-      alerts.push({
-        icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-50',
-        title: `ค้างชำระ ห้อง ${room?.number || p.roomId}`,
-        sub: `฿${fmt(p.totalAmount || p.paidAmount)} — ครบกำหนด ${thaiDate(p.dueDate)}`,
-        link: '/billings'
-      });
-    });
-    expiringContracts.slice(0, 5).forEach(c => {
-      const room = rooms.find(r => r.id === c.roomId);
-      const d = daysUntil(c.endDate);
-      alerts.push({
-        icon: Clock, color: 'text-amber-500', bg: 'bg-amber-50',
-        title: `สัญญาห้อง ${room?.number || c.roomId} ใกล้หมด`,
-        sub: `อีก ${d} วัน — ${thaiDate(c.endDate)}`,
-        link: '/contracts'
-      });
-    });
-    pendingRequests.slice(0, 5).forEach(r => {
-      const room = rooms.find(rm => rm.id === r.roomId);
-      alerts.push({
-        icon: Wrench, color: 'text-blue-500', bg: 'bg-blue-50',
-        title: `คำขอซ่อม ห้อง ${room?.number || r.roomId}`,
-        sub: r.description || r.title || 'รอดำเนินการ',
-        link: '/requests'
-      });
-    });
-    waitingParcels.slice(0, 5).forEach(p => {
-      const room = rooms.find(r => r.id === p.roomId);
-      alerts.push({
-        icon: Package, color: 'text-purple-500', bg: 'bg-purple-50',
-        title: `พัสดุรอรับ ห้อง ${room?.number || p.roomId}`,
-        sub: p.shippingCompany || 'รอเจ้าของรับ',
-        link: '/parcels'
-      });
     });
 
     const daysInMonth = new Date(curYear, curMonth + 1, 0).getDate();
-    const monthChart = Array.from({ length: daysInMonth }, (_, i) => ({
-      name: `${i + 1}`, income: 0, expense: 0
-    }));
-    payments.forEach(p => {
-      if (p.status?.toLowerCase() === 'paid') {
-        const d = new Date(p.recordDate || p.createdAt);
-        if (d.getFullYear() === curYear && d.getMonth() === curMonth) {
-          monthChart[d.getDate() - 1].income += Number(p.paidAmount || p.totalAmount || 0);
-        }
-      }
-    });
-    requests.forEach(r => {
-      if (!r.isTenantCost && Number(r.cost) > 0) {
-        const d = new Date(r.createdAt || r.updatedAt);
-        if (d.getFullYear() === curYear && d.getMonth() === curMonth) {
-          monthChart[d.getDate() - 1].expense += Number(r.cost);
-        }
-      }
-    });
-
+    const monthChart = Array.from({ length: daysInMonth }, (_, i) => ({ name: `${i + 1}`, income: 0, expense: 0 }));
     const yearChart = MONTH_TH.map(m => ({ name: m, income: 0, expense: 0 }));
-    payments.forEach(p => {
-      if (p.status?.toLowerCase() === 'paid') {
-        const d = new Date(p.recordDate || p.createdAt);
-        if (d.getFullYear() === curYear) {
-          yearChart[d.getMonth()].income += Number(p.paidAmount || p.totalAmount || 0);
-        }
-      }
-    });
-    requests.forEach(r => {
-      if (!r.isTenantCost && Number(r.cost) > 0) {
-        const d = new Date(r.createdAt || r.updatedAt);
-        if (d.getFullYear() === curYear) {
-          yearChart[d.getMonth()].expense += Number(r.cost);
-        }
-      }
-    });
-
     const compareChart = Array.from({ length: 6 }, (_, i) => {
       const d = new Date(curYear, curMonth - 5 + i, 1);
       return { name: `${MONTH_TH[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`, income: 0, expense: 0 };
     });
-    payments.forEach(p => {
-      if (p.status?.toLowerCase() === 'paid') {
-        const d = new Date(p.recordDate || p.createdAt);
-        for (let i = 0; i < 6; i++) {
-          const ref = new Date(curYear, curMonth - 5 + i, 1);
-          if (d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth()) {
-            compareChart[i].income += Number(p.paidAmount || p.totalAmount || 0);
-          }
-        }
-      }
-    });
-    requests.forEach(r => {
-      if (!r.isTenantCost && Number(r.cost) > 0) {
-        const d = new Date(r.createdAt || r.updatedAt);
-        for (let i = 0; i < 6; i++) {
-          const ref = new Date(curYear, curMonth - 5 + i, 1);
-          if (d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth()) {
-            compareChart[i].expense += Number(r.cost);
-          }
-        }
-      }
-    });
 
-    const utilSummary = utilityMeters.reduce((acc, u) => {
-      if (u.type === 'water' || u.meterType === 'water') acc.water += Number(u.unitsUsed || u.usage || 0);
-      else acc.electric += Number(u.unitsUsed || u.usage || 0);
-      return acc;
-    }, { water: 0, electric: 0 });
+    payments.forEach(p => {
+      if ((p.status || p.Status || "").toLowerCase() === 'paid') {
+        const d = new Date(p.recordDate || p.createdAt || p.RecordDate);
+        const amt = Number(p.paidAmount || p.totalAmount || p.PaidAmount || p.TotalAmount || 0);
+        if (d.getFullYear() === curYear && d.getMonth() === curMonth) monthChart[d.getDate() - 1].income += amt;
+        if (d.getFullYear() === curYear) yearChart[d.getMonth()].income += amt;
+        for (let i = 0; i < 6; i++) {
+          const ref = new Date(curYear, curMonth - 5 + i, 1);
+          if (d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth()) compareChart[i].income += amt;
+        }
+      }
+    });
+    
+    requests.forEach(r => {
+      const isTenant = r.isTenantCost === 1 || r.isTenantCost === "1" || r.isTenantCost === true;
+      if (!isTenant && Number(r.cost) > 0) {
+        const d = new Date(r.createdAt || r.updatedAt || r.requestDate);
+        if (d.getFullYear() === curYear && d.getMonth() === curMonth) monthChart[d.getDate() - 1].expense += Number(r.cost);
+        if (d.getFullYear() === curYear) yearChart[d.getMonth()].expense += Number(r.cost);
+        for (let i = 0; i < 6; i++) {
+          const ref = new Date(curYear, curMonth - 5 + i, 1);
+          if (d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth()) compareChart[i].expense += Number(r.cost);
+        }
+      }
+    });
 
     const chartData = chartMode === 'month' ? monthChart : chartMode === 'year' ? yearChart : compareChart;
+    const roomsByFloor = normalizedRooms.reduce((acc, room) => {
+      if (!acc[room.floor]) acc[room.floor] = [];
+      acc[room.floor].push(room);
+      return acc;
+    }, {});
+
+    const expectedTotalThisMonth = paidThisMonth + unpaidThisMonth;
+    const paymentProgress = expectedTotalThisMonth > 0 ? Math.round((paidThisMonth / expectedTotalThisMonth) * 100) : 0;
 
     return {
-      totalRooms, occupied, available, maintenance, occupancyRate,
-      paidThisMonth, overdue, expiringContracts, pendingRequests,
-      waitingParcels, todayTasks, alerts, chartData,
-      utilSummary, tenants,
+      totalRooms, occupied, reserved, available, maintenance, occupancyRate,
+      paidThisMonth, unpaidThisMonth, expectedTotalThisMonth, paymentProgress,
+      allUnpaidPayments, todayTasks, chartData,
+      reqCounts, roomsByFloor, waitingParcelsCount, expiringContractsCount
     };
   }, [raw, chartMode]);
 
   if (loading) {
     return (
       <div className="w-full h-[80vh] flex flex-col items-center justify-center gap-3">
-        <div className="relative">
-          <div className="w-12 h-12 rounded-full border-4 border-orange-100 border-t-[#f3a638] animate-spin" />
-        </div>
+        <div className="w-12 h-12 rounded-full border-4 border-orange-100 border-t-[#f3a638] animate-spin" />
         <p className="text-sm font-bold text-gray-400 animate-pulse">กำลังโหลดข้อมูล...</p>
       </div>
     );
   }
 
-  const { totalRooms, occupied, available, maintenance, occupancyRate,
-    paidThisMonth, overdue, expiringContracts, pendingRequests,
-    waitingParcels, todayTasks, alerts, chartData, utilSummary } = computed;
-
-  const notifCount = alerts.length;
+  const { totalRooms, occupied, reserved, available, maintenance, occupancyRate,
+    paidThisMonth, unpaidThisMonth, expectedTotalThisMonth, paymentProgress,
+    allUnpaidPayments, todayTasks, chartData, reqCounts, roomsByFloor, waitingParcelsCount, expiringContractsCount } = computed;
 
   const taskIconMap = {
-    moveIn: { icon: ArrowRight, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    moveOut: { icon: DoorOpen, color: 'text-red-500', bg: 'bg-red-50' },
-    parcel: { icon: Package, color: 'text-purple-600', bg: 'bg-purple-50' },
+    moveIn: { icon: ArrowRight, bg: 'bg-emerald-50', color: 'text-emerald-600' },
+    moveOut: { icon: DoorOpen, bg: 'bg-red-50', color: 'text-red-500' },
+  };
+
+  const getRoomColor = (status) => {
+    const s = (status || "").toLowerCase();
+    if (s === "occupied") return "bg-[#10b981] text-white hover:-translate-y-1 hover:shadow-md";
+    if (s === "overdue") return "bg-[#fb7185] text-white hover:-translate-y-1 hover:shadow-md";
+    if (s === "reserved") return "bg-[#facc15] text-white hover:-translate-y-1 hover:shadow-md";
+    if (s === "maintenance" || s === "close") return "bg-[#4b5563] text-white hover:-translate-y-1 hover:shadow-md";
+    return "bg-white border-[2px] border-gray-200 text-gray-500 hover:border-gray-400 hover:-translate-y-1 hover:shadow-md";
   };
 
   return (
-    <div className="w-full pb-24 space-y-5 max-w-7xl mx-auto">
-
+    <div className="w-full pb-24 space-y-4 sm:space-y-5 max-w-7xl mx-auto px-2 sm:px-0">
+      
       {/* ══ HEADER ══ */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="inline-flex items-center gap-1.5 bg-[#f3a638]/10 text-[#f3a638] px-3 py-1 rounded-lg text-[11px] font-black tracking-widest uppercase mb-2">
-              <Home size={11} />
-              {apartmentName || 'ระบบจัดการหอพัก'}
-            </div>
-            <h1 className="text-xl font-black text-gray-900">
-              สวัสดี, {adminName || 'ผู้ดูแลระบบ'} 👋
-            </h1>
-            <p className="text-xs font-semibold text-gray-400 mt-1 flex items-center gap-1.5">
-              <Calendar size={12} />
-              {new Date().toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            </p>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-1.5 bg-[#f3a638]/10 text-[#f3a638] px-3 py-1 rounded-lg text-[10px] sm:text-[11px] font-black tracking-widest uppercase mb-1.5 sm:mb-2">
+            <Home size={11} /> {apartmentName}
           </div>
-
-          <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-bold text-gray-400 bg-gray-50 px-3 py-1.5 rounded-xl">
-              <PulseDot />
-              อัปเดต {lastRefresh.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
-            </div>
-            <button
-              onClick={() => { setLoading(true); fetchAll(); }}
-              className="p-2.5 rounded-xl border border-gray-100 bg-white hover:bg-gray-50 transition-colors text-gray-500"
-              title="รีเฟรชข้อมูล"
-            >
-              <RefreshCw size={15} />
-            </button>
-            <div className="relative">
-              <button
-                onClick={() => setShowNotif(v => !v)}
-                className={`p-2.5 rounded-xl border transition-colors ${notifCount > 0 ? 'border-red-100 bg-red-50 text-red-500' : 'border-gray-100 bg-white text-gray-500 hover:bg-gray-50'}`}
-              >
-                {notifCount > 0 ? <BellRing size={15} /> : <Bell size={15} />}
-              </button>
-              <NotifBadge count={notifCount} />
-              {showNotif && (
-                <NotificationPanel alerts={alerts} onClose={() => setShowNotif(false)} navigate={navigate} />
-              )}
-            </div>
+          <h1 className="text-lg sm:text-xl font-black text-gray-900">สวัสดี, {adminName} 👋</h1>
+          <p className="text-[11px] sm:text-xs font-semibold text-gray-400 mt-1 flex items-center gap-1.5">
+            <Calendar size={12} />
+            {new Date().toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold text-gray-400 bg-gray-50 px-3 py-1.5 rounded-xl">
+            <PulseDot /> อัปเดต {lastRefresh.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
           </div>
+          <button onClick={() => { setLoading(true); fetchAll(); }} className="p-2 sm:p-2.5 rounded-xl border border-gray-100 bg-white hover:bg-gray-50 transition-colors text-gray-500">
+            <RefreshCw size={14} />
+          </button>
         </div>
       </div>
 
-      {/* ══ STAT CARDS ══ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard
-          label="รายรับเดือนนี้"
-          value={`฿${fmt(paidThisMonth)}`}
-          subtext="บิลที่ชำระแล้ว"
-          icon={TrendingUp}
-          accent={{ bg: 'bg-emerald-50', text: 'text-emerald-600' }}
-          onClick={() => navigate('/billings')}
-        />
-        <StatCard
-          label="อัตราเข้าพัก"
-          value={`${occupancyRate}%`}
-          subtext={`${occupied}/${totalRooms} ห้อง`}
-          icon={UserCheck}
-          accent={{ bg: 'bg-blue-50', text: 'text-blue-600' }}
-          onClick={() => navigate('/room-map')}
-        />
-        <StatCard
-          label="ห้องว่าง"
-          value={available}
-          subtext="พร้อมรับผู้เช่าใหม่"
-          icon={DoorOpen}
-          accent={{ bg: 'bg-orange-50', text: 'text-orange-500' }}
-          onClick={() => navigate('/room-map', { state: { defaultFilter: 'available' } })}
-        />
-        <StatCard
-          label="ค้างชำระ"
-          value={overdue.length}
-          subtext={overdue.length > 0 ? 'รายการรอดำเนินการ' : 'ไม่มีค้างชำระ 🎉'}
-          icon={AlertCircle}
-          accent={{ bg: overdue.length > 0 ? 'bg-red-50' : 'bg-gray-50', text: overdue.length > 0 ? 'text-red-500' : 'text-gray-400' }}
-          onClick={() => navigate('/billings')}
-        />
+      {/* ══ TODAY'S TASKS ══ */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
+        <div className="flex items-center justify-between mb-3 sm:mb-4 border-b border-gray-100 pb-2 sm:pb-3">
+          <h2 className="text-sm sm:text-base font-black text-gray-800 flex items-center gap-2">
+            <Activity size={17} className="text-[#f3a638]" /> รายการวันนี้
+          </h2>
+        </div>
+        {todayTasks.length > 0 ? (
+          <div className="flex overflow-x-auto gap-2.5 sm:gap-3 pb-2 -mx-1 px-1 custom-scrollbar">
+            {todayTasks.map((task) => {
+              const cfg = taskIconMap[task.type] || { icon: ArrowRight, bg: 'bg-gray-100', color: 'text-gray-500' };
+              const Icon = cfg.icon;
+              return (
+                <div key={task.id} className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 bg-gray-50 border border-gray-100 rounded-xl min-w-[200px] sm:min-w-[220px] shrink-0">
+                  <div className={`p-2 sm:p-2.5 rounded-xl shrink-0 ${cfg.bg}`}><Icon size={14} className={cfg.color} /></div>
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-bold text-gray-800 truncate">{task.title}</p>
+                    <p className="text-[10px] sm:text-[11px] font-medium text-gray-400 truncate">{task.sub}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center text-gray-400 py-4 sm:py-6 gap-2">
+            <CheckCircle2 size={18} className="text-emerald-300" />
+            <p className="text-xs sm:text-sm font-bold text-gray-500">ไม่มีรายการสำคัญในวันนี้</p>
+          </div>
+        )}
       </div>
 
-      {/* ══ SECONDARY STATS ══ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-          <div className="p-2.5 bg-purple-50 rounded-xl"><Package size={18} className="text-purple-600" /></div>
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">พัสดุรอรับ</p>
-            <p className="text-xl font-black text-gray-900">{waitingParcels.length}</p>
-          </div>
+      {/* ══ STATS & REQUESTS ══ */}
+      <div className="flex flex-col gap-3">
+        {/* แถวที่ 1: ภาพรวมสถานะห้องและการเงิน */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+          <MiniStat label="อัตราเข้าพัก" value={`${occupancyRate}%`} icon={UserCheck} colorClass="text-blue-600" bgClass="bg-blue-50" />
+          <MiniStat label="ห้องว่าง" value={`${available} ห้อง`} icon={DoorOpen} colorClass="text-emerald-600" bgClass="bg-emerald-50" />
+          <MiniStat label="ซ่อม/ปิด" value={`${maintenance} ห้อง`} icon={Wrench} colorClass="text-gray-500" bgClass="bg-gray-100" />
+          <MiniStat label="ค้างชำระ" value={`${allUnpaidPayments.length} บิล`} icon={Banknote} colorClass="text-rose-600" bgClass="bg-rose-50" />
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-          <div className="p-2.5 bg-amber-50 rounded-xl"><Wrench size={18} className="text-amber-600" /></div>
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">คำขอซ่อม</p>
-            <p className="text-xl font-black text-gray-900">{pendingRequests.length}</p>
-          </div>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-          <div className="p-2.5 bg-sky-50 rounded-xl"><Clock size={18} className="text-sky-600" /></div>
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">สัญญาใกล้หมด</p>
-            <p className="text-xl font-black text-gray-900">{expiringContracts.length}</p>
-          </div>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-          <div className="p-2.5 bg-gray-100 rounded-xl"><Wrench size={18} className="text-gray-500" /></div>
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">ซ่อมแซม/ปิด</p>
-            <p className="text-xl font-black text-gray-900">{maintenance}</p>
-          </div>
+        
+        {/* แถวที่ 2: งานที่ต้องจัดการ (พัสดุ, สัญญา, แจ้งซ่อม, ทำความสะอาด) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+          <MiniStat label="พัสดุรอรับ" value={`${waitingParcelsCount} ชิ้น`} icon={Package} colorClass="text-purple-600" bgClass="bg-purple-50" />
+          <MiniStat label="สัญญาใกล้หมด" value={`${expiringContractsCount} ราย`} icon={Clock} colorClass="text-amber-600" bgClass="bg-amber-50" />
+          <MiniStat label="แจ้งซ่อม" value={`${reqCounts.fix} รายการ`} icon={Wrench} colorClass="text-indigo-600" bgClass="bg-indigo-50" />
+          <MiniStat label="แจ้งทำความสะอาด" value={`${reqCounts.clean} รายการ`} icon={Sparkles} colorClass="text-sky-600" bgClass="bg-sky-50" />
         </div>
       </div>
 
-      {/* ══ CHART + TASKS (2-col) ══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-base font-black text-gray-800 flex items-center gap-2">
-              <BarChart2 size={17} className="text-[#f3a638]" />
-              รายรับ — รายจ่าย
-            </h2>
-            <div className="flex bg-gray-100 rounded-xl p-1 gap-0.5">
-              {[
-                { key: 'month', label: 'เดือนนี้' },
-                { key: 'year', label: 'ปีนี้' },
-                { key: 'compare', label: 'ย้อนหลัง 6 เดือน' },
-              ].map(({ key, label }) => (
+      {/* ══ ROOM MAP ══ */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 relative overflow-hidden">
+        <SectionHeader title={`ผังห้องพัก (${totalRooms} ห้อง)`} />
+        <div className="flex flex-wrap gap-x-3 gap-y-2 mb-4 sm:mb-6 border-b border-gray-100 pb-3 sm:pb-4">
+          {[
+            { id: 'l1', color: 'bg-[#10b981]', label: `มีผู้เช่า (${occupied})` },
+            { id: 'l2', color: 'bg-[#fb7185]', label: `ค้างชำระ (${allUnpaidPayments.filter((v,i,a)=>a.findIndex(t=>(t.roomId===v.roomId))===i).length})` },
+            { id: 'l3', color: 'bg-[#facc15]', label: `จอง (${reserved})` },
+            { id: 'l4', color: 'bg-white border-2 border-gray-200', label: `ว่าง (${available})` },
+            { id: 'l5', color: 'bg-[#4b5563]', label: `ซ่อม/ปิด (${maintenance})` },
+          ].map(({ id, color, label }) => (
+            <div key={id} className="flex items-center gap-1.5">
+              <div className={`w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-sm sm:rounded-md ${color}`} />
+              <span className="text-[10px] sm:text-[11px] font-bold text-gray-500">{label}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="pl-12 sm:pl-16 relative">
+          <div className="absolute left-[2.75rem] sm:left-[3.75rem] top-3 bottom-8 w-0.5 bg-gray-200"></div>
+          {Object.keys(roomsByFloor).sort((a, b) => Number(a) - Number(b)).map((floor) => (
+            <div key={`floor-${floor}`} className="relative pb-6 sm:pb-8 last:pb-2">
+              <div className="absolute -left-12 sm:-left-16 top-0 w-10 sm:w-14 text-right pr-2">
+                <span className="font-black text-gray-500 text-xs sm:text-sm">ชั้น {floor}</span>
+              </div>
+              <div className="absolute -left-[0.8rem] sm:-left-[0.55rem] top-1.5 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gray-300 ring-4 ring-white z-10"></div>
+              <div className="flex flex-wrap gap-1.5 sm:gap-2 pl-1 sm:pl-2">
+                {roomsByFloor[floor]
+                  .sort((a, b) => String(a.number || a.roomNumber).localeCompare(String(b.number || b.roomNumber), undefined, { numeric: true }))
+                  .map(room => (
+                    <button
+                      key={room.id}
+                      onClick={() => navigate(`/rooms/${room.number || room.roomNumber}`)}
+                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center font-black text-[10px] sm:text-xs transition-all relative ${getRoomColor(room.status)}`}
+                      title={`ห้อง ${room.number || room.roomNumber} — ${room.status}`}
+                    >
+                      {room.number || room.roomNumber}
+                      {room.icons && room.icons.length > 0 && (
+                        <span className="absolute -top-1 -right-1 flex h-2 w-2 sm:h-2.5 sm:w-2.5 items-center justify-center rounded-full bg-red-500 border border-white animate-pulse" />
+                      )}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ══ CHART & OVERVIEW/UNPAID TABLE GRID ══ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
+        
+        {/* CHART */}
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-5 gap-3 sm:gap-4">
+            <div>
+              <h2 className="text-sm sm:text-base font-black text-gray-800 flex items-center gap-2 mb-0.5 sm:mb-1">
+                <BarChart2 size={16} className="text-[#f3a638]" /> รายรับ — รายจ่าย
+              </h2>
+              <p className="text-[11px] sm:text-xs font-semibold text-gray-500">
+                รายรับเดือนนี้: <span className="font-black text-emerald-600 ml-1 text-sm">฿{fmt(paidThisMonth)}</span>
+              </p>
+            </div>
+            <div className="flex bg-gray-100 rounded-xl p-1 gap-0.5 w-full sm:w-auto overflow-x-auto no-scrollbar">
+              {[{ key: 'month', label: 'เดือนนี้' }, { key: 'year', label: 'ปีนี้' }, { key: 'compare', label: 'ย้อนหลัง 6 เดือน' }].map(({ key, label }) => (
                 <button
-                  key={key}
-                  onClick={() => setChartMode(key)}
-                  className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all whitespace-nowrap
-                    ${chartMode === key ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                  key={key} onClick={() => setChartMode(key)}
+                  className={`px-3 py-1.5 text-[10px] sm:text-[11px] font-bold rounded-lg transition-all whitespace-nowrap flex-1 sm:flex-none ${chartMode === key ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                 >
                   {label}
                 </button>
               ))}
             </div>
           </div>
-          <div className="h-[280px]">
+          <div className="h-[240px] sm:h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
               {chartMode === 'compare' ? (
-                <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+                <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="gi" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#34d399" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#34d399" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="ge" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f87171" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#f87171" stopOpacity={0} />
-                    </linearGradient>
+                    <linearGradient id="gi" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#34d399" stopOpacity={0.15} /><stop offset="95%" stopColor="#34d399" stopOpacity={0} /></linearGradient>
+                    <linearGradient id="ge" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f87171" stopOpacity={0.15} /><stop offset="95%" stopColor="#f87171" stopOpacity={0} /></linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af', fontWeight: 700 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af', fontWeight: 700 }} tickFormatter={v => v >= 1000 ? `${v/1000}k` : v} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af', fontWeight: 700 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af', fontWeight: 700 }} tickFormatter={v => v >= 1000 ? `${v/1000}k` : v} />
                   <Tooltip content={<ChartTooltip />} />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 700, paddingTop: 12 }} />
-                  <Area type="monotone" dataKey="income" name="รายรับ" stroke="#34d399" fill="url(#gi)" strokeWidth={2.5} dot={{ r: 4, fill: '#34d399', strokeWidth: 0 }} />
-                  <Area type="monotone" dataKey="expense" name="รายจ่าย" stroke="#f87171" fill="url(#ge)" strokeWidth={2.5} dot={{ r: 4, fill: '#f87171', strokeWidth: 0 }} />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: 10, fontWeight: 700, paddingTop: 12 }} />
+                  <Area type="monotone" dataKey="income" name="รายรับ" stroke="#34d399" fill="url(#gi)" strokeWidth={2.5} dot={{ r: 3, fill: '#34d399', strokeWidth: 0 }} />
+                  <Area type="monotone" dataKey="expense" name="รายจ่าย (แจ้งซ่อม)" stroke="#f87171" fill="url(#ge)" strokeWidth={2.5} dot={{ r: 3, fill: '#f87171', strokeWidth: 0 }} />
                 </AreaChart>
               ) : (
-                <BarChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+                <BarChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af', fontWeight: 700 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af', fontWeight: 700 }} tickFormatter={v => v >= 1000 ? `${v/1000}k` : v} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af', fontWeight: 700 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af', fontWeight: 700 }} tickFormatter={v => v >= 1000 ? `${v/1000}k` : v} />
                   <Tooltip content={<ChartTooltip />} />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 700, paddingTop: 12 }} />
-                  <Bar dataKey="income" name="รายรับ" fill="#34d399" radius={[5, 5, 0, 0]} maxBarSize={chartMode === 'month' ? 12 : 32} />
-                  <Bar dataKey="expense" name="รายจ่าย" fill="#f87171" radius={[5, 5, 0, 0]} maxBarSize={chartMode === 'month' ? 12 : 32} />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: 10, fontWeight: 700, paddingTop: 12 }} />
+                  <Bar dataKey="income" name="รายรับ" fill="#34d399" radius={[4, 4, 0, 0]} maxBarSize={chartMode === 'month' ? 10 : 28} />
+                  <Bar dataKey="expense" name="รายจ่าย (แจ้งซ่อม)" fill="#f87171" radius={[4, 4, 0, 0]} maxBarSize={chartMode === 'month' ? 10 : 28} />
                 </BarChart>
               )}
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-black text-gray-800 flex items-center gap-2">
-              <Activity size={17} className="text-[#f3a638]" />
-              รายการวันนี้
+        {/* ── สรุปการเก็บเงิน & บิลรอชำระ ── */}
+        <div className="space-y-4 sm:space-y-5">
+          {/* Progress Card */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 flex flex-col justify-center">
+            <h2 className="text-sm font-black text-gray-800 flex items-center gap-2 mb-4">
+              <Wallet size={16} className="text-emerald-500" /> สรุปยอดเก็บเงินเดือนนี้
             </h2>
-            <span className="text-xs font-black bg-blue-50 text-blue-600 px-2.5 py-1 rounded-xl">
-              {todayTasks.length} รายการ
-            </span>
-          </div>
-          <div className="flex-1 space-y-1 overflow-y-auto max-h-[250px] pr-1">
-            {todayTasks.length > 0 ? todayTasks.map((task, i) => {
-              const cfg = taskIconMap[task.type] || taskIconMap.parcel;
-              const Icon = cfg.icon;
-              return (
-                <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                  <div className={`p-2 rounded-lg shrink-0 ${cfg.bg}`}>
-                    <Icon size={14} className={cfg.color} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-gray-800 truncate">{task.title}</p>
-                    <p className="text-[11px] font-medium text-gray-400 truncate">{task.sub}</p>
-                  </div>
-                </div>
-              );
-            }) : (
-              <div className="h-full flex flex-col items-center justify-center text-gray-400 py-10">
-                <CheckCircle2 size={32} className="text-emerald-200 mb-2" />
-                <p className="text-sm font-bold">ไม่มีรายการวันนี้</p>
+            
+            <div className="flex justify-between items-end mb-2">
+              <div>
+                <p className="text-xs font-bold text-gray-500">เก็บได้แล้ว</p>
+                <p className="text-xl font-black text-emerald-600 leading-none">฿{fmt(paidThisMonth)}</p>
               </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ══ ALERTS + ROOM MAP (2-col) ══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-1 space-y-4">
-          {overdue.length > 0 && (
-            <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-5">
-              <SectionHeader
-                title={<span className="flex items-center gap-2 text-red-600"><AlertTriangle size={15} /> ค้างชำระ ({overdue.length})</span>}
-                action={() => navigate('/billings')} actionLabel="ดูทั้งหมด"
-              />
-              <div className="space-y-0.5">
-                {overdue.slice(0, 4).map((p, i) => {
-                  const room = raw.rooms.find(r => r.id === p.roomId);
-                  return (
-                    <AlertRow key={i}
-                      icon={AlertTriangle} color="text-red-500" bg="bg-red-50"
-                      title={`ห้อง ${room?.number || p.roomId}`}
-                      sub={`฿${fmt(p.totalAmount)} — ${thaiDate(p.dueDate)}`}
-                      badge={{ label: 'ค้างชำระ', style: 'bg-red-50 text-red-600' }}
-                      onClick={() => navigate('/billings')}
-                    />
-                  );
-                })}
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-gray-400">ค้างชำระ: ฿{fmt(unpaidThisMonth)}</p>
+                <p className="text-[10px] font-bold text-gray-400">คาดการณ์รวม: ฿{fmt(expectedTotalThisMonth)}</p>
               </div>
             </div>
-          )}
-
-          {expiringContracts.length > 0 && (
-            <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-5">
-              <SectionHeader
-                title={<span className="flex items-center gap-2 text-amber-600"><Clock size={15} /> สัญญาใกล้หมด ({expiringContracts.length})</span>}
-                action={() => navigate('/contracts')} actionLabel="ดูทั้งหมด"
-              />
-              <div className="space-y-0.5">
-                {expiringContracts.slice(0, 4).map((c, i) => {
-                  const room = raw.rooms.find(r => r.id === c.roomId);
-                  const d = daysUntil(c.endDate);
-                  return (
-                    <AlertRow key={i}
-                      icon={Clock} color="text-amber-500" bg="bg-amber-50"
-                      title={`ห้อง ${room?.number || c.roomId}`}
-                      sub={`หมด ${thaiDate(c.endDate)}`}
-                      badge={{ label: `${d} วัน`, style: d <= 7 ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600' }}
-                      onClick={() => navigate('/contracts')}
-                    />
-                  );
-                })}
-              </div>
+            
+            {/* Progress Bar */}
+            <div className="w-full bg-gray-100 rounded-full h-2.5 mb-1.5 overflow-hidden">
+              <div className="bg-emerald-400 h-2.5 rounded-full transition-all duration-500" style={{ width: `${paymentProgress}%` }}></div>
             </div>
-          )}
-
-          {pendingRequests.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <SectionHeader
-                title={<span className="flex items-center gap-2 text-amber-700"><Wrench size={15} /> คำขอซ่อม ({pendingRequests.length})</span>}
-                action={() => navigate('/requests')} actionLabel="ดูทั้งหมด"
-              />
-              <div className="space-y-0.5">
-                {pendingRequests.slice(0, 3).map((r, i) => {
-                  const room = raw.rooms.find(rm => rm.id === r.roomId);
-                  return (
-                    <AlertRow key={i}
-                      icon={Wrench} color="text-amber-600" bg="bg-amber-50"
-                      title={`ห้อง ${room?.number || r.roomId}`}
-                      sub={r.description || r.title || 'รอดำเนินการ'}
-                      badge={{ label: 'รอดำเนินการ', style: 'bg-amber-50 text-amber-600' }}
-                      onClick={() => navigate('/requests')}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <SectionHeader
-              title={`ผังห้องพัก (${computed.totalRooms} ห้อง)`}
-              action={() => navigate('/room-map')} actionLabel="ดูผังเต็ม"
-            />
-            <div className="grid grid-cols-7 sm:grid-cols-10 lg:grid-cols-12 gap-1.5 mb-4">
-              {raw.rooms
-                .sort((a, b) => String(a.number).localeCompare(String(b.number), undefined, { numeric: true }))
-                .map(room => {
-                  const s = room.status?.toLowerCase();
-                  const colorMap = {
-                    occupied: 'bg-blue-400 hover:bg-blue-500',
-                    available: 'bg-emerald-100 border border-emerald-200 hover:bg-emerald-200',
-                    reserved: 'bg-orange-400 hover:bg-orange-500',
-                    maintenance: 'bg-red-400 hover:bg-red-500',
-                    close: 'bg-red-400 hover:bg-red-500',
-                  };
-                  const color = colorMap[s] || 'bg-gray-100 border border-gray-200';
-                  return (
-                    <button
-                      key={room.id}
-                      onClick={() => navigate('/room-map')}
-                      className={`aspect-square rounded-md ${color} transition-all hover:scale-110 cursor-pointer group relative`}
-                      title={`ห้อง ${room.number} — ${s || 'ไม่ทราบ'}`}
-                    >
-                      <span className="absolute inset-0 flex items-center justify-center text-[8px] font-black text-white opacity-0 group-hover:opacity-100">
-                        {room.number}
-                      </span>
-                    </button>
-                  );
-                })}
-            </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-              {[
-                { color: 'bg-blue-400', label: `มีผู้เช่า (${occupied})` },
-                { color: 'bg-emerald-100 border border-emerald-200', label: `ว่าง (${available})` },
-                { color: 'bg-orange-400', label: 'จอง' },
-                { color: 'bg-red-400', label: `ซ่อม/ปิด (${maintenance})` },
-              ].map(({ color, label }) => (
-                <div key={label} className="flex items-center gap-1.5">
-                  <div className={`w-3 h-3 rounded-sm ${color}`} />
-                  <span className="text-[11px] font-bold text-gray-500">{label}</span>
-                </div>
-              ))}
+            <div className="flex justify-between text-[10px] font-black">
+              <span className="text-emerald-600">{paymentProgress}%</span>
+              <span className="text-gray-400">100%</span>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <SectionHeader
-              title="ภาพรวมมิเตอร์เดือนนี้"
-              action={() => navigate('/utility-meters')} actionLabel="ดูรายละเอียด"
-            />
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-3 bg-yellow-50 rounded-xl p-4">
-                <div className="p-2.5 bg-yellow-100 rounded-xl">
-                  <Zap size={20} className="text-yellow-600" />
+          {/* Unpaid List */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 flex flex-col max-h-[300px]">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-2 mb-2">
+              <h2 className="text-sm font-black text-gray-800 flex items-center gap-2">
+                <AlertCircle size={15} className="text-rose-500" /> บิลรอชำระ ({allUnpaidPayments.length})
+              </h2>
+            </div>
+            <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
+              {allUnpaidPayments.length > 0 ? (
+                <div className="space-y-2 pb-2">
+                  {allUnpaidPayments.map((p) => {
+                    const contract = raw.contracts.find(c => String(c.id || c.Id) === String(p.contractId || p.ContractId));
+                    const room = raw.rooms.find(r => String(r.roomId || r.id || r.Id) === String(contract?.roomId || contract?.RoomId));
+                    const roomNumber = room?.number || room?.roomNumber || '-';
+                    
+                    const dateStr = p.recordDate || p.RecordDate || p.createdAt;
+                    const [y, m] = (dateStr || "").split("-");
+                    
+                    return (
+                      <div key={`up-${p.id || p.Id}`} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+                        <div>
+                          <p className="text-xs font-bold text-gray-800">ห้อง {roomNumber}</p>
+                          <p className="text-[10px] font-medium text-gray-400">{m && y ? `${MONTH_TH[Number(m)-1]} ${Number(y)+543}` : '-'}</p>
+                        </div>
+                        <p className="text-xs font-black text-rose-600">฿{fmt(p.totalAmount || p.TotalAmount || p.paidAmount || p.PaidAmount)}</p>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div>
-                  <p className="text-[11px] font-bold text-yellow-600 uppercase tracking-wider">ไฟฟ้า</p>
-                  <p className="text-2xl font-black text-gray-900">
-                    {fmt(utilSummary.electric)}
-                    <span className="text-xs font-bold text-gray-400 ml-1">หน่วย</span>
-                  </p>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 p-4">
+                  <CheckCircle2 size={24} className="text-emerald-200 mb-1" />
+                  <p className="text-xs font-bold text-gray-500">ไม่มีบิลค้างชำระ</p>
                 </div>
-              </div>
-              <div className="flex items-center gap-3 bg-sky-50 rounded-xl p-4">
-                <div className="p-2.5 bg-sky-100 rounded-xl">
-                  <Droplets size={20} className="text-sky-600" />
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-sky-600 uppercase tracking-wider">น้ำประปา</p>
-                  <p className="text-2xl font-black text-gray-900">
-                    {fmt(utilSummary.water)}
-                    <span className="text-xs font-bold text-gray-400 ml-1">หน่วย</span>
-                  </p>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
       </div>
+
     </div>
   );
 };
