@@ -5,7 +5,7 @@ import "react-quill-new/dist/quill.snow.css";
 import { ChevronLeft, Download, Save, CheckCircle } from "lucide-react";
 import { OrangeButton, ExitButton } from "../components/ActionButtons";
 
-// ─── 🌟 แก้ไขจุด Error ตรงนี้ค่ะ 🌟 ───
+// ─── 🌟 แก้ไขจุด Error ตรงนี้ 🌟 ───
 const SizeStyle = Quill.import('attributors/style/size');
 SizeStyle.whitelist = ["9px", "10px", "11px", "12px", "14px", "16px", "18px", "20px", "24px", "32px"];
 Quill.register(SizeStyle, true);

@@ -41,7 +41,7 @@ const TenantDashboard = ({ profile }) => {
 //           />
 //           <div className="text-left">
 //             <h1 className="text-xl font-black text-gray-800">สวัสดีคุณ {profile.displayName}</h1>
-//             <p className="text-[10px] font-bold text-gray-400">ยินดีต้อนรับสู่ระบบหอพักค่ะ ✨</p>
+//             <p className="text-[10px] font-bold text-gray-400">ยินดีต้อนรับสู่ระบบหอพัก ✨</p>
 //           </div>
 //         </div>
 

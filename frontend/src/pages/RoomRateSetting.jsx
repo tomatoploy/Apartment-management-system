@@ -144,7 +144,7 @@ const ItemListModal = ({ type, onClose, onNext, recentItems }) => {
           <div>
             <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-3 px-1">รายการ</p>
             {items.length === 0 ? (
-              <p className="text-sm text-gray-400 font-bold text-center py-4">ยังไม่มีรายการ — เลือกด่วนหรือเพิ่มเองด้านล่างค่ะ</p>
+              <p className="text-sm text-gray-400 font-bold text-center py-4">ยังไม่มีรายการ — เลือกด่วนหรือเพิ่มเองด้านล่าง</p>
             ) : (
               <div className="space-y-2">
                 {items.map((item) => (
@@ -421,7 +421,7 @@ const RoomNoteDrawer = ({ target, onClose, onSaved }) => {
             </div>
           )}
           {tags.length === 0 && !text && (
-            <p className="text-center text-sm text-gray-400 font-bold py-6">ไม่มี Note ใน{isContract ? "สัญญา" : "ห้อง"}นี้ค่ะ</p>
+            <p className="text-center text-sm text-gray-400 font-bold py-6">ไม่มี Note ใน{isContract ? "สัญญา" : "ห้อง"}นี้</p>
           )}
           {tags.map((tag, rawIdx) => {
             const partsIdx = parts.findIndex((p, i) => p === tag);
@@ -975,7 +975,7 @@ const UtilitySetting = () => {
 
       <div className="fixed bottom-0 left-0 md:left-64 right-0 bg-white/90 backdrop-blur-md border-t border-gray-200 px-4 py-4 z-40 shadow-[0_-4px_24px_rgba(0,0,0,0.06)]">
         {selectedIds.size === 0 ? (
-          <p className="text-center text-sm font-bold text-gray-400 py-1">เลือกห้องที่ต้องการแก้ไขก่อนค่ะ</p>
+          <p className="text-center text-sm font-bold text-gray-400 py-1">เลือกห้องที่ต้องการแก้ไขก่อน</p>
         ) : (
           <div className="max-w-2xl mx-auto space-y-2">
             <p className="text-center text-xs font-black text-[#f3a638]">

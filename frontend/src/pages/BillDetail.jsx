@@ -256,7 +256,7 @@ const BillDetail = ({
       } catch (e) {}
       if (apartment) setApartmentInfo(apartment);
 
-      // ✨ พระเอกของเรา! ตรงนี้จะไปดึงข้อมูลของคนที่ล็อกอินจริงๆ แล้วค่ะ
+      // ✨ พระเอกของเรา! ตรงนี้จะไปดึงข้อมูลของคนที่ล็อกอินจริงๆ แล้ว
       try { 
         const adm = await adminService.getAdmin(currentAdminId); 
         setAdminInfo(adm); 
@@ -286,13 +286,13 @@ const BillDetail = ({
 
       const rawRooms = extractArray(allRooms);
       const targetRoom = rawRooms.find((r) => String(r.roomNumber) === String(roomNumber));
-      if (!targetRoom) { setLoadError("ไม่พบข้อมูลห้องค่ะ"); return; }
+      if (!targetRoom) { setLoadError("ไม่พบข้อมูลห้อง"); return; }
       
       const rId = targetRoom.roomId || targetRoom.id;
       setRoomId(rId);
 
       const contract = extractArray(allContracts).find((c) => Number(c.roomId) === Number(rId) && (c.status === "Active" || c.status === "Reserved"));
-      if (!contract) { setLoadError("ห้องนี้ไม่มีสัญญา Active ค่ะ"); return; }
+      if (!contract) { setLoadError("ห้องนี้ไม่มีสัญญา Active "); return; }
       setContractId(contract.id || contract.Id);
       
       const tId = contract.tenantId || contract.TenantId;
@@ -365,7 +365,7 @@ const BillDetail = ({
         }
       } else setShowPenaltyBanner(false);
 
-    } catch (err) { setLoadError("โหลดข้อมูลไม่สำเร็จค่ะ"); } finally { setIsLoading(false); }
+    } catch (err) { setLoadError("โหลดข้อมูลไม่สำเร็จ"); } finally { setIsLoading(false); }
   }, [roomNumber, selectedDate, mode, initialData, currentAdminId]);
 
   useEffect(() => { loadBillData(); }, [loadBillData]);
@@ -616,7 +616,7 @@ const BillDetail = ({
               {paymentId && mode !== "checkout" && (
                 <div className="flex justify-center w-full mt-2">
                   {paymentStatus === "paid" ? (
-                    <div className="flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-emerald-700 bg-emerald-50 border-2 border-emerald-200"><CheckCircle2 size={18} /> ชำระเงินครบแล้วค่ะ</div>
+                    <div className="flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-emerald-700 bg-emerald-50 border-2 border-emerald-200"><CheckCircle2 size={18} /> ชำระเงินครบแล้ว</div>
                   ) : (
                     <button onClick={openPaymentModal} className="flex items-center gap-2 px-8 py-3 rounded-2xl font-bold text-white bg-emerald-500 hover:bg-emerald-600"><CheckCircle2 size={16} /> ยืนยันรับชำระเงิน</button>
                   )}

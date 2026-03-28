@@ -707,7 +707,7 @@ const RoomContract = () => {
                 </div>
                 <h3 className="text-xl font-black text-gray-500 mb-2">ไม่มีข้อมูลสัญญา</h3>
                 <p className="text-sm text-gray-400 font-bold max-w-xs">
-                  ไม่พบข้อมูลสัญญาเช่าที่เปิดใช้งานอยู่สำหรับห้องพักนี้ในขณะนี้ค่ะ
+                  ไม่พบข้อมูลสัญญาเช่าที่เปิดใช้งานอยู่สำหรับห้องพักนี้ในขณะนี้
                 </p>
               </div>
             ) : (

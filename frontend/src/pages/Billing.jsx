@@ -403,12 +403,12 @@ const Billing = () => {
   useEffect(() => { loadData(); }, [loadData]);
 
   const handlePrintBills = () => {
-    if (selectedRooms.length === 0) return alert("กรุณาเลือกห้องก่อนพิมพ์บิลค่ะ");
+    if (selectedRooms.length === 0) return alert("กรุณาเลือกห้องก่อนพิมพ์บิล");
     setPrintType("bills");
   };
 
   const handlePrintSummary = () => {
-    if (selectedRooms.length === 0) return alert("กรุณาเลือกห้องก่อนพิมพ์ใบสรุปค่ะ");
+    if (selectedRooms.length === 0) return alert("กรุณาเลือกห้องก่อนพิมพ์ใบสรุป");
     setPrintType("summary");
   };
 
@@ -417,7 +417,7 @@ const Billing = () => {
     try {
       const [year, month] = selectedDate.split("-").map(Number);
       const roomsWithoutBill = roomsData.filter((r) => !r.hasBill && r.contractId);
-      if (roomsWithoutBill.length === 0) { setGenerateError("ทุกห้องมีบิลในเดือนนี้แล้วค่ะ"); setIsGenerating(false); return; }
+      if (roomsWithoutBill.length === 0) { setGenerateError("ทุกห้องมีบิลในเดือนนี้แล้ว"); setIsGenerating(false); return; }
       const results = await Promise.allSettled(
         roomsWithoutBill.map((r) =>
           paymentService.generatePayment(r.contractId, year, month)
@@ -425,9 +425,9 @@ const Billing = () => {
         )
       );
       const rows = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
-      rows.length === 0 ? setGenerateError("ไม่สามารถคำนวณบิลได้ กรุณาตรวจสอบข้อมูลค่ะ") : setPreviewRows(rows);
+      rows.length === 0 ? setGenerateError("ไม่สามารถคำนวณบิลได้ กรุณาตรวจสอบข้อมูล") : setPreviewRows(rows);
     } catch (err) {
-      setGenerateError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้งค่ะ");
+      setGenerateError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
     } finally { setIsGenerating(false); }
   };
 
@@ -448,7 +448,7 @@ const Billing = () => {
         )
       );
       setShowGenerateModal(false); setPreviewRows([]); await loadData();
-    } catch (err) { setGenerateError("บันทึกบิลไม่สำเร็จ กรุณาลองใหม่อีกครั้งค่ะ"); }
+    } catch (err) { setGenerateError("บันทึกบิลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"); }
     finally { setIsConfirming(false); }
   };
 
@@ -472,7 +472,7 @@ const Billing = () => {
       });
 
       if (targetPayments.length === 0) {
-        alert(`ไม่มีข้อมูลการออกบิลในเดือน ${month}/${year} ให้ดาวน์โหลดค่ะ`);
+        alert(`ไม่มีข้อมูลการออกบิลในเดือน ${month}/${year} ให้ดาวน์โหลด`);
         setIsDownloading(false);
         return;
       }
@@ -511,7 +511,7 @@ const Billing = () => {
       await downloadExcel(rows, selectedDate, format);
     } catch (err) {
       console.error(err); 
-      alert("ดาวน์โหลดไม่สำเร็จ กรุณาลองใหม่ค่ะ");
+      alert("ดาวน์โหลดไม่สำเร็จ กรุณาลองใหม่");
     } finally {
       setIsDownloading(false);
     }
@@ -667,7 +667,7 @@ const Billing = () => {
               </table>
             </div>
             <div className="flex justify-end">
-              <GreenButton label="ยืนยันการส่งบิล" icon={Send} onClick={()=>{alert("ฟีเจอร์ส่งบิลผ่าน Line OA กำลังพัฒนาค่ะ");setShowSummary(false);}} />
+              <GreenButton label="ยืนยันการส่งบิล" icon={Send} onClick={()=>{alert("ฟีเจอร์ส่งบิลผ่าน Line OA กำลังพัฒนา");setShowSummary(false);}} />
             </div>
           </div>
         </div>
