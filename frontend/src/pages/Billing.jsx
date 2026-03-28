@@ -475,7 +475,6 @@ const loadData = useCallback(async () => {
         <div className="flex items-center justify-between gap-3 w-full max-w-5xl mx-auto px-2">
           <div className="relative" ref={buildingDropdownRef}>
             <button onClick={()=>setShowBuildingDropdown((prev)=>!prev)} className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200 min-w-[120px]">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
               <span className="flex-1 text-left">{activeBuilding==="ALL"?"ทุกอาคาร":`อาคาร ${activeBuilding}`}</span>
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-200 ${showBuildingDropdown?"rotate-180":""}`}><polyline points="6 9 12 15 18 9"/></svg>
             </button>
