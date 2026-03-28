@@ -609,18 +609,37 @@ const Billing = () => {
             <GreenButton label={`ส่งบิล (${selectedRooms.length})`} icon={Send} disabled={selectedRooms.length === 0} onClick={() => setShowSummary(true)} className="w-full justify-center" />
           </div>
 
-          <div className="flex justify-between items-center max-w-5xl mx-auto w-full px-4">
-            <div className="font-bold text-gray-600 bg-gray-100 px-4 py-2 rounded-xl border border-gray-200">ทุกอาคาร</div>
-            <div className="flex gap-2">
-              {!isSelectMode ? (
-                <BlueButton label="เลือกห้อง" onClick={() => setIsSelectMode(true)} />
-              ) : (
-                <>
-                  <BlueButton label="เลือกทั้งหมด" onClick={() => setSelectedRooms(roomsData.map(r => r.roomNumber))} />
-                  <BlueButton label="ยกเลิก" onClick={() => { setIsSelectMode(false); setSelectedRooms([]); }} />
-                </>
-              )}
-            </div>
+        <div className="flex items-center justify-between gap-3 w-full max-w-5xl mx-auto px-2">
+          <div className="relative" ref={buildingDropdownRef}>
+            <button onClick={()=>setShowBuildingDropdown((prev)=>!prev)} className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200 min-w-[120px]">
+              <span className="flex-1 text-left">{activeBuilding==="ALL"?"ทุกอาคาร":`อาคาร ${activeBuilding}`}</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-200 ${showBuildingDropdown?"rotate-180":""}`}><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            {showBuildingDropdown && (
+              <div className="absolute left-0 top-full mt-2 z-40 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden min-w-[150px]">
+                {buildings.map((b) => {
+                  const isActive = activeBuilding === b;
+                  return (
+                    <button key={b} onClick={()=>{setActiveBuilding(b);setShowBuildingDropdown(false);}} className={`w-full text-left px-4 py-2.5 text-sm font-bold transition-colors flex items-center gap-2 ${isActive?"bg-gray-600 text-white":"text-gray-600 hover:bg-gray-50"}`}>
+                      <span className={`w-4 h-4 flex items-center justify-center ${isActive?"opacity-100":"opacity-0"}`}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      </span>
+                      {b==="ALL"?"ทุกอาคาร":`อาคาร ${b}`}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <div className="flex gap-2 shrink-0">
+            {!isSelectMode ? (
+              <BlueButton label="เลือกห้อง" className="px-6" onClick={()=>setIsSelectMode(true)} />
+            ) : (
+              <>
+                <BlueButton label="เลือกทั้งหมด" onClick={()=>setSelectedRooms(roomsData.map((r)=>r.roomNumber))} />
+                <BlueButton label="ยกเลิก" onClick={()=>{setSelectedRooms([]);setIsSelectMode(false);}} />
+              </>
+            )}
           </div>
         </div>
 

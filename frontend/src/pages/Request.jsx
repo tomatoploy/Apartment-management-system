@@ -3,7 +3,7 @@ import { requestService } from "../api/RequestApi";
 import { useNavigate } from "react-router-dom"; // ✨ เพิ่ม useNavigate เพื่อใช้เปลี่ยนหน้า
 import {
   Wrench, Sparkles, LogOut, FileText, CheckCircle2, XCircle, Clock, Plus, LayoutList, CalendarDays,
-  ArrowUpDown, Check, Filter
+  ArrowUpDown, Check, Filter, ChevronDown, 
 } from "lucide-react";
 import SearchBar from "../components/SearchBar";
 import FilterModal from "../components/FilterModal";
@@ -197,6 +197,12 @@ const Request = () => {
     ? filteredAndSortedRequests 
     : filteredAndSortedRequests.filter(req => req.subject === activeSubject);
 
+  const [isSubjectOpen, setIsSubjectOpen] = useState(false);
+  const handleMenuClick = (path) => {
+    navigate(path);
+    setIsOpen(false);
+  };
+
   return (
     <>
         <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">การแจ้ง</h1>
@@ -266,22 +272,76 @@ const Request = () => {
             </div>
 
             {viewMode === "list" && (
-                <div className="flex justify-center w-full">
-                    <div className="flex bg-gray-100 p-1 rounded-2xl w-full max-w-3xl overflow-x-auto no-scrollbar">
+    <div className="flex flex-col items-center w-full">
+        {/* Mobile Version - Dropdown Menu (แสดงเฉพาะบนมือถือ) */}
+        <div className="sm:hidden w-full px-2">
+            <div className="relative">
+                <button
+                    onClick={() => setIsSubjectOpen(!isSubjectOpen)}
+                    className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-100 rounded-2xl font-bold text-md transition-all"
+                >
+                    <span className="text-gray-700">
+                        {/* ดึง label ของวิชาที่กำลังเลือกอยู่มาแสดง ถ้าไม่มีให้แสดงคำว่า "ทั้งหมด" */}
+                        {
+                            [{ key: "all", label: "ทั้งหมด" }, ...Object.entries(SUBJECT_CONFIG).map(([k, v]) => ({ key: k, ...v }))]
+                            .find(tab => tab.key === activeSubject)?.label || "ทั้งหมด"
+                        }
+                    </span>
+                    <ChevronDown
+                        size={18}
+                        className={`text-gray-500 transition-transform ${
+                            isSubjectOpen ? "rotate-180" : ""
+                        }`}
+                    />
+                </button>
+                
+
+                {/* รายการตัวเลือกใน Dropdown */}
+                {isSubjectOpen && (
+                  <>
+                  <div 
+            className="fixed inset-0 z-10" 
+            onClick={() => setIsSubjectOpen(false)}
+        ></div>
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-lg z-10 overflow-hidden">
                         {[{ key: "all", label: "ทั้งหมด" }, ...Object.entries(SUBJECT_CONFIG).map(([k, v]) => ({ key: k, ...v }))].map((tab) => (
                             <button
                                 key={tab.key}
-                                onClick={() => setActiveSubject(tab.key)}
-                                className={`flex-1 px-4 py-2 rounded-xl font-bold whitespace-nowrap transition-all ${
-                                activeSubject === tab.key ? "bg-[#f3a638] text-white shadow-md" : "text-gray-500 hover:text-gray-700"
+                                onClick={() => {
+                                    setActiveSubject(tab.key);
+                                    setIsSubjectOpen(false); // ปิด Dropdown เมื่อเลือกเสร็จ
+                                }}
+                                className={`w-full text-left px-4 py-3 font-bold transition-all ${
+                                    activeSubject === tab.key ? "bg-[#f3a638] text-white" : "text-gray-600 hover:bg-gray-50"
                                 }`}
                             >
                                 {tab.label}
                             </button>
                         ))}
                     </div>
-                </div>
-            )}
+                    </>
+                )}
+            </div>
+        </div>
+
+        {/* Desktop & iPad Version - List Menu (แสดงเฉพาะบนจอที่ใหญ่กว่ามือถือขึ้นไป) */}
+        <div className="hidden sm:flex justify-center w-full">
+            <div className="flex bg-gray-100 p-1 rounded-2xl w-full max-w-3xl overflow-x-auto no-scrollbar">
+                {[{ key: "all", label: "ทั้งหมด" }, ...Object.entries(SUBJECT_CONFIG).map(([k, v]) => ({ key: k, ...v }))].map((tab) => (
+                    <button
+                        key={tab.key}
+                        onClick={() => setActiveSubject(tab.key)}
+                        className={`flex-1 px-4 py-2 rounded-xl font-bold whitespace-nowrap transition-all ${
+                            activeSubject === tab.key ? "bg-[#f3a638] text-white shadow-md" : "text-gray-500 hover:text-gray-700"
+                        }`}
+                    >
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
+        </div>
+    </div>
+)}
         </div>
 
         {viewMode === "list" ? (
