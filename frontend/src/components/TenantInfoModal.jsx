@@ -111,8 +111,9 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
 
     let finalValue = type === "checkbox" ? checked : value;
 
-    if (name === "InternetDeviceCount") {
-      finalValue = Math.max(0, parseInt(value) || 0);
+    // 🛠️ แก้ไข: เปลี่ยนให้เป็น camelCase (i เล็ก) เพื่อให้ตรงกับโครงสร้างหลัก
+    if (name === "internetDeviceCount") {
+      finalValue = value === "" ? "" : Math.max(0, parseInt(value, 10) || 0);
     }
 
     setFormData((prev) => ({
@@ -142,7 +143,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
 
   return (
     <div
-      className="fixed inset-0 z-100 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       <div
@@ -250,7 +251,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                     <input
                       type="checkbox"
                       name="isLaundryService"
-                      checked={formData.isLaundryService}
+                      checked={formData.isLaundryService || false}
                       onChange={handleChange}
                       className="w-5 h-5 accent-[#f3a638]"
                     />
@@ -268,8 +269,8 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                   {isEditMode ? (
                     <input
                       type="number"
-                      name="InternetDeviceCount"
-                      value={formData.InternetDeviceCount}
+                      name="internetDeviceCount" // ✨ เปลี่ยนชื่อ Name ให้เป็น i เล็กตรงกับ Data
+                      value={formData.internetDeviceCount ?? ""} // ✨ ดึงค่าตัวแปร i เล็ก
                       onChange={handleChange}
                       min="0"
                       onKeyDown={(e) => {
@@ -281,7 +282,8 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                     />
                   ) : (
                     <span className="text-[11px] font-black px-3 py-1 bg-[#f3a638] text-white rounded-full">
-                      {formData.InternetDeviceCount || 0} เครื่อง
+                      {/* ✨ ดึงค่าตัวแปร i เล็กมาแสดงผล */}
+                      {formData.internetDeviceCount || 0} เครื่อง
                     </span>
                   )}
                 </div>
@@ -297,7 +299,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                     <label className="text-[13px] font-bold text-gray-500 ml-1">คำนำหน้า</label>
                     <select
                       name="title"
-                      value={formData.title}
+                      value={formData.title || ""}
                       onChange={handleChange}
                       className="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#f3a638] transition-all font-medium text-gray-700 cursor-pointer"
                     >
@@ -369,7 +371,6 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                 </>
               ) : (
                 <>
-                  {/* แสดงผลด้วยตัวแปรที่กรองคำว่า null ออกไปแล้ว */}
                   <DisplayItem label="บุคคลติดต่อสำรอง" value={showAltContact} />
                   <DisplayItem label="เบอร์โทรศัพท์สำรอง" value={cleanVal(formData.altPhone)} icon={Phone} />
                   <DisplayItem label="ทะเบียนรถ" value={showVehicle} icon={Car} />

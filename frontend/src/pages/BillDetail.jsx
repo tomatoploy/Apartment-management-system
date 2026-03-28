@@ -705,10 +705,28 @@ const BillDetail = ({
                 <h3 className="text-xl font-black text-gray-800">ยืนยันรับชำระเงิน</h3>
                 <button onClick={() => setShowPaymentModal(false)} className="p-2 hover:bg-gray-100 rounded-full"><X size={20} strokeWidth={3} /></button>
               </div>
-              <div className="bg-gray-50 rounded-2xl px-5 py-4 flex items-center justify-between">
-                <span className="text-sm font-bold text-gray-500">ยอดรวมในบิล</span>
-                <span className="text-lg font-black text-gray-800">{total.toLocaleString()} <span className="text-sm font-medium text-gray-400">บาท</span></span>
+              
+              <div className="bg-gray-50 rounded-2xl px-5 py-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-gray-500">ยอดรวมในบิล</span>
+                  <span className="text-lg font-black text-gray-800">{total.toLocaleString()} <span className="text-sm font-medium text-gray-400">บาท</span></span>
+                </div>
+                
+                {/* เพิ่มช่องกรอก Input ให้แก้ตัวเลขยอดชำระจริงได้ */}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-gray-700">ยอดรับชำระจริง</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={paidAmountInput}
+                      onChange={(e) => setPaidAmountInput(e.target.value)}
+                      className="w-28 text-right text-lg font-black text-emerald-600 bg-white border-2 border-gray-200 rounded-xl px-2 py-1 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
+                    />
+                    <span className="text-sm font-medium text-gray-400">บาท</span>
+                  </div>
+                </div>
               </div>
+
               <div className="flex gap-3 mt-1">
                 <button onClick={() => setShowPaymentModal(false)} className="flex-1 py-3 rounded-2xl border-2 border-gray-200 font-bold text-gray-600 hover:bg-gray-50">ยกเลิก</button>
                 <button onClick={handleConfirmPayment} disabled={isConfirmPay} className="flex-1 py-3 rounded-2xl font-bold text-white bg-emerald-500 hover:bg-emerald-600 flex items-center justify-center gap-2">{isConfirmPay ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />} ยืนยัน</button>
@@ -730,6 +748,7 @@ const BillDetail = ({
         }}
         adminName={adminInfo ? `${adminInfo.firstName} ${adminInfo.lastName}` : "พนักงาน (Admin)"}
         total={total}
+        billTitle={paymentStatus === "paid" ? "ใบเสร็จรับเงิน" : "ใบแจ้งหนี้"}
       />
     </>
   );

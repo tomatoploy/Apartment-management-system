@@ -27,6 +27,7 @@ import RoomContract from "./pages/RoomContract";
 import AdminAccessSetting from "./pages/AdminAccessSetting";
 import liff from '@line/liff';
 import TenantDashboard from "./pages/TenantDashboard";
+import RoomContractHistory from './pages/RoomContractHistory';
 
 // import RoomsFilter from "./pages/Rooms-filterModal";
 
@@ -250,6 +251,15 @@ function App() {
         element={
           <Layout>
             <AdminAccessSetting />
+          </Layout>
+        }
+      />
+
+      <Route 
+        path="/rooms/contract-history/:roomNumber"
+        element={
+          <Layout>
+            <RoomContractHistory />
           </Layout>
         }
       />

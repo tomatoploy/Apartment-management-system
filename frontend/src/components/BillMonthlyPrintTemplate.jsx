@@ -41,7 +41,8 @@ const parseMeterInfo = (detailStr) => {
   return null;
 };
 
-const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, total }) => {
+// เพิ่มรับค่า billTitle เข้ามา
+const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, total, billTitle }) => {
   const printDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
   return (
@@ -64,7 +65,8 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
 
         <div className="w-[50%] flex items-center justify-end gap-2 leading-tight">
           <div className="text-right">
-            <h2 className="text-[16px] font-black">{isCopy ? "ใบแจ้งหนี้ / ใบเสร็จรับเงิน (สำเนา)" : "ใบแจ้งหนี้ / ใบเสร็จรับเงิน"}</h2>
+            {/* แก้ไขให้ใช้ตัวแปร billTitle */}
+            <h2 className="text-[16px] font-black">{isCopy ? `${billTitle} (สำเนา)` : billTitle}</h2>
             <div className="flex flex-col items-end text-[9px] text-gray-800 space-y-0.5">
               <span><b className="font-bold">รอบบิล:</b> {ctc.cycleStart} - {ctc.cycleEnd}</span>
               <span><b className="font-bold">วันที่พิมพ์:</b> {printDate}</span>
@@ -159,9 +161,11 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
   );
 };
 
+// เพิ่มรับค่า billTitle เข้ามา โดยให้ default เป็น "ใบแจ้งหนี้ / ใบเสร็จรับเงิน"
 const BillMonthlyPrintTemplate = ({ 
   items = [], roomNumber = "-", apartmentInfo = null, 
-  customerInfo = null, contractInfo = null, adminName = "-", total = 0 
+  customerInfo = null, contractInfo = null, adminName = "-", total = 0, 
+  billTitle = "ใบแจ้งหนี้ / ใบเสร็จรับเงิน" 
 }) => {
   const apt = apartmentInfo || { 
     name: "หอพักนิตยวดี", 
@@ -186,11 +190,13 @@ const BillMonthlyPrintTemplate = ({
 
       <div className="hidden print:flex flex-col w-[210mm] h-[290mm] bg-white mx-auto relative overflow-hidden box-border border-x border-gray-100">
         <div className="flex-none h-[144mm]">
-           <ReceiptHalf isCopy={false} items={items} roomNumber={roomNumber} apt={apt} cst={cst} ctc={ctc} adminName={adminName} total={total} />
+           {/* ส่งผ่าน props billTitle */}
+           <ReceiptHalf isCopy={false} items={items} roomNumber={roomNumber} apt={apt} cst={cst} ctc={ctc} adminName={adminName} total={total} billTitle={billTitle} />
         </div>
         <div className="flex-none border-b border-dashed border-gray-400 w-full h-0"></div>
         <div className="flex-none h-[144mm]">
-           <ReceiptHalf isCopy={true} items={items} roomNumber={roomNumber} apt={apt} cst={cst} ctc={ctc} adminName={adminName} total={total} />
+           {/* ส่งผ่าน props billTitle */}
+           <ReceiptHalf isCopy={true} items={items} roomNumber={roomNumber} apt={apt} cst={cst} ctc={ctc} adminName={adminName} total={total} billTitle={billTitle} />
         </div>
       </div>
     </>
