@@ -9,8 +9,24 @@ const adminApi = axios.create({
     }
 });
 
+// 🌟 เพิ่ม Interceptor ตรงนี้!
+// มันจะทำหน้าที่ดึง Token มาแนบใส่ Header "Authorization" ให้ทุกครั้งก่อนยิง API
+adminApi.interceptors.request.use(
+    (config) => {
+        // ดึง token จากที่ที่คุณเก็บไว้ตอน Login (ส่วนใหญ่จะชื่อ "token" หรือดูตามที่คุณเขียนไว้)
+        const token = localStorage.getItem("token"); 
+        
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
+
 export const adminService = {
-    // 🌟 เพิ่มฟังก์ชันนี้เข้าไปครับ
     getAll: async () => {
         const response = await adminApi.get("/Admins");
         return response.data;
@@ -32,7 +48,7 @@ export const adminService = {
     },
 
     updateAdmin: async (id, adminData) => {
-        const response = await adminApi.put(`/Admins/${id}`, adminData);
+        const response = await adminApi.put(`/Admins/${id}?requesterId=${id}`, adminData);
         return response.data;
     },
 

@@ -11,12 +11,11 @@ const FieldLabel = ({ children, required }) => (
 );
 
 const InputField = ({
-  type = "text", 
-  error, 
-  className = "", 
-  icon: Icon, 
-  onIconClick, 
-  replace, 
+  type = "text",
+  error,
+  className = "",
+  icon: Icon,
+  onIconClick,
   ...props
 }) => (
   <div className="relative w-full">
@@ -67,41 +66,62 @@ const Register = () => {
     confirmPassword: "",
   });
 
-  const isFormValid =
-    formData.firstName &&
-    formData.lastName &&
-    formData.phone &&
-    formData.password &&
-    formData.confirmPassword &&
-    formData.password === formData.confirmPassword;
-
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    // ฟังก์ชันเสริม: จัดการเบอร์โทร
     if (name === "phone") {
-      // กรองเอาเฉพาะตัวเลขเท่านั้น และจำกัดความยาวไม่เกิน 10 ตัว
       const onlyNums = value.replace(/\D/g, "");
       if (onlyNums.length <= 10) {
         setFormData({ ...formData, [name]: onlyNums });
       }
       return;
     }
+    
+    // ฟังก์ชันเสริม: ป้องกันการเคาะช่องว่างในฟิลด์รหัสผ่านและอีเมล
+    if (name === "email" || name === "password" || name === "confirmPassword") {
+      setFormData({ ...formData, [name]: value.trim() });
+      return;
+    }
+    
     setFormData({ ...formData, [name]: value });
+  };
+
+  const validateForm = () => {
+    // 1. เช็คกรอกครบ
+    if (!formData.firstName || !formData.lastName || !formData.phone || !formData.password || !formData.confirmPassword) {
+      alert("กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน");
+      return false;
+    }
+    // 2. เช็คเบอร์โทร (ต้องมี 10 หลัก และขึ้นต้นด้วย 0)
+    if (formData.phone.length !== 10 || !formData.phone.startsWith("0")) {
+      alert("กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (10 หลัก และขึ้นต้นด้วย 0)");
+      return false;
+    }
+    // 3. เช็ครูปแบบอีเมล (ถ้ามีการกรอก)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (formData.email && !emailRegex.test(formData.email)) {
+      alert("รูปแบบอีเมลไม่ถูกต้อง");
+      return false;
+    }
+    // 4. เช็คความปลอดภัยรหัสผ่าน
+    if (formData.password.length < 8) {
+      alert("รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร");
+      return false;
+    }
+    // 5. เช็ครหัสผ่านตรงกัน
+    if (formData.password !== formData.confirmPassword) {
+      alert("รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน");
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (loading) return;
 
-    // 1. เช็คว่ากรอกข้อมูลครบตามเงื่อนไขที่ตั้งไว้ใน isFormValid หรือไม่
-    if (!isFormValid) {
-      alert("กรุณากรอกข้อมูลให้ถูกต้องครบถ้วน");
-      return;
-    }
-    // 2. เช็ครหัสผ่าน
-    if (formData.password !== formData.confirmPassword) {
-      alert("รหัสผ่านไม่ตรงกัน กรุณาตรวจสอบอีกครั้ง");
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
     try {
@@ -109,16 +129,16 @@ const Register = () => {
         title: formData.prefix,
         firstName: formData.firstName,
         lastName: formData.lastName,
-        phone: formData.phone.replace(/\D/g, ""),
-        email: formData.email.trim() === "" ? null : formData.email,
+        phone: formData.phone,
+        email: formData.email === "" ? null : formData.email,
         password: formData.password,
       };
 
       await adminService.createAdmin(payload);
-      alert("ลงทะเบียนสำเร็จ!");
+      alert("ลงทะเบียนผู้ดูแลระบบสำเร็จ!");
       navigate("/login");
     } catch (err) {
-      const msg = err.response?.data?.message || "ลงทะเบียนไม่สำเร็จ";
+      const msg = err.response?.data?.message || "ลงทะเบียนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง";
       alert(msg);
     } finally {
       setLoading(false);
@@ -176,44 +196,46 @@ const Register = () => {
               inputMode="numeric"
               value={formData.phone}
               onChange={handleChange}
+              placeholder="08xxxxxxxx"
               required
             />
           </div>
           <div>
-            <FieldLabel>อีเมล์</FieldLabel>
+            <FieldLabel>อีเมล</FieldLabel>
             <InputField
               name="email"
               type="email"
               value={formData.email}
               onChange={handleChange}
+              placeholder="example@email.com"
             />
           </div>
 
-          {/* ส่วนรหัสผ่าน */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <FieldLabel required>รหัสผ่าน</FieldLabel>
               <InputField
                 required
                 name="password"
-                type={showPassword ? "text" : "password"} // สลับ type ตาม state                required
+                type={showPassword ? "text" : "password"}
                 value={formData.password}
                 onChange={handleChange}
-                icon={showPassword ? EyeOff : Eye} // สลับไอคอน
+                placeholder="อย่างน้อย 8 ตัวอักษร"
+                icon={showPassword ? EyeOff : Eye}
                 onIconClick={() => setShowPassword(!showPassword)}
               />
             </div>
 
-            {/* เพิ่มช่อง Confirm Password */}
             <div>
               <FieldLabel required>ยืนยันรหัสผ่าน</FieldLabel>
               <InputField
-                replace
+                required
                 name="confirmPassword"
                 type={showConfirmPassword ? "text" : "password"}
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 error={
+                  formData.confirmPassword &&
                   formData.password !== formData.confirmPassword
                 }
                 icon={showConfirmPassword ? EyeOff : Eye}
@@ -222,13 +244,11 @@ const Register = () => {
             </div>
           </div>
 
-          {/* แสดงข้อความเตือนถ้ารหัสผ่านไม่ตรงกัน */}
-          {formData.confirmPassword &&
-            formData.password !== formData.confirmPassword && (
-              <p className="text-red-500 text-xs mt-1 ml-1">
-                * รหัสผ่านไม่ตรงกัน
-              </p>
-            )}
+          {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+            <p className="text-red-500 text-xs mt-1 ml-1">
+              * รหัสผ่านไม่ตรงกัน
+            </p>
+          )}
 
           <div className="pt-3 space-y-3">
             <button
