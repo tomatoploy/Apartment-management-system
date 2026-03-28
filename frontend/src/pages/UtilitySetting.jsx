@@ -758,7 +758,7 @@ const UtilityRateSetting = () => {
           fail++;
         }
       }
-      showToast(fail === 0 ? `บันทึก ${ok} ห้อง เรียบร้อยค่ะ` : `สำเร็จ ${ok} / ล้มเหลว ${fail} ห้อง`, fail === 0 ? "success" : "error");
+      showToast(fail === 0 ? `บันทึก ${ok} ห้อง เรียบร้อย` : `สำเร็จ ${ok} / ล้มเหลว ${fail} ห้อง`, fail === 0 ? "success" : "error");
       setSelectedIds(new Set());
       setShowConfirm(false);
       await fetchData();
@@ -911,7 +911,7 @@ const UtilityRateSetting = () => {
       {/* Sticky footer */}
       <div className="fixed bottom-0 left-0 md:left-64 right-0 bg-white/90 backdrop-blur-md border-t border-gray-200 px-4 py-4 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
         {selectedCount === 0 ? (
-          <p className="text-center text-sm font-bold text-gray-400">เลือกห้องที่ต้องการตั้งค่าก่อนค่ะ</p>
+          <p className="text-center text-sm font-bold text-gray-400">เลือกห้องที่ต้องการตั้งค่าก่อน</p>
         ) : (
           <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
             <div>

@@ -56,7 +56,7 @@ const AddPermissionModal = ({ onClose, onSaved }) => {
       const alreadyHas = currentPermissions.some(p => p.adminId === targetAdmin.id && p.apartmentId === 1);
 
       if (alreadyHas) {
-        throw new Error("ผู้ใช้นี้มีสิทธิ์เข้าถึงหอพักนี้อยู่แล้วค่ะ");
+        throw new Error("ผู้ใช้นี้มีสิทธิ์เข้าถึงหอพักนี้อยู่แล้ว");
       }
 
       await permissionService.createPermission({

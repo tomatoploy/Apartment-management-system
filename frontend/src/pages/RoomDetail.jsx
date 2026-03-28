@@ -212,7 +212,7 @@ const RoomDetail = () => {
         keyCard2:           updatedData.keyCard2 || null,
         keyCard3:           updatedData.keyCard3 || null,
         isLaundryService:   Boolean(updatedData.isLaundryService),
-        internetDeviceCount: deviceCount, // ฟิลด์นี้จะอัปเดตได้แล้วค่ะ!
+        internetDeviceCount: deviceCount,
         note:               updatedData.note || null,
       };
 

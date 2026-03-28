@@ -45,7 +45,7 @@ const STEPS = [
 const StepNotice = ({ mode, currentStep }) => {
   const notices = {
     1: mode === "absconded" ? "บิลค่าเช่าค้างชำระ (จะถูกบันทึกเป็นหนี้สูญ)" : "กรุณาเคลียร์บิลค่าเช่าค้างชำระ ด้วยการชำระเงินหรือหักจากเงินประกัน",
-    2: "กรุณาระบุรายการทรัพย์สินที่เสียหาย ยอดจะถูกคำนวณเข้า FurnitureCost ค่ะ",
+    2: "กรุณาระบุรายการทรัพย์สินที่เสียหาย ยอดจะถูกคำนวณเข้า FurnitureCost ",
     4: "กรอกรายการเงินประกัน หากมีการคืนเงิน (ดึงข้อมูลอัตโนมัติจากสัญญา)",
   };
   if (!notices[currentStep]) return null;
@@ -141,7 +141,7 @@ const CheckoutConfirmModal = ({
                     <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-gray-400">฿</span>
                 </div>
                 <p className="text-[10px] text-gray-400 font-bold mt-3 text-center uppercase tracking-wide">
-                    {isRefund ? "* ยอดคืนเงินจะถูกบันทึกเป็นค่าติดลบในระบบบัญชีค่ะ" : "* ตรวจสอบยอดเงินให้ถูกต้องก่อนกดยืนยันค่ะ"}
+                    {isRefund ? "* ยอดคืนเงินจะถูกบันทึกเป็นค่าติดลบในระบบบัญชี" : "* ตรวจสอบยอดเงินให้ถูกต้องก่อนกดยืนยัน"}
                 </p>
             </div>
           )}
@@ -213,7 +213,7 @@ const CheckoutManager = () => {
 
       const allRooms = extractArray(allRoomsRes);
       const targetRoom = allRooms.find((r) => String(r.roomNumber) === String(roomNumber));
-      if (!targetRoom) throw new Error("ไม่พบข้อมูลห้องค่ะ");
+      if (!targetRoom) throw new Error("ไม่พบข้อมูลห้อง");
       setRoomId(targetRoom.roomId || targetRoom.id);
       setRoomInfo(targetRoom);
 
@@ -288,7 +288,7 @@ const CheckoutManager = () => {
 
     } catch (err) {
       console.error(err);
-      setLoadError(err.message || "โหลดข้อมูลไม่สำเร็จค่ะ");
+      setLoadError(err.message || "โหลดข้อมูลไม่สำเร็จ");
     } finally {
       setIsLoading(false);
     }
@@ -479,7 +479,7 @@ const CheckoutManager = () => {
       }
 
       setShowConfirmModal(false);
-      alert(mode === "absconded" ? "บันทึกหนี้สูญเรียบร้อยค่ะ" : "ยืนยันการย้ายออกและบันทึกการเงินเรียบร้อยค่ะ");
+      alert(mode === "absconded" ? "บันทึกหนี้สูญเรียบร้อย" : "ยืนยันการย้ายออกและบันทึกการเงินเรียบร้อย");
       navigate("/rooms"); 
     } catch (err) {
       const detail = err?.response?.data;
@@ -585,7 +585,7 @@ const CheckoutManager = () => {
           {/* STEP 1: Bills */}
           {currentStep === 1 && (
             <div className="space-y-4">
-              {unpaidBills.length === 0 ? <EmptyState message="ไม่มีบิลค้างชำระค่ะ" /> : 
+              {unpaidBills.length === 0 ? <EmptyState message="ไม่มีบิลค้างชำระ" /> : 
                 unpaidBills.map((billGroup) => (
                   <div key={billGroup.period} className="md:border md:border-gray-100 md:rounded-[24px] md:shadow-sm bg-white overflow-hidden border-b border-gray-300">
                     <div onClick={() => toggleBill(billGroup.period)} className="p-5 flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-colors">
@@ -677,7 +677,7 @@ const CheckoutManager = () => {
               </div>
 
               {propertyConstants.length === 0 && (
-                <EmptyState message="ไม่มีข้อมูลรายการทรัพย์สินพื้นฐานในระบบค่ะ" />
+                <EmptyState message="ไม่มีข้อมูลรายการทรัพย์สินพื้นฐานในระบบ" />
               )}
               
               <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-center">
