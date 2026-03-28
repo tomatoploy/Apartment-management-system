@@ -140,44 +140,6 @@ const ChartTooltip = ({ active, payload, label }) => {
 };
 
 /* ─────────────────────────────────────────────
-   NOTIFICATION PANEL
-───────────────────────────────────────────── */
-const NotificationPanel = ({ alerts, onClose, navigate }) => (
-  <div className="absolute top-14 right-0 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
-    <div className="flex items-center justify-between p-4 border-b border-gray-50">
-      <h3 className="font-black text-gray-800 flex items-center gap-2">
-        <BellRing size={16} className="text-[#f3a638]" /> การแจ้งเตือน
-      </h3>
-      <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
-    </div>
-    <div className="max-h-[400px] overflow-y-auto divide-y divide-gray-50">
-      {alerts.length === 0 ? (
-        <div className="p-8 text-center text-gray-400 text-sm font-bold">
-          <CheckCircle2 size={28} className="mx-auto mb-2 text-emerald-200" />
-          ไม่มีการแจ้งเตือนใหม่
-        </div>
-      ) : (
-        alerts.map((a, i) => (
-          <button
-            key={i}
-            onClick={() => { navigate(a.link || '/'); onClose(); }}
-            className="w-full flex gap-3 p-4 hover:bg-gray-50 text-left transition-colors"
-          >
-            <div className={`mt-0.5 p-1.5 rounded-lg shrink-0 ${a.bg}`}>
-              <a.icon size={13} className={a.color} />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-gray-800">{a.title}</p>
-              <p className="text-xs font-medium text-gray-400 mt-0.5">{a.sub}</p>
-            </div>
-          </button>
-        ))
-      )}
-    </div>
-  </div>
-);
-
-/* ─────────────────────────────────────────────
    MAIN DASHBOARD
 ───────────────────────────────────────────── */
 const Dashboard = () => {
