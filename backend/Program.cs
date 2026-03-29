@@ -4,14 +4,16 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-//ลงทะเบียน CORS Service มาแก้ตรงนี้หลัง dev เสร็จ
+// ✅ แก้ไขส่วนการลงทะเบียน CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin('https://apartment-management-system-webapp.onrender.com')   // อนุญาตทุก Domain (สะดวกตอนพัฒนา)
-              .AllowAnyMethod()   // อนุญาตทุก HTTP Method (GET, POST, PUT, DELETE)
-              .AllowAnyHeader();  // อนุญาตทุก Header
+        // ใช้ WithOrigins และเปลี่ยนเป็น " (Double Quote) ค่ะ
+        policy.WithOrigins("https://apartment-management-system-webapp.onrender.com") 
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials(); // เพิ่มไว้เพื่อให้รองรับการส่ง Cookie/Auth ถ้ามีในอนาคต
     });
 });
 
@@ -24,8 +26,6 @@ builder.Services.AddDbContext<DormitoryDbContext>(options =>
     )
 );
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
 // อ่านค่า Port จาก Render
@@ -44,8 +44,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseCors("AllowAll"); //เรียกใช้งาน Middleware
+
+// ✅ เรียกใช้งาน Middleware (ต้องวางไว้ก่อน MapControllers)
+app.UseCors("AllowAll"); 
+
 app.MapControllers();
 
 app.Run();
-
