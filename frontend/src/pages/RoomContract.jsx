@@ -288,7 +288,7 @@ const RoomContract = () => {
           if (typeof tenantService.getTenant === "function") {
             tData = await tenantService.getTenant(activeContract.tenantId);
           } else {
-            const res = await axios.get(`http://localhost:5252/Tenants/${activeContract.tenantId}`);
+            const res = await axios.get(`https://apartment-management-system-zllm.onrender.com/Tenants/${activeContract.tenantId}`);
             tData = res;
           }
           setTenantData(tData.data || tData);
@@ -420,7 +420,7 @@ const RoomContract = () => {
     setIsRenewing(true);
     setIsEditing(true);
     try {
-      const { data: meters } = await axios.get("http://localhost:5252/UtilityMeters");
+      const { data: meters } = await axios.get("https://apartment-management-system-zllm.onrender.com/UtilityMeters");
       const roomMeters = meters
         .filter(m => m.roomId === roomId)
         .sort((a, b) => new Date(b.recordDate) - new Date(a.recordDate));
@@ -510,7 +510,7 @@ const RoomContract = () => {
           WaterUnit: Number(formData.initialWaterUnit),
           Note: "* เริ่มสัญญาใหม่ (ต่อสัญญา)" 
         }];
-        await axios.post("http://localhost:5252/UtilityMeters/bulk-upsert", meterPayload, {
+        await axios.post("https://apartment-management-system-zllm.onrender.com/UtilityMeters/bulk-upsert", meterPayload, {
           headers: { "Content-Type": "application/json" }
         });
         showToast("ต่อสัญญาและบันทึกข้อมูลเรียบร้อยแล้ว!");
@@ -543,7 +543,7 @@ const RoomContract = () => {
             WaterUnit: Number(formData.initialWaterUnit),
             Note: "* เริ่มสัญญาใหม่" 
           }];
-          await axios.post("http://localhost:5252/UtilityMeters/bulk-upsert", meterPayload, {
+          await axios.post("https://apartment-management-system-zllm.onrender.com/UtilityMeters/bulk-upsert", meterPayload, {
             headers: { "Content-Type": "application/json" }
           });
         }
