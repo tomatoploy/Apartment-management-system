@@ -238,6 +238,7 @@ const Billing = () => {
   const [isConfirming,         setIsConfirming]        = useState(false);
   const [previewRows,          setPreviewRows]         = useState([]);
   const [generateError,        setGenerateError]       = useState("");
+  const [isSendingBulk,        setIsSendingBulk]       = useState(false); // ✨ State สำหรับโหลดตอนส่ง LINE
 
   const [printType, setPrintType] = useState(null); 
   const [adminInfo, setAdminInfo] = useState(null);
@@ -401,7 +402,6 @@ const Billing = () => {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // ✨ สร้างรายชื่ออาคารแบบไม่ซ้ำจากข้อมูลที่มีอยู่
   const uniqueBuildings = useMemo(() => {
     return [...new Set(roomsData.map(r => r.building).filter(Boolean))];
   }, [roomsData]);
@@ -515,6 +515,42 @@ const Billing = () => {
     }
   };
 
+  // ✨ ฟังก์ชันสำหรับกดส่ง LINE แบบ Bulk (ส่งทีละหลายห้อง)
+  const handleConfirmSendBills = async () => {
+    // กรองเฉพาะห้องที่ "สร้างบิลไว้แล้ว" (มี paymentId) เท่านั้น
+    const validRows = summaryRows.filter((r) => r.paymentId);
+    
+    if (validRows.length === 0) {
+      alert("ไม่พบบิลที่สร้างแล้วในห้องที่คุณเลือก กรุณากดสร้างและบันทึกบิลก่อนส่งค่ะ");
+      return;
+    }
+
+    if (!window.confirm(`ยืนยันการส่ง LINE จำนวน ${validRows.length} ห้อง ใช่หรือไม่?`)) return;
+
+    setIsSendingBulk(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    // วนลูปยิง API ส่งทีละห้อง
+    for (const row of validRows) {
+      try {
+        await paymentService.sendLineNotify(row.paymentId);
+        successCount++;
+      } catch (err) {
+        failCount++;
+      }
+    }
+
+    setIsSendingBulk(false);
+    setShowSummary(false); // ปิด Modal หลังจากส่งเสร็จ
+
+    if (failCount === 0) {
+      alert(`✅ ส่งการ์ดบิลสำเร็จทั้งหมด ${successCount} ห้อง!`);
+    } else {
+      alert(`การส่งเสร็จสิ้น:\n✅ สำเร็จ: ${successCount} ห้อง\n❌ ล้มเหลว: ${failCount} ห้อง (ผู้เช่าอาจจะยังไม่ได้ผูก LINE)`);
+    }
+  };
+
   const filteredRoomsByFloor = useMemo(() => {
     const grouped = {};
     roomsData.forEach((room) => {
@@ -586,7 +622,6 @@ const Billing = () => {
             <div className="w-full sm:w-72"><SearchBar value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
             
             <div className="flex w-full sm:w-auto gap-2 justify-center">
-              {/* ✨ ปุ่ม Filter และนับจำนวนตัวกรองที่ใช้งานอยู่ */}
               <div className="relative flex-1 sm:flex-none">
                 <button onClick={() => setShowFilterModal(true)} className="w-full justify-center p-3 rounded-xl border bg-white border-gray-200 text-gray-500 relative flex items-center">
                   <FilterIcon size={20} />
@@ -598,7 +633,6 @@ const Billing = () => {
                 </button>
               </div>
 
-              {/* ✨ ปุ่มเปิด Modal คำอธิบาย */}
               <button onClick={() => setShowHelpModal(true)} className="flex-1 sm:flex-none h-[48px] px-4 rounded-xl border bg-white border-gray-200 text-gray-500 font-bold flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors">
                 คำอธิบาย <HelpCircle size={20} />
               </button>
@@ -610,7 +644,6 @@ const Billing = () => {
             <WhiteButton label="พิมพ์ใบสรุปบิล" icon={FileText} className="w-full justify-center" onClick={handlePrintSummary} />
             
             <div className="relative group w-full">
-              {/* รองรับ active และ focus-within สำหรับมือถือ */}
               <button disabled={isDownloading} className="w-full h-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl font-bold text-sm bg-green-100 text-green-700 hover:bg-green-200 border border-green-200 disabled:opacity-50 transition-all">
                 {isDownloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} ดาวน์โหลด
               </button>
@@ -626,7 +659,6 @@ const Billing = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 max-w-5xl mx-auto w-full px-4 mt-2">
-            {/* ✨ Dropdown เลือกอาคารแบบทำงานได้จริง */}
             <div className="relative w-full sm:w-auto" ref={buildingDropdownRef}>
               <button
                 onClick={() => setShowBuildingDropdown((prev) => !prev)}
@@ -689,7 +721,6 @@ const Billing = () => {
 
       {/* ── Modal ต่างๆ ── */}
 
-      {/* ✨ 1. Filter Modal */}
       {showFilterModal && (
         <FilterModal
           isOpen={showFilterModal}
@@ -723,7 +754,6 @@ const Billing = () => {
         </FilterModal>
       )}
 
-      {/* ✨ 2. Help Modal (คำอธิบายสถานะ) */}
       {showHelpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowHelpModal(false)}>
           <div className="bg-white rounded-[32px] w-full max-w-md p-6 sm:p-8 shadow-2xl flex flex-col animate-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
@@ -750,14 +780,15 @@ const Billing = () => {
         </div>
       )}
 
+      {/* ✨ 3. Modal Summary ก่อนส่ง LINE บิล */}
       {showSummary && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={()=>setShowSummary(false)}>
           <div className="bg-white rounded-[40px] w-full max-w-6xl p-5 sm:p-10 shadow-2xl flex flex-col max-h-[90vh]" onClick={(e)=>e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4 sm:mb-8">
-              <h3 className="text-xl sm:text-3xl font-black text-gray-800">ตรวจสอบยอดรวมก่อนส่งบิล</h3>
+              <h3 className="text-xl sm:text-3xl font-black text-gray-800">ตรวจสอบยอดรวมก่อนส่งบิล (LINE)</h3>
               <button onClick={()=>setShowSummary(false)} className="p-2 hover:bg-gray-100 rounded-full"><X size={32} strokeWidth={3}/></button>
             </div>
-            <div className="overflow-x-auto rounded-3xl border-2 border-gray-100 mb-4 sm:mb-8">
+            <div className="overflow-y-auto rounded-3xl border-2 border-gray-100 mb-4 sm:mb-8">
               <table className="w-full text-left border-collapse min-w-[400px]">
                 <thead className="bg-gray-50 text-gray-600 text-xs sm:text-sm uppercase sticky top-0">
                   <tr>
@@ -771,14 +802,26 @@ const Billing = () => {
                     <tr key={r.roomNumber} className="hover:bg-blue-50/20 transition-colors">
                       <td className="p-3 sm:p-5 font-black text-gray-700 border-r border-gray-100 text-center bg-gray-50/30">{r.roomNumber}</td>
                       <td className="p-3 sm:p-5 text-gray-600 font-bold border-r border-gray-100">{r.tenantFirstName||"-"}</td>
-                      <td className="p-3 sm:p-5 text-right font-black text-[#2E86C1] bg-blue-50/30">{Number(r.total).toLocaleString()}</td>
+                      <td className="p-3 sm:p-5 text-right font-black text-[#2E86C1] bg-blue-50/30">
+                        {r.hasBill ? (
+                          Number(r.total).toLocaleString() + " ฿"
+                        ) : (
+                          <span className="text-red-500 font-bold text-xs">ยังไม่ได้สร้างบิล</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <div className="flex justify-end">
-              <GreenButton label="ยืนยันการส่งบิล" icon={Send} onClick={()=>{alert("ฟีเจอร์ส่งบิลผ่าน Line OA กำลังพัฒนา");setShowSummary(false);}} className="w-full sm:w-auto justify-center" />
+            <div className="flex justify-end mt-2">
+              <GreenButton 
+                label={isSendingBulk ? "กำลังส่ง LINE..." : "ยืนยันการส่งบิล"} 
+                icon={isSendingBulk ? Loader2 : Send} 
+                onClick={handleConfirmSendBills} 
+                disabled={isSendingBulk}
+                className="w-full sm:w-auto justify-center" 
+              />
             </div>
           </div>
         </div>

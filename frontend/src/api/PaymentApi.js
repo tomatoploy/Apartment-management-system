@@ -45,19 +45,11 @@ export const paymentService = {
   },
 
   // POST /payments
-  // data ส่งได้ทั้ง: roomRate, electricalCost, waterCost, internetCost, laundryCost,
-  //   furnitureCost, additionalCost, additionalDetail, discountCost, discountDetail,
-  //   contractId, adminId, recordDate, note
-  // ⚠️ Backend POST ไม่รับ status/paidAmount โดยตรง → หลัง POST ต้อง PATCH status แยก
-  //    ยกเว้นกรณี checkout ที่ต้องการ paid ทันที ให้ PATCH ตามหลัง
   createPayment: async (data) => {
-    // แยก status / paidAmount ออกก่อน POST (Backend ไม่รับใน POST body)
     const { status, paidAmount, ...postData } = data;
-    const res = await paymentApi.post("/payments", postData);
-    // Backend POST ส่งกลับ { message, id, total }
+    const res = await payment  .post("/payments", postData);
     const createdId = res.data?.id;
 
-    // ถ้าต้องการ mark paid ทันที → PATCH status ตามหลัง
     if (status && createdId) {
       await paymentApi.patch(`/payments/${createdId}/status`, {
         status,
@@ -68,10 +60,7 @@ export const paymentService = {
   },
 
   // PUT /payments/{id}
-  // ⚠️ Backend ปฏิเสธถ้า payment.Status === "paid" → ต้อง PUT ก่อน PATCH status เสมอ
-  // ⚠️ ไม่ส่ง status / paidAmount ใน PUT เพราะ PutPaymentDto ไม่มี field เหล่านี้
   updatePayment: async (id, data) => {
-    // กรอง undefined ออก เพราะ Backend PutPaymentDto จะ reject field ที่ไม่รู้จัก
     const clean = Object.fromEntries(
       Object.entries(data).filter(([, v]) => v !== undefined)
     );
@@ -80,13 +69,17 @@ export const paymentService = {
   },
 
   // PATCH /payments/{id}/status
-  // เปลี่ยนสถานะ + บันทึก paidAmount
-  // Backend รับเฉพาะ { status, paidAmount } — ไม่มี note
   updatePaymentStatus: async (id, status, paidAmount = null) => {
     const res = await paymentApi.patch(`/payments/${id}/status`, {
       status,
       ...(paidAmount !== null && { paidAmount }),
     });
+    return res.data;
+  },
+
+  sendLineNotify: async (id) => {
+    // ยิง API ไปที่ Endpoint ใหม่ที่เราเพิ่งสร้างใน C#
+    const res = await paymentApi.post(`/payments/${id}/notify`);
     return res.data;
   },
 
