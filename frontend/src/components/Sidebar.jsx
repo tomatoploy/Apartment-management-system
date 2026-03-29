@@ -1,20 +1,8 @@
-import {
-  LayoutDashboard,
-  Building2,
-  Droplets,
-  Receipt,
-  Package,
-  BellRing,
-  Settings,
-  LogOut,
-  ChevronLeft,
-  User,
-  Edit
-} from "lucide-react";
-
+import { LayoutDashboard, Building2, Droplets, Receipt, Package, BellRing, Settings, LogOut, ChevronLeft, User, Edit} from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { ConfirmModal } from "./ActionButtons";
+import Profile from "../assets/userImage.jpg";
 
 const MenuItem = ({ icon: Icon, text, to, collapsed, onClick }) => (
   <NavLink
@@ -44,8 +32,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      try {
-        const mockDbImage = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200";
+        try {
+        const mockDbImage = Profile;
         setProfileImage(mockDbImage);
       } catch (error) {
         console.error("Error fetching user image:", error);
@@ -61,6 +49,13 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+    useEffect(() => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/login", { replace: true });
+      }
+    }, [navigate]);
 
   return (
     <>
@@ -155,18 +150,20 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
       </div>
     </aside>
       <ConfirmModal
-        isOpen={showLogoutConfirm}
-        onClose={() => setShowLogoutConfirm(false)}
-        onConfirm={() => {
-          if (onItemClick) onItemClick(); // ปิด Sidebar (ถ้ามี)
-          setShowLogoutConfirm(false);
-          navigate("/login"); // ไปที่หน้า login หลังยืนยัน
-        }}
-        title="ยืนยันการออกจากระบบ"
-        description="คุณแน่ใจใช่หรือไม่ว่าต้องการออกจากระบบ?"
-        confirmText="ออกจากระบบ"
+          isOpen={showLogoutConfirm}
+          onClose={() => setShowLogoutConfirm(false)}
+          onConfirm={() => {
+            if (onItemClick) onItemClick(); 
+            setShowLogoutConfirm(false);
+            
+            // แก้ไข: เพิ่ม { replace: true } เพื่อไม่ให้กด Back กลับมาได้
+            navigate("/login", { replace: true }); 
+          }}
+          title="ยืนยันการออกจากระบบ"
+          description="คุณแน่ใจใช่หรือไม่ว่าต้องการออกจากระบบ?"
+          confirmText="ออกจากระบบ"
       />
-      </>
+    </>
   );
 };
 
