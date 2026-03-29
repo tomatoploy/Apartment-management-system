@@ -32,6 +32,9 @@ builder.Services.AddOpenApi();
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 builder.WebHost.UseUrls($"http://*:{port}");
 
+// ลงทะเบียน HttpClient สำหรับใช้ส่งข้อความ LINE
+builder.Services.AddHttpClient<Dormitory.Services.LineMessageService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
