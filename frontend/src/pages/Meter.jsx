@@ -322,12 +322,14 @@ const Meter = () => {
     }
   };
 
-  // ✅ ฟังก์ชัน Save หลักหน้าจอจดมิเตอร์
   const handleMainSave = async () => {
     try {
       setIsSaving(true);
       const payload = rooms
         .filter((r) => {
+          if (r.meterId != null) return true;
+
+          // สำหรับห้องใหม่ที่ยังไม่มี meterId ตรวจสอบว่ามีข้อมูลถูกพิมพ์ลงไปบ้างหรือไม่
           return [
             r.currElec,
             r.currWater,
@@ -338,12 +340,12 @@ const Meter = () => {
           ].some((v) => v !== "" && v != null);
         })
         .map((r) => {
+          // ส่วน map(...) ข้างในนี้ใช้เหมือนเดิมได้เลยครับ
           const p = {
             roomId: r.roomId,
             recordDate: recordDate,
             electricityUnit: toSafeInt(r.currElec),
             waterUnit: toSafeInt(r.currWater),
-            // 🌟 แก้ไข: แปลงข้อมูลเปลี่ยนมิเตอร์ให้เป็นตัวเลขล้วนๆ ก่อนส่ง
             changeElectricityMeterStart: toSafeInt(r.changeElectricityMeterStart),
             changeElectricityMeterEnd: toSafeInt(r.changeElectricityMeterEnd),
             changeWaterMeterStart: toSafeInt(r.changeWaterMeterStart),
