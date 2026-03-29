@@ -9,7 +9,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()   // อนุญาตทุก Domain (สะดวกตอนพัฒนา)
+        policy.AllowAnyOrigin('https://apartment-management-system-webapp.onrender.com')   // อนุญาตทุก Domain (สะดวกตอนพัฒนา)
               .AllowAnyMethod()   // อนุญาตทุก HTTP Method (GET, POST, PUT, DELETE)
               .AllowAnyHeader();  // อนุญาตทุก Header
     });
