@@ -45,9 +45,10 @@ export const paymentService = {
   },
 
   // POST /payments
+  // POST /payments
   createPayment: async (data) => {
     const { status, paidAmount, ...postData } = data;
-    const res = await payment  .post("/payments", postData);
+    const res = await paymentApi.post("/payments", postData); 
     const createdId = res.data?.id;
 
     if (status && createdId) {
