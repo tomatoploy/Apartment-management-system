@@ -99,7 +99,7 @@ const ViewBill = () => {
         const cId = payment.contractId || payment.ContractId;
         if (cId) {
           try {
-            const contract = await contractService.getContractById(cId);
+            const contract = await contractService.getContract(cId);
             if (contract) {
               setRoomNumber(contract.room?.number || contract.Room?.Number || contract.roomNumber || "-");
               
