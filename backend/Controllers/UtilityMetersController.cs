@@ -249,48 +249,43 @@ public class UtilityMetersController : ControllerBase
         return Ok();
     }
 
-[HttpPost("bulk-upsert")]
+    [HttpPost("bulk-upsert")]
     public async Task<IActionResult> BulkUpsert(
         [FromBody] List<UtilityMeterBulkDto> dtos)
     {
         if (dtos == null || !dtos.Any())
             return BadRequest("Empty payload");
 
-        var validDtos = dtos.Where(HasAnyInput).ToList();
+        // ✅ เอาการกรอง Where(HasAnyInput) ออก เพื่อยอมรับ object ที่ส่งมาเป็น null ล้วนๆ (กรณีเคลียร์ค่า)
+        var validDtos = dtos; 
 
         if (!validDtos.Any())
             return Ok("No data");
 
         foreach (var dto in validDtos)
         {
-            // ใช้วันที่ที่ส่งมา หรือถ้าไม่มีใช้วันปัจจุบัน (DateOnly)
             var recordDate = dto.RecordDate ?? DateOnly.FromDateTime(DateTime.Today);
 
-            // 🔍 หา record ของ "ห้องนั้น" ใน "เดือนและปีเดียวกัน"
-            // เรียงลำดับเอาตัวล่าสุดมาเช็ค (เผื่อมีหลาย record ในเดือนเดียวจากเคสย้ายห้อง)
             var existing = await _db.UtilityMeter
                 .Where(m =>
                     m.RoomId == dto.RoomId &&
                     m.RecordDate.Year == recordDate.Year &&
                     m.RecordDate.Month == recordDate.Month
                 )
-                .OrderByDescending(m => m.Id) // เอาตัวล่าสุดที่เพิ่มเข้าไป
+                .OrderByDescending(m => m.Id)
                 .FirstOrDefaultAsync();
 
-            // --- Logic การจัดการ Note "*" (เคสย้ายห้อง) ---
-            // เช็คว่า record ล่าสุดถูกล็อคด้วย "*" หรือไม่
             bool isLocked = existing != null && 
                             !string.IsNullOrEmpty(existing.Note) && 
                             existing.Note.Trim().StartsWith("*");
 
-            // ถ้าไม่มี record หรือ record ล่าสุดถูกล็อค (*) -> ให้สร้างใหม่ (INSERT)
             if (existing == null || isLocked)
             {
+                // โค้ดส่วน INSERT ใช้ของเดิมได้เลย
                 var newMeter = new UtilityMeter
                 {
                     RoomId = dto.RoomId,
                     RecordDate = recordDate,
-                    // ใส่ค่าเท่าที่มี ถ้าไม่มีให้เป็น null
                     ElectricityUnit = dto.ElectricityUnit,
                     WaterUnit = dto.WaterUnit,
                     ChangeElectricityMeterStart = dto.ChangeElectricityMeterStart,
@@ -303,34 +298,19 @@ public class UtilityMetersController : ControllerBase
             }
             else
             {
-                // 🟡 UPDATE (เขียนทับ record เดิม)
-                // ✅ แก้ไข: อัปเดตเฉพาะค่าที่ไม่เป็น null (Partial Update)
+                // 🟡 UPDATE
+                // ✅ ลบ if (dto.xxx.HasValue) ออกให้หมด เพื่อให้ค่า null เซฟทับค่าเก่าได้
+                existing.ElectricityUnit = dto.ElectricityUnit;
+                existing.WaterUnit = dto.WaterUnit;
                 
-                // ฝั่งไฟฟ้า
-                if (dto.ElectricityUnit.HasValue) 
-                    existing.ElectricityUnit = dto.ElectricityUnit;
-                
-                if (dto.ChangeElectricityMeterStart.HasValue) 
-                    existing.ChangeElectricityMeterStart = dto.ChangeElectricityMeterStart;
-                
-                if (dto.ChangeElectricityMeterEnd.HasValue) 
-                    existing.ChangeElectricityMeterEnd = dto.ChangeElectricityMeterEnd;
+                existing.ChangeElectricityMeterStart = dto.ChangeElectricityMeterStart;
+                existing.ChangeElectricityMeterEnd = dto.ChangeElectricityMeterEnd;
+                existing.ChangeWaterMeterStart = dto.ChangeWaterMeterStart;
+                existing.ChangeWaterMeterEnd = dto.ChangeWaterMeterEnd;
 
-                // ฝั่งน้ำประปา
-                if (dto.WaterUnit.HasValue) 
-                    existing.WaterUnit = dto.WaterUnit;
-                
-                if (dto.ChangeWaterMeterStart.HasValue) 
-                    existing.ChangeWaterMeterStart = dto.ChangeWaterMeterStart;
-                
-                if (dto.ChangeWaterMeterEnd.HasValue) 
-                    existing.ChangeWaterMeterEnd = dto.ChangeWaterMeterEnd;
-
-                // อัปเดต Note (ถ้าส่งมาใหม่ค่อยแก้ หรือจะให้ต่อท้ายก็ได้ แล้วแต่ Business)
                 if (dto.Note != null) 
                     existing.Note = dto.Note;
 
-                // อัปเดตวันที่จดเป็นวันล่าสุดที่มีการแก้ไข
                 existing.RecordDate = recordDate;
             }
         }
