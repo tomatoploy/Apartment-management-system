@@ -465,13 +465,21 @@ const BillDetail = ({
         adminId: currentAdminId
       };
 
+      // 🔍 แอบปริ้นท์ข้อมูลก่อนส่ง จะได้รู้ว่าตัวเลขครบไหม
+      console.log("🚀 ข้อมูลที่จะส่งไป Backend:", payload);
+
       if (paymentId) await paymentService.updatePayment(paymentId, payload);
       else await paymentService.createPayment(payload);
       
       alert("บันทึกสำเร็จ"); 
       loadBillData();
     } catch (err) { 
-      alert("บันทึกไม่สำเร็จ"); 
+      // 🚨 จุดที่เพิ่มเข้ามา: สั่งให้ปริ้นท์ Error ตัวแดงออกมาให้เราเห็น!
+      console.error("Save Error:", err.response?.data || err);
+      
+      // ดึงข้อความ Error จาก Backend มาแสดงที่ Alert ด้วย จะได้รู้ทันที
+      const errorMsg = err.response?.data?.message || err.response?.data || "ไม่ทราบสาเหตุ (ดูใน Console)";
+      alert(`บันทึกไม่สำเร็จ: ${errorMsg}`); 
     } finally { 
       setIsSaving(false); 
     }
