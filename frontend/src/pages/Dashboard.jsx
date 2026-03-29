@@ -15,7 +15,7 @@ import {
 /* ─────────────────────────────────────────────
    CONFIG
 ───────────────────────────────────────────── */
-const API_BASE = 'http://localhost:5252';
+const API_BASE = 'https://apartment-management-system-zllm.onrender.com';
 const REFRESH_INTERVAL = 60_000;
 
 /* ─────────────────────────────────────────────
@@ -547,7 +547,7 @@ const Dashboard = () => {
               ))}
             </div>
           </div>
-          <div className="h-[240px] sm:h-[280px]">
+          <div style={{ width: '100%', height: 280 }} className="min-h-[240px] sm:min-h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
               {chartMode === 'compare' ? (
                 <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
