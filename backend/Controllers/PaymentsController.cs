@@ -544,7 +544,7 @@ public class PaymentsController : ControllerBase
         string itemsJson = string.Join(",", rows);
 
         // 3. กำหนด URL ปลายทางสำหรับปุ่มดู PDF
-        string frontendBaseUrl = "http://localhost:3000"; // รอเปลี่ยนตอนขึ้นของจริง
+        string frontendBaseUrl = "https://apartment-management-system-webapp.onrender.com/";
         string billLink = $"{frontendBaseUrl}/view-bill/{payment.Id}"; 
 
         // 4. ประกอบร่าง Flex Message (ใส่ตัวแปรสีและ Header ที่เช็คไว้)
