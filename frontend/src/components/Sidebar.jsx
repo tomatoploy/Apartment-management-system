@@ -15,6 +15,8 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { ConfirmModal } from "./ActionButtons";
+import Profile from "../assets/userImage.jpg"
+
 
 const MenuItem = ({ icon: Icon, text, to, collapsed, onClick }) => (
   <NavLink
@@ -44,15 +46,18 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      try {
-        const mockDbImage = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200";
-        setProfileImage(mockDbImage);
-      } catch (error) {
-        console.error("Error fetching user image:", error);
-      }
-    };
-    fetchUserData();
-  
+  try {
+    // แก้ไข: เปลี่ยนจาก URL ภายนอก เป็น Path ของไฟล์ในโปรเจกต์
+    // หากไฟล์อยู่ที่ public/images/profile.jpg ให้ใช้ path "/images/profile.jpg"
+    const mockDbImage = Profile;
+    
+    setProfileImage(mockDbImage);
+  } catch (error) {
+    console.error("Error fetching user image:", error);
+  }
+};
+fetchUserData();
+
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsMenuOpen(false);
@@ -61,6 +66,14 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  //logout
+  useEffect(() => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    navigate("/login", { replace: true });
+  }
+}, [navigate]);
 
   return (
     <>
@@ -155,17 +168,19 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
       </div>
     </aside>
       <ConfirmModal
-        isOpen={showLogoutConfirm}
-        onClose={() => setShowLogoutConfirm(false)}
-        onConfirm={() => {
-          if (onItemClick) onItemClick(); // ปิด Sidebar (ถ้ามี)
-          setShowLogoutConfirm(false);
-          navigate("/login"); // ไปที่หน้า login หลังยืนยัน
-        }}
-        title="ยืนยันการออกจากระบบ"
-        description="คุณแน่ใจใช่หรือไม่ว่าต้องการออกจากระบบ?"
-        confirmText="ออกจากระบบ"
-      />
+  isOpen={showLogoutConfirm}
+  onClose={() => setShowLogoutConfirm(false)}
+  onConfirm={() => {
+    if (onItemClick) onItemClick(); 
+    setShowLogoutConfirm(false);
+    
+    // แก้ไข: เพิ่ม { replace: true } เพื่อไม่ให้กด Back กลับมาได้
+    navigate("/login", { replace: true }); 
+  }}
+  title="ยืนยันการออกจากระบบ"
+  description="คุณแน่ใจใช่หรือไม่ว่าต้องการออกจากระบบ?"
+  confirmText="ออกจากระบบ"
+/>
       </>
   );
 };
