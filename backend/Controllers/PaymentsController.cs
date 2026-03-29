@@ -499,7 +499,9 @@ public class PaymentsController : ControllerBase
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (payment == null) return NotFound(new { message = "ไม่พบบิลนี้ในระบบ" });
-        if (string.IsNullOrEmpty(payment.Contract?.Tenant?.LineId))
+        
+        // 🌟 1. เปลี่ยนการตรวจ LineId เป็น Note แทน (ตามที่เปลี่ยน Database) 🌟
+        if (string.IsNullOrEmpty(payment.Contract?.Tenant?.Note))
             return BadRequest(new { message = $"ห้อง {payment.Contract?.Room?.Number} ยังไม่ได้ผูก LINE" });
 
         var roomNumber = payment.Contract.Room?.Number ?? "-";
@@ -543,8 +545,8 @@ public class PaymentsController : ControllerBase
 
         string itemsJson = string.Join(",", rows);
 
-        // 3. กำหนด URL ปลายทางสำหรับปุ่มดู PDF
-        string frontendBaseUrl = "https://apartment-management-system-webapp.onrender.com/";
+        // 🌟 2. แก้ URL หน้าบ้าน ไม่ให้มี Slash '/' ซ้อนท้าย 🌟
+        string frontendBaseUrl = "https://apartment-management-system-webapp.onrender.com";
         string billLink = $"{frontendBaseUrl}/view-bill/{payment.Id}"; 
 
         // 4. ประกอบร่าง Flex Message (ใส่ตัวแปรสีและ Header ที่เช็คไว้)
@@ -613,7 +615,10 @@ public class PaymentsController : ControllerBase
         try
         {
             string altText = $"{altTextStatus} ห้อง {roomNumber} ยอดสุทธิ {payment.TotalAmount?.ToString("N2")} บาท";
-            await _lineService.SendFlexMessageAsync(payment.Contract.Tenant.LineId, altText, flexCardJson);
+            
+            // 🌟 3. ส่งไปหา payment.Contract.Tenant.Note แทน LineId 🌟
+            await _lineService.SendFlexMessageAsync(payment.Contract.Tenant.Note, altText, flexCardJson);
+            
             return Ok(new { message = "ส่ง LINE สำเร็จ" });
         }
         catch (Exception ex)
