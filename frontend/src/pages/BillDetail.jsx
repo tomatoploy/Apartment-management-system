@@ -182,6 +182,7 @@ const BillDetail = ({
   const [form, setForm] = useState({ label: "", amount: 0 });
   const [isLoading, setIsLoading] = useState(mode !== "checkout" && !initialData?.length);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSendingLine, setIsSendingLine] = useState(false); // ✨ State สำหรับโหลดตอนส่ง LINE
   const [isConfirmPay, setIsConfirmPay] = useState(false);
   const [roomId, setRoomId] = useState(externalRoomId ?? null); 
   const [contractId, setContractId] = useState(null);
@@ -322,13 +323,10 @@ const BillDetail = ({
         setPaymentStatus(existing.status?.toLowerCase() ?? "unpaid");
         setItems(paymentToItems(existing, selectedDate));
       } else {
-        // 🌟 LOGIC สำคัญ: ป้องกันการสร้างบิลย้อนหลัง
-        // เช็คว่าเดือนที่เลือก (selectedMonth) น้อยกว่าเดือนปัจจุบัน (currentMonth) หรือไม่
         const selectedMonthObj = new Date(year, month - 1, 1);
         const currentMonthObj = new Date(today.getFullYear(), today.getMonth(), 1);
 
         if (selectedMonthObj < currentMonthObj) {
-          // ถ้าเป็นอดีตและไม่พบบิลเก่า จะบล็อกการโชว์ Preview และเด้งแสดง Error แทน
           setLoadError("ไม่มีการออกบิลในเดือนนี้ (ไม่อนุญาตให้สร้างบิลย้อนหลัง)");
           setIsLoading(false);
           return;
@@ -458,8 +456,6 @@ const BillDetail = ({
     
     setIsSaving(true);
     try {
-      // 🌟 LOGIC สำคัญ: ใช้วันที่ 1 ของเดือนที่เลือก แทนวันที่ปัจจุบัน
-      // ป้องกันบั๊กเซฟผิดเดือนในฐานข้อมูล เวลาที่กดสร้างบิลของเดือนในอนาคต/ปัจจุบัน
       const recordDate = `${selectedDate}-01`; 
       
       const payload = { 
@@ -478,6 +474,30 @@ const BillDetail = ({
       alert("บันทึกไม่สำเร็จ"); 
     } finally { 
       setIsSaving(false); 
+    }
+  };
+
+  // ✨ ฟังก์ชันสำหรับกดส่ง LINE แบบห้องเดียว
+  const handleSendLineNotify = async () => {
+    if (!paymentId) {
+      alert("กรุณากดบันทึกบิลก่อนส่งแจ้งเตือนให้ลูกบ้านค่ะ");
+      return;
+    }
+    
+    const confirmMsg = paymentStatus === "paid" 
+      ? "ต้องการส่ง 'ใบเสร็จรับเงิน' ผ่าน LINE ให้ลูกบ้านใช่หรือไม่?" 
+      : "ต้องการส่ง 'ใบแจ้งหนี้' ผ่าน LINE ให้ลูกบ้านใช่หรือไม่?";
+      
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsSendingLine(true);
+    try {
+      await paymentService.sendLineNotify(paymentId);
+      alert("ส่งการ์ดข้อมูลทาง LINE สำเร็จ!");
+    } catch (err) {
+      alert(err.response?.data?.message || "เกิดข้อผิดพลาดในการส่ง LINE (ลูกบ้านอาจยังไม่ได้ผูก LINE)");
+    } finally {
+      setIsSendingLine(false);
     }
   };
 
@@ -555,7 +575,6 @@ const BillDetail = ({
         ) : loadError ? (
           <div className="py-24 flex flex-col items-center justify-center text-center bg-gray-50 rounded-[40px] border border-gray-200 mt-4 max-w-4xl mx-auto px-6">
             <p className="text-gray-400 font-bold mb-4">{loadError}</p>
-            {/* ซ่อนปุ่ม "สร้างบิลใหม่" และ "ลองใหม่" เพื่อไม่ให้กดฝืนสร้างบิลย้อนหลัง */}
             {loadError !== "ไม่มีการออกบิลในเดือนนี้ (ไม่อนุญาตให้สร้างบิลย้อนหลัง)" && (
                <WhiteButton label="ลองใหม่" onClick={loadBillData} />
             )}
@@ -625,7 +644,16 @@ const BillDetail = ({
               {(showPdfBtn || showSendBtn) && (
                 <div className="flex flex-col md:flex-row justify-center items-center gap-3 w-full">
                   {showPdfBtn && <OrangeButton label="บันทึกเป็น PDF" icon={Download} onClick={() => window.print()} className="w-full md:w-auto px-8" />}
-                  {showSendBtn && <OrangeButton label="ส่งบิล" icon={Send} className="w-full md:w-auto px-8" />}
+                  {/* ✨ อัปเดตปุ่ม ส่งบิล ให้เรียกฟังก์ชันส่ง LINE แทน */}
+                  {showSendBtn && (
+                    <OrangeButton 
+                      label={isSendingLine ? "กำลังส่ง..." : "ส่งบิล"} 
+                      icon={isSendingLine ? Loader2 : Send} 
+                      onClick={handleSendLineNotify} 
+                      disabled={isSendingLine || !paymentId}
+                      className="w-full md:w-auto px-8" 
+                    />
+                  )}
                 </div>
               )}
 

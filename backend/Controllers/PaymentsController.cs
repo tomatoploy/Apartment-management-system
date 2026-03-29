@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Dormitory.DormitoryModels;
 using Dormitory.DTOs;
+using Dormitory.Services; // 👈 1. เพิ่ม using สำหรับ Service
 
 namespace Dormitory.Controllers;
 
@@ -11,11 +12,17 @@ public class PaymentsController : ControllerBase
 {
     private readonly ILogger<PaymentsController> _logger;
     private readonly DormitoryDbContext _db;
+    private readonly LineMessageService _lineService; // 👈 2. ประกาศตัวแปร
 
-    public PaymentsController(ILogger<PaymentsController> logger, DormitoryDbContext db)
+    // 👈 3. รับ LineMessageService เข้ามา
+    public PaymentsController(
+        ILogger<PaymentsController> logger, 
+        DormitoryDbContext db,
+        LineMessageService lineService) 
     {
         _logger = logger;
         _db = db;
+        _lineService = lineService;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -90,12 +97,10 @@ public class PaymentsController : ControllerBase
             .Include(c => c.Tenant)
             .FirstOrDefaultAsync(c => c.Id == contractId);
 
-        // ✅ return null ออกไปก่อน → หลังบรรทัดนี้ compiler รู้ว่า contract ไม่ใช่ null
         if (contract == null) return null;
 
         var constants = await _db.Constant.ToListAsync();
 
-        // ✅ Constant.Cost เป็น decimal? → ใช้ ?. แล้วตาม ?? 0m ได้เลย
         decimal electricityRate = constants.FirstOrDefault(c =>
             c.Category.Equals("utility",         StringComparison.OrdinalIgnoreCase) &&
             c.Subject != null &&
@@ -148,7 +153,6 @@ public class PaymentsController : ControllerBase
             currentMeter?.ChangeWaterMeterStart,
             currentMeter?.WaterUnit);
 
-        // ✅ MonthlyRent เป็น decimal (non-nullable) → ใช้ตรง ๆ ไม่ต้อง ?? 0m
         decimal roomRate = contract.MonthlyRent;
 
         decimal electricCost = electricUsed.HasValue
@@ -157,12 +161,10 @@ public class PaymentsController : ControllerBase
         decimal waterCost = waterUsed.HasValue
             ? (decimal)waterUsed.Value * waterRate : 0m;
 
-        // ✅ InternetDeviceCount เป็น uint? → ?? 0u แล้วค่อย cast เป็น decimal
         uint deviceCount  = contract.Tenant?.InternetDeviceCount ?? 0u;
         decimal internetCost = deviceCount > 0
             ? (decimal)deviceCount * internetRate : 0m;
 
-        // ✅ IsLaundryService เป็น bool? → == true ป้องกัน null
         decimal laundryCost = contract.Tenant?.IsLaundryService == true
             ? laundryRate : 0m;
 
@@ -181,33 +183,24 @@ public class PaymentsController : ControllerBase
         {
             ContractId = contractId,
             RoomId     = contract.RoomId,
-            // ✅ TenantId เป็น uint? → ?? 0u
             TenantId   = contract.TenantId ?? 0u,
             Year       = year,
             Month      = month,
-
             RoomRate = roomRate,
-
             ElectricityUsedUnit    = electricUsed,
             ElectricityRatePerUnit = electricityRate,
             ElectricalCost         = electricCost,
-
             WaterUsedUnit    = waterUsed,
             WaterRatePerUnit = waterRate,
             WaterCost        = waterCost,
-
-            // ✅ deviceCount เป็น uint แล้ว (ผ่าน ?? 0u มาแล้ว) → assign ได้ตรง
             InternetDeviceCount   = deviceCount,
             InternetRatePerDevice = internetRate,
             InternetCost          = internetCost,
-
             IsLaundryService = contract.Tenant?.IsLaundryService == true,
             LaundryRate      = laundryRate,
             LaundryCost      = laundryCost,
-
             TotalAmount     = totalAmount,
             CalculationNote = calcNote,
-
             CurrentElectricUnit  = currentMeter?.ElectricityUnit,
             PreviousElectricUnit = previousMeter?.ElectricityUnit,
             CurrentWaterUnit     = currentMeter?.WaterUnit,
@@ -236,7 +229,7 @@ public class PaymentsController : ControllerBase
     public async Task<ActionResult<PaymentDetailDto>> Get(uint id)
     {
         var payment = await _db.Payment.AsNoTracking()
-                               .FirstOrDefaultAsync(p => p.Id == id);
+                                       .FirstOrDefaultAsync(p => p.Id == id);
         if (payment == null)
             return NotFound(new { message = "Payment not found" });
 
@@ -343,7 +336,6 @@ public class PaymentsController : ControllerBase
             Status                 = "unpaid",
             AdminId                = dto.AdminId,
             RoomRate               = dto.RoomRate,
-            // ✅ ElectricalPricePerUnit/WaterPricePerUnit เป็น decimal? รับ decimal? ได้ตรง
             ElectricalPricePerUnit = dto.ElectricalCost,
             WaterPricePerUnit      = dto.WaterCost,
             InternetCost           = dto.InternetCost,
@@ -357,7 +349,6 @@ public class PaymentsController : ControllerBase
                                          ? string.Join(" | ", noteParts) : null,
         };
 
-        // ✅ ทุก field ใน Payment เป็น decimal? → ?? 0m ใช้ได้
         payment.TotalAmount =
             (payment.RoomRate               ?? 0m) +
             (payment.ElectricalPricePerUnit ?? 0m) +
@@ -376,7 +367,6 @@ public class PaymentsController : ControllerBase
         }
         catch (Exception ex)
         {
-            // ดึงข้อความ Error เชิงลึกจาก Database ส่งกลับไปให้ React
             var innerMsg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
             return StatusCode(500, new { message = $"DB Error: {innerMsg}" });
         }
@@ -463,7 +453,6 @@ public class PaymentsController : ControllerBase
         if (payment == null)
             return NotFound(new { message = "Payment not found" });
 
-        // ✅ Status ใน DB เป็น enum: 'paid','unpaid','overdue','longOverdue'
         var allowed = new[] { "paid", "unpaid", "overdue", "longoverdue" };
         if (!allowed.Contains(dto.Status?.ToLower()))
             return BadRequest(new
@@ -498,6 +487,140 @@ public class PaymentsController : ControllerBase
         await _db.SaveChangesAsync();
 
         return Ok(new { message = "ลบบิลสำเร็จ", id });
+    }
+
+    // 🚀 POST /payments/{id}/notify (ส่ง LINE แจ้งหนี้ / ใบเสร็จ)
+    [HttpPost("{id}/notify")]
+    public async Task<IActionResult> NotifyPayment(uint id)
+    {
+        var payment = await _db.Payment
+            .Include(p => p.Contract).ThenInclude(c => c.Tenant)
+            .Include(p => p.Contract).ThenInclude(c => c.Room)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (payment == null) return NotFound(new { message = "ไม่พบบิลนี้ในระบบ" });
+        if (string.IsNullOrEmpty(payment.Contract?.Tenant?.LineId))
+            return BadRequest(new { message = $"ห้อง {payment.Contract?.Room?.Number} ยังไม่ได้ผูก LINE" });
+
+        var roomNumber = payment.Contract.Room?.Number ?? "-";
+        var monthYear = payment.RecordDate.ToString("MM/yyyy");
+
+        // 🟢 1. เช็คสถานะบิลเพื่อเปลี่ยนหัวการ์ดและสี
+        bool isPaid = payment.Status?.ToLower() == "paid";
+        string headerText = isPaid ? "✅ ใบเสร็จรับเงิน" : "🧾 ใบแจ้งยอดชำระเงิน";
+        string headerBgColor = isPaid ? "#27ae60" : "#f39c12"; // สีเขียว = จ่ายแล้ว, สีส้ม = ยังไม่จ่าย
+        string footerText = isPaid ? "ได้รับชำระเงินเรียบร้อยแล้ว ขอบคุณค่ะ" : "กรุณาชำระเงินภายในวันที่กำหนด";
+        string altTextStatus = isPaid ? "ใบเสร็จรับเงิน" : "ใบแจ้งยอดชำระเงิน";
+
+        // 2. เตรียมรายการค่าใช้จ่าย
+        var rows = new List<string>();
+        void AddRow(string title, decimal? amount, bool isDiscount = false)
+        {
+            if (amount.HasValue && amount.Value > 0)
+            {
+                string color = isDiscount ? "#27ae60" : "#555555";
+                string sign = isDiscount ? "-" : "";
+                rows.Add($$"""
+                {
+                  "type": "box", "layout": "horizontal", "margin": "sm",
+                  "contents": [
+                    { "type": "text", "text": "{{title}}", "size": "sm", "color": "#555555", "flex": 2 },
+                    { "type": "text", "text": "{{sign}}{{amount.Value:N2}} ฿", "size": "sm", "color": "{{color}}", "align": "end", "weight": "bold", "flex": 1 }
+                  ]
+                }
+                """);
+            }
+        }
+
+        AddRow("ค่าเช่าห้อง", payment.RoomRate);
+        AddRow("ค่าไฟฟ้า", payment.ElectricalPricePerUnit);
+        AddRow("ค่าน้ำประปา", payment.WaterPricePerUnit);
+        AddRow("ค่าอินเทอร์เน็ต", payment.InternetCost);
+        AddRow("ค่าส่วนกลาง/ซักรีด", payment.LaundryCost);
+        AddRow("ค่าทรัพย์สิน/เฟอร์นิเจอร์", payment.FurnitureCost);
+        AddRow($"ค่าใช้จ่ายเพิ่มเติม", payment.AdditionalCost);
+        AddRow($"ส่วนลด", payment.DiscountCost, true);
+
+        string itemsJson = string.Join(",", rows);
+
+        // 3. กำหนด URL ปลายทางสำหรับปุ่มดู PDF
+        string frontendBaseUrl = "http://localhost:3000"; // รอเปลี่ยนตอนขึ้นของจริง
+        string billLink = $"{frontendBaseUrl}/view-bill/{payment.Id}"; 
+
+        // 4. ประกอบร่าง Flex Message (ใส่ตัวแปรสีและ Header ที่เช็คไว้)
+        string flexCardJson = $$"""
+        {
+          "type": "bubble",
+          "size": "mega",
+          "header": {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              { "type": "text", "text": "{{headerText}}", "color": "#ffffff", "weight": "bold", "size": "xl" },
+              { "type": "text", "text": "รอบบิล: {{monthYear}}", "color": "#ffffffcc", "size": "sm", "margin": "sm" }
+            ],
+            "backgroundColor": "{{headerBgColor}}",
+            "paddingAll": "20px"
+          },
+          "body": {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              {
+                "type": "box", "layout": "horizontal",
+                "contents": [
+                  { "type": "text", "text": "ห้องพัก", "size": "md", "color": "#8c8c8c" },
+                  { "type": "text", "text": "{{roomNumber}}", "size": "lg", "color": "#111111", "align": "end", "weight": "bold" }
+                ]
+              },
+              { "type": "separator", "margin": "lg", "color": "#ebebeb" },
+              {
+                "type": "box", "layout": "vertical", "margin": "lg",
+                "contents": [
+                  {{itemsJson}}
+                ]
+              },
+              { "type": "separator", "margin": "lg", "color": "#ebebeb" },
+              {
+                "type": "box", "layout": "horizontal", "margin": "lg",
+                "contents": [
+                  { "type": "text", "text": "ยอดสุทธิ", "size": "md", "color": "#111111", "weight": "bold" },
+                  { "type": "text", "text": "{{payment.TotalAmount?.ToString("N2")}} ฿", "size": "xl", "color": "#e74c3c", "align": "end", "weight": "bold" }
+                ]
+              }
+            ]
+          },
+          "footer": {
+            "type": "box", "layout": "vertical",
+            "spacing": "sm",
+            "contents": [
+              {
+                "type": "button",
+                "style": "primary",
+                "color": "{{headerBgColor}}",
+                "action": {
+                  "type": "uri",
+                  "label": "📄 ดูรายละเอียด / ดาวน์โหลด",
+                  "uri": "{{billLink}}"
+                }
+              },
+              { "type": "text", "text": "{{footerText}}", "size": "xs", "color": "#b2b2b2", "align": "center", "margin": "md" }
+            ]
+          }
+        }
+        """;
+
+        try
+        {
+            string altText = $"{altTextStatus} ห้อง {roomNumber} ยอดสุทธิ {payment.TotalAmount?.ToString("N2")} บาท";
+            await _lineService.SendFlexMessageAsync(payment.Contract.Tenant.LineId, altText, flexCardJson);
+            return Ok(new { message = "ส่ง LINE สำเร็จ" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Send LINE Bill Error: {ex.Message}");
+            return StatusCode(500, new { message = "เกิดข้อผิดพลาดในการส่ง LINE" });
+        }
     }
 
     // ─────────────────────────────────────────────────────────────

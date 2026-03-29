@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // ตั้งค่า URL พื้นฐานของ Backend (ปรับ port ให้ตรงกับที่รันใน VS code)
-const API_BASE_URL = 'http://localhost:5252'; 
+const API_BASE_URL = 'https://apartment-management-system-zllm.onrender.com'; 
 
 const roomApi = axios.create({
     baseURL: API_BASE_URL,
