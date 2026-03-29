@@ -15,6 +15,6 @@ namespace Dormitory.DTOs
         public string? Email { get; set; }
         public string? Signature { get; set; }
         [Required]
-        public string Password { get; set; } = null!;
+        public string? Password { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { utilityMeterService } from "../api/UtilityMeterApi";
 import {
   Zap,
@@ -33,11 +33,13 @@ const formatThaiMonth = (dateStr) => {
   ];
   return `${monthNames[date.getMonth()]} ${date.getFullYear() + 543}`;
 };
+
 const toNumberOrNull = (v) => {
   if (v === "" || v == null) return null;
   const n = Number(v);
   return isNaN(n) ? null : n;
 };
+
 const getPrevMonthStr = (dateStr) => {
   if (!dateStr) return "";
 
@@ -52,18 +54,36 @@ const getPrevMonthStr = (dateStr) => {
   return `${prevYear}-${prevMonth}`;
 };
 
+// เพิ่ม Helper แปลงตัวเลขให้ปลอดภัยก่อนส่งเข้า Database
+const toSafeInt = (val) => {
+  if (val === "" || val == null) return null;
+  const num = Number(val);
+  if (isNaN(num)) return null;
+  if (num < 0) return 0;
+  return Math.round(num);
+};
+
 const Meter = () => {
   // --- State ---
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().slice(0, 7),
   );
-  const [recordDate, setRecordDate] = useState(new Date().toLocaleDateString('sv')); // sv คือฟอร์แมต YYYY-MM-DD
+  
+  // 🌟 บังคับ recordDate ให้เป็นวันที่ 1 ของเดือนที่กำลังเลือกจดเสมอ ป้องกัน Database สับสน
+  const [recordDate, setRecordDate] = useState(`${selectedDate}-01`); 
+  
   const [meterType, setMeterType] = useState("water");
   const [activeFloor, setActiveFloor] = useState("1");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRoomForModal, setSelectedRoomForModal] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const cacheRef = useRef({});
+  const [rooms, setRooms] = useState([]);
+
+  // อัปเดต recordDate อัตโนมัติเมื่อมีการเปลี่ยนเดือนใน DatePicker
+  useEffect(() => {
+    setRecordDate(`${selectedDate}-01`);
+  }, [selectedDate]);
 
   // Export Excel (เฉพาะเดือนที่เลือก)
   const handleDownload = async () => {
@@ -173,51 +193,46 @@ const Meter = () => {
     }
   };
 
-  const [rooms, setRooms] = useState([]);
+  // 🌟 ฟังก์ชันดึงข้อมูล แยกออกมาเพื่อให้เรียกซ้ำตอนกด Save ได้
+  const fetchMeters = useCallback(async () => {
+    try {
+      const [year, month] = selectedDate.split("-").map(Number);
+      const data = await utilityMeterService.getUtilityMetersByMonth(
+        year,
+        month,
+      );
+
+      const mappedRooms = data.map((m) => ({
+        meterId: m.id ?? null,
+        roomId: m.roomId,
+        floor: String(m.floor),
+        roomNumber: m.roomNumber,
+        prevWater: m.prevWaterUnit,
+        prevElec: m.prevElectricityUnit,
+        currWater: m.waterUnit ?? "",
+        currElec: m.electricityUnit ?? "",
+        usedWater: m.waterUsed ?? 0,
+        usedElec: m.electricityUsed ?? 0,
+        changeWaterMeterStart: m.changeWaterMeterStart,
+        changeWaterMeterEnd: m.changeWaterMeterEnd,
+        changeElectricityMeterStart: m.changeElectricityMeterStart,
+        changeElectricityMeterEnd: m.changeElectricityMeterEnd,
+      }));
+
+      cacheRef.current[selectedDate] = mappedRooms;
+      setRooms(mappedRooms);
+    } catch (err) {
+      console.error("โหลดข้อมูลมิเตอร์ไม่สำเร็จ", err);
+    }
+  }, [selectedDate]);
 
   useEffect(() => {
     if (cacheRef.current[selectedDate]) {
       setRooms(cacheRef.current[selectedDate]);
       return;
     }
-    const fetchMeters = async () => {
-      try {
-        const [year, month] = selectedDate.split("-").map(Number);
-        const data = await utilityMeterService.getUtilityMetersByMonth(
-          year,
-          month,
-        );
-
-        const mappedRooms = data.map((m) => ({
-          meterId: m.id ?? null,
-
-          roomId: m.roomId,
-          floor: String(m.floor),
-          roomNumber: m.roomNumber,
-
-          prevWater: m.prevWaterUnit,
-          prevElec: m.prevElectricityUnit,
-
-          currWater: m.waterUnit ?? "",
-          currElec: m.electricityUnit ?? "",
-
-          usedWater: m.waterUsed ?? 0,
-          usedElec: m.electricityUsed ?? 0,
-
-          changeWaterMeterStart: m.changeWaterMeterStart,
-          changeWaterMeterEnd: m.changeWaterMeterEnd,
-          changeElectricityMeterStart: m.changeElectricityMeterStart,
-          changeElectricityMeterEnd: m.changeElectricityMeterEnd,
-        }));
-
-        cacheRef.current[selectedDate] = mappedRooms;
-        setRooms(mappedRooms);
-      } catch (err) {
-        console.error("โหลดข้อมูลมิเตอร์ไม่สำเร็จ", err);
-      }
-    };
     fetchMeters();
-  }, [selectedDate]);
+  }, [selectedDate, fetchMeters]);
 
   // --- Logic ---
   const floors = ["1", "2", "3", "4", "5"];
@@ -239,16 +254,7 @@ const Meter = () => {
     setIsModalOpen(true);
   };
 
-  // Helper แปลงตัวเลข (วางไว้นอก Component หรือใน Component ก็ได้)
-  const toSafeInt = (val) => {
-    if (val === "" || val == null) return null;
-    const num = Number(val);
-    if (isNaN(num)) return null;
-    if (num < 0) return 0;
-    return Math.round(num);
-  };
-
-  // ✅ ฟังก์ชัน Save ฉบับแก้ไข (เช็ค ID แม่นยำ + Log ละเอียด)
+  // ✅ ฟังก์ชัน Save Change Meter จาก Modal (เช็ค ID แม่นยำ + ดึงใหม่หลังเซฟ)
   const handleSaveChangeMeter = async (roomId, type, data) => {
     try {
       // 1. หาข้อมูลห้อง (แปลง ID เป็น String ทั้งคู่เพื่อความชัวร์)
@@ -258,32 +264,18 @@ const Meter = () => {
         return;
       }
 
-      // 2. เตรียม Payload
+      // 2. เตรียม Payload ให้สะอาดที่สุด
       const payload = {
         roomId: room.roomId,
         recordDate: recordDate,
         electricityUnit: toSafeInt(room.currElec),
         waterUnit: toSafeInt(room.currWater),
 
-        // ค่าใหม่จาก Modal
-        changeElectricityMeterStart:
-          type === "electricity"
-            ? toSafeInt(data.newMeterStart)
-            : toSafeInt(room.changeElectricityMeterStart),
-        changeElectricityMeterEnd:
-          type === "electricity"
-            ? toSafeInt(data.oldMeterEnd)
-            : toSafeInt(room.changeElectricityMeterEnd),
-
-        changeWaterMeterStart:
-          type === "water"
-            ? toSafeInt(data.newMeterStart)
-            : toSafeInt(room.changeWaterMeterStart),
-        changeWaterMeterEnd:
-          type === "water"
-            ? toSafeInt(data.oldMeterEnd)
-            : toSafeInt(room.changeWaterMeterEnd),
-
+        // ค่าใหม่จาก Modal ส่งให้ backend 
+        changeElectricityMeterStart: type === "electricity" ? toSafeInt(data.newMeterStart) : toSafeInt(room.changeElectricityMeterStart),
+        changeElectricityMeterEnd: type === "electricity" ? toSafeInt(data.oldMeterEnd) : toSafeInt(room.changeElectricityMeterEnd),
+        changeWaterMeterStart: type === "water" ? toSafeInt(data.newMeterStart) : toSafeInt(room.changeWaterMeterStart),
+        changeWaterMeterEnd: type === "water" ? toSafeInt(data.oldMeterEnd) : toSafeInt(room.changeWaterMeterEnd),
         note: "",
       };
 
@@ -292,16 +284,14 @@ const Meter = () => {
       // 3. ยิง API
       await utilityMeterService.bulkUpsertUtilityMeters([payload]);
 
-      // 4. อัปเดต State หน้าจอ (จุดสำคัญ)
+      // 4. อัปเดต State หน้าจอเบื้องต้นให้ UI ตอบสนองไว
       setRooms((prevRooms) => {
         const updatedRooms = prevRooms.map((r) => {
-          // ใช้ String() เทียบ ID เพื่อความชัวร์
           if (String(r.roomId) === String(roomId)) {
-            const newData =
-              type === "electricity"
+            const newData = type === "electricity"
                 ? {
                     ...r,
-                    changeElectricityMeterStart: data.newMeterStart, // เก็บค่าที่พิมพ์ลงไปเลย (ไม่ต้อง toSafeInt เพื่อให้แสดงผลตามที่พิมพ์)
+                    changeElectricityMeterStart: data.newMeterStart, 
                     changeElectricityMeterEnd: data.oldMeterEnd,
                   }
                 : {
@@ -314,7 +304,6 @@ const Meter = () => {
           return r;
         });
 
-        // อัปเดต Cache
         if (cacheRef.current) {
           cacheRef.current[selectedDate] = updatedRooms;
         }
@@ -323,12 +312,17 @@ const Meter = () => {
       });
 
       setIsModalOpen(false);
-      alert("บันทึกข้อมูลเรียบร้อย ✅");
+      alert("บันทึกการเปลี่ยนมิเตอร์เรียบร้อย ✅");
+      
+      // 🌟 ดึงข้อมูลใหม่จาก Database อีกรอบเพื่อความชัวร์ 100% ว่าเซฟติดแล้ว
+      await fetchMeters();
+
     } catch (err) {
-      alert("เกิดข้อผิดพลาดในการบันทึก");
+      alert("เกิดข้อผิดพลาดในการบันทึกการเปลี่ยนมิเตอร์");
     }
   };
 
+  // ✅ ฟังก์ชัน Save หลักหน้าจอจดมิเตอร์
   const handleMainSave = async () => {
     try {
       setIsSaving(true);
@@ -344,29 +338,33 @@ const Meter = () => {
           ].some((v) => v !== "" && v != null);
         })
         .map((r) => {
-          const payload = {
+          const p = {
             roomId: r.roomId,
-            recordDate,
-            electricityUnit:
-              r.currElec === "" ? null : toNumberOrNull(r.currElec),
-            waterUnit: r.currWater === "" ? null : toNumberOrNull(r.currWater),
-            changeElectricityMeterStart: r.changeElectricityMeterStart,
-            changeElectricityMeterEnd: r.changeElectricityMeterEnd,
-            changeWaterMeterStart: r.changeWaterMeterStart,
-            changeWaterMeterEnd: r.changeWaterMeterEnd,
+            recordDate: recordDate,
+            electricityUnit: toSafeInt(r.currElec),
+            waterUnit: toSafeInt(r.currWater),
+            // 🌟 แก้ไข: แปลงข้อมูลเปลี่ยนมิเตอร์ให้เป็นตัวเลขล้วนๆ ก่อนส่ง
+            changeElectricityMeterStart: toSafeInt(r.changeElectricityMeterStart),
+            changeElectricityMeterEnd: toSafeInt(r.changeElectricityMeterEnd),
+            changeWaterMeterStart: toSafeInt(r.changeWaterMeterStart),
+            changeWaterMeterEnd: toSafeInt(r.changeWaterMeterEnd),
             note: "",
           };
 
           if (r.meterId != null) {
-            payload.id = r.meterId;
+            p.id = r.meterId;
           }
 
-          return payload;
+          return p;
         });
 
       await utilityMeterService.bulkUpsertUtilityMeters(payload);
 
-      alert("บันทึกข้อมูลเรียบร้อย");
+      alert("บันทึกข้อมูลเลขมิเตอร์เรียบร้อย ✅");
+      
+      // 🌟 ดึงข้อมูลใหม่จาก Database เพื่ออัปเดตช่อง ยูนิตที่ใช้ (diff) ให้คำนวณใหม่
+      await fetchMeters();
+
     } catch (err) {
       console.error(err);
       alert("บันทึกข้อมูลไม่สำเร็จ");
@@ -381,14 +379,13 @@ const Meter = () => {
         จดมิเตอร์ {currentMonthLabel}
       </h1>
 
-      {/* --- Toolbar (ปรับใหม่) --- */}
+      {/* --- Toolbar --- */}
       <div className="flex flex-col items-center gap-6 mb-10">
         {/* Row 1: Month | Record Date | Download */}
         <div className="flex flex-col md:flex-row w-full max-w-4xl gap-4 items-end md:items-stretch">
           {/* 1. Month Picker (เลือกรอบบิล) */}
           <div className="flex-1 w-full">
             <div className="flex flex-col h-full">
-              {/* ใส่ Label หลอกเพื่อให้ความสูงเท่ากับ DateInput ที่มี Label จริง */}
               <label className="text-[13px] font-bold text-gray-500 mb-2 ml-1 block">
                 เลือกรอบบิล
               </label>
@@ -400,15 +397,13 @@ const Meter = () => {
             </div>
           </div>
 
-          {/* 2. Record Date (ย้ายมาตรงนี้) */}
+          {/* 2. Record Date */}
           <div className="flex-1 w-full">
             <DateInput
               label="วันที่จดมิเตอร์"
               name="recordDate"
               value={recordDate}
-              onChange={(e) => {
-                const newDate = e.target.value;
-              }}
+              onChange={(e) => setRecordDate(e.target.value)}
               className="w-full"
             />
           </div>
