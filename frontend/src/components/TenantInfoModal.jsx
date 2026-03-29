@@ -393,7 +393,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                 </>
               )}
 
-              <SectionHeader title="หมายเหตุ" icon={FileText} />
+              {/* <SectionHeader title="หมายเหตุ" icon={FileText} />
               <div className="col-span-1 md:col-span-2 mb-8">
                 {isEditMode ? (
                   <textarea
@@ -409,7 +409,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                     {cleanVal(formData.note) || "- ไม่มีบันทึกเพิ่มเติม -"}
                   </div>
                 )}
-              </div>
+              </div> */}
             </div>
           </div>
         </div>

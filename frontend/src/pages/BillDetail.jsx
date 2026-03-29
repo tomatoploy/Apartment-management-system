@@ -225,7 +225,7 @@ const BillDetail = ({
     if (!roomId) return;
     const fetchMeters = async () => {
       try {
-        const { data: meters } = await axios.get("http://localhost:5252/UtilityMeters");
+        const { data: meters } = await axios.get("https://apartment-management-system-zllm.onrender.com/UtilityMeters");
         const roomMeters = meters.filter(m => m.roomId === roomId).sort((a, b) => new Date(b.recordDate) - new Date(a.recordDate));
         if (roomMeters.length > 0) setLatestMeter({ electricityUnit: roomMeters[0].electricityUnit, waterUnit: roomMeters[0].waterUnit });
       } catch (e) { console.error("Meter fetch error", e); }
@@ -434,7 +434,7 @@ const BillDetail = ({
       const meterNote = `* อัปเดตมิเตอร์${parts.join("+")} จากหน้าออกบิล (เดือน ${toThaiMonth(selectedDate)})${checkoutSuffix}`;
 
       const meterPayload = [{ RoomId: roomId, RecordDate: today, ElectricityUnit: elec ? elec.newUnit : latestMeter.electricityUnit, WaterUnit: water ? water.newUnit : latestMeter.waterUnit, Note: meterNote }];
-      await axios.post("http://localhost:5252/UtilityMeters/bulk-upsert", meterPayload);
+      await axios.post("https://apartment-management-system-zllm.onrender.com/UtilityMeters/bulk-upsert", meterPayload);
       setLatestMeter(prev => ({ electricityUnit: elec ? elec.newUnit : prev.electricityUnit, waterUnit: water ? water.newUnit : prev.waterUnit }));
       setNewMeters({ electric: "", water: "" });
       alert(`คำนวณและบันทึกมิเตอร์${parts.join(" และ ")} เรียบร้อยแล้ว`);
