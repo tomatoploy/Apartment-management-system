@@ -95,15 +95,18 @@ const ViewBill = () => {
         
         setItems(billItems);
 
-        if (payment.contractId) {
+        // 🌟 แก้ไข: ดักจับทั้ง contractId และ ContractId (ตัวพิมพ์ใหญ่-เล็ก)
+        const cId = payment.contractId || payment.ContractId;
+        if (cId) {
           try {
-            const contract = await contractService.getContractById(payment.contractId);
+            const contract = await contractService.getContractById(cId);
             if (contract) {
-              setRoomNumber(contract.room?.number || contract.roomNumber || "-");
+              setRoomNumber(contract.room?.number || contract.Room?.Number || contract.roomNumber || "-");
+              
               const tId = contract.tenantId || contract.TenantId;
               if (tId) setTenantInfo(await tenantService.getTenant(tId));
             }
-          } catch (e) {}
+          } catch (e) { console.warn(e); }
         }
 
         try { 
@@ -111,10 +114,11 @@ const ViewBill = () => {
           if (apt) setApartmentInfo(apt); 
         } catch (e) {}
 
-        if (payment.adminId) {
+        const aId = payment.adminId || payment.AdminId;
+        if (aId) {
           try {
-            const adm = await adminService.getAdmin(payment.adminId);
-            if (adm) setAdminName(`${adm.firstName} ${adm.lastName}`);
+            const adm = await adminService.getAdmin(aId);
+            if (adm) setAdminName(`${adm.firstName || adm.FirstName} ${adm.lastName || adm.LastName}`);
           } catch (e) {}
         }
 
@@ -128,12 +132,22 @@ const ViewBill = () => {
     fetchBillData();
   }, [id]);
 
-  // 🌟 ฟังก์ชันตรวจสอบเบอร์โทรศัพท์
+  // 🌟 ฟังก์ชันตรวจสอบเบอร์โทรศัพท์ (อัปเดตให้ทนทานต่อพิมพ์ใหญ่พิมพ์เล็ก)
   const handleVerify = (e) => {
     e.preventDefault();
+    
     // ตัดเอาขีด หรือช่องว่างออกก่อนเทียบ (เผื่อลูกค้าพิมพ์ 086-123-4567)
     const cleanInput = phoneInput.replace(/\D/g, "");
-    const cleanTenantPhone = (tenantInfo?.phone || "").replace(/\D/g, "");
+    
+    // ดึงเบอร์จากฐานข้อมูล (รองรับทั้งคำว่า phone และ Phone)
+    const actualPhone = tenantInfo?.phone || tenantInfo?.Phone || "";
+    const cleanTenantPhone = actualPhone.replace(/\D/g, "");
+
+    // ถ้าไม่มีข้อมูลเบอร์ใน Database (เช่น แอดมินไม่ได้กรอกไว้)
+    if (!cleanTenantPhone) {
+      setVerifyError("ไม่พบข้อมูลเบอร์โทรในระบบ กรุณาติดต่อแอดมินเพื่ออัปเดตข้อมูลค่ะ");
+      return;
+    }
 
     if (cleanInput === cleanTenantPhone && cleanInput !== "") {
       setIsVerified(true);
@@ -207,10 +221,25 @@ const ViewBill = () => {
   // ─────────────────────────────────────────────────────────────
   const isPaid = paymentData.status?.toLowerCase() === "paid";
   const billTitle = isPaid ? "ใบเสร็จรับเงิน" : "ใบแจ้งยอดชำระเงิน";
-  const recordDate = new Date(paymentData.recordDate);
+  const recordDate = new Date(paymentData.recordDate || paymentData.RecordDate);
   const cycleMonthYear = `${String(recordDate.getMonth() + 1).padStart(2, '0')}/${recordDate.getFullYear()}`;
   const printDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
-  const totalAmount = paymentData.totalAmount || 0;
+  const totalAmount = paymentData.totalAmount || paymentData.TotalAmount || 0;
+
+  // ดึงค่าต่างๆ แบบเซฟๆ (รองรับพิมพ์เล็ก/พิมพ์ใหญ่)
+  const tenantTitle = tenantInfo?.title || tenantInfo?.Title || "";
+  const tenantFirstName = tenantInfo?.firstName || tenantInfo?.FirstName || "-";
+  const tenantLastName = tenantInfo?.lastName || tenantInfo?.LastName || "";
+  const tenantPhone = tenantInfo?.phone || tenantInfo?.Phone || "-";
+  const tenantAddress = tenantInfo?.address || tenantInfo?.Address || "-";
+
+  const aptName = apartmentInfo?.name || apartmentInfo?.Name || "หอพักนิตยวดี";
+  const aptAddress = apartmentInfo?.address || apartmentInfo?.Address || "63/246 ถนน ดาวดึงส์ อ.เมือง นครสวรรค์ 60000";
+  const aptPhone = apartmentInfo?.phone || apartmentInfo?.Phone || "0867439033";
+  const aptEmail = apartmentInfo?.email || apartmentInfo?.Email || "seniordorm.2025@gmail.com";
+  const aptBank = apartmentInfo?.bankName || apartmentInfo?.BankName || "ธนาคารกสิกรไทย สาขาถนนสวรรค์วิถี";
+  const aptBankAcc = apartmentInfo?.bankAccNo || apartmentInfo?.BankAccNo || "XXX-X-XXXXX-X";
+  const aptLine = apartmentInfo?.lineId || apartmentInfo?.LineId || "-";
 
   return (
     <div className="min-h-screen bg-gray-100 pb-10">
@@ -252,9 +281,9 @@ const ViewBill = () => {
             <div className="flex items-center gap-3 w-[50%]">
               <img src={logoImg} alt="Logo" className="w-10 h-10 object-contain grayscale opacity-90" onError={(e) => { e.target.style.display = 'none'; }} />
               <div className="leading-tight">
-                <h1 className="text-[16px] font-black">{apartmentInfo.name}</h1>
-                <p className="text-[9px] text-gray-700">{apartmentInfo.address}</p>
-                <p className="text-[9px] text-gray-700">โทร. {apartmentInfo.phone} | อีเมล. {apartmentInfo.email || "-"}</p>
+                <h1 className="text-[16px] font-black">{aptName}</h1>
+                <p className="text-[9px] text-gray-700">{aptAddress}</p>
+                <p className="text-[9px] text-gray-700">โทร. {aptPhone} | อีเมล. {aptEmail}</p>
               </div>
             </div>
 
@@ -276,11 +305,11 @@ const ViewBill = () => {
           <div className="text-[11px] text-gray-800 border-b border-gray-300 pb-1 mb-2">
             <div className="flex justify-between">
               <div>
-                <span className="font-bold">ลูกค้า:</span> {tenantInfo.title || ""}{tenantInfo.firstName || "-"} {tenantInfo.lastName || ""} 
-                <span className="font-bold ml-4">โทร:</span> {tenantInfo.phone || "-"}
+                <span className="font-bold">ลูกค้า:</span> {tenantTitle}{tenantFirstName} {tenantLastName} 
+                <span className="font-bold ml-4">โทร:</span> {tenantPhone}
               </div>
             </div>
-            <div className="mt-0.5"><span className="font-bold">ที่อยู่:</span> {tenantInfo.address || "-"}</div>
+            <div className="mt-0.5"><span className="font-bold">ที่อยู่:</span> {tenantAddress}</div>
           </div>
 
           <div className="w-full pb-4">
@@ -329,9 +358,9 @@ const ViewBill = () => {
             <div className="flex justify-between items-end mt-2 text-[9px]">
               <div className="w-[65%] border border-gray-200 rounded px-3 py-1.5 bg-gray-50 leading-tight">
                 <p className="font-bold text-black mb-1">ชำระเงินผ่านบัญชีธนาคาร</p>
-                <p>{apartmentInfo.bankName || "-"}</p>
-                <p className="font-black text-[13px] tracking-wider text-black">{apartmentInfo.bankAccNo || "-"}</p>
-                <p>ชื่อบัญชี: {apartmentInfo.name} | Line: {apartmentInfo.lineId || "-"}</p>
+                <p>{aptBank}</p>
+                <p className="font-black text-[13px] tracking-wider text-black">{aptBankAcc}</p>
+                <p>ชื่อบัญชี: {aptName} | Line: {aptLine}</p>
               </div>
               <div className="w-[30%] text-center pb-1">
                 <div className="border-b border-black border-dashed mb-1 w-full mx-auto"></div>
