@@ -47,7 +47,7 @@ const Login = () => {
           // 2. ตรวจสอบสิทธิ์การเข้าถึง (Permission) ว่ามีสิทธิ์ในหอพักใดๆ หรือไม่
           const permissionsRes = await permissionService.getPermissionsByAdmin(res.adminId);
           
-          // ดึง Array สิทธิ์ออกมา (รองรับรูปแบบ response ที่ต่างกัน)
+          // ดึง Array สิทธิ์ออกมา
           let permissions = [];
           if (Array.isArray(permissionsRes)) {
               permissions = permissionsRes;
@@ -57,24 +57,29 @@ const Login = () => {
               permissions = Array.isArray(permissionsRes.data) ? permissionsRes.data : permissionsRes.data.$values || [];
           }
 
-          // 🌟 3. ตรวจสอบความถูกต้อง: ถ้าสิทธิ์เป็น Array ว่าง แปลว่าไม่มีสิทธิ์!
+          // 3. ตรวจสอบความถูกต้อง: ถ้าสิทธิ์เป็น Array ว่าง แปลว่าไม่มีสิทธิ์!
           if (permissions.length === 0) {
             alert("บัญชีของคุณยังไม่ได้รับสิทธิ์เข้าใช้งานระบบหอพักนี้ กรุณาติดต่อผู้ดูแลระบบ");
             setIsLoading(false);
-            return; // ⛔️ หยุดการทำงานตรงนี้ ไม่ให้ไปต่อ!
+            return; 
           }
 
-          // 4. มีสิทธิ์ครบถ้วน -> เก็บ adminId ไว้ในเครื่องแล้วไปหน้า Dashboard
+          // 🌟 4. มีสิทธิ์ครบถ้วน -> เก็บข้อมูลลงเครื่องและสร้าง Token 🌟
           localStorage.setItem("adminId", res.adminId);
+          
+          // 👉 เพิ่มบรรทัดนี้: สร้างบัตรผ่าน (Token) ให้ Sidebar ยอมรับ
+          localStorage.setItem("token", res.token || "logged_in_success"); 
+
           console.log("Login success! Permissions found:", permissions);
-          navigate("/dashboard");
+          
+          // 👉 เพิ่ม { replace: true } เพื่อไม่ให้พอกดเข้า Dashboard แล้วกด Back กลับมาหน้า Login ได้อีก
+          navigate("/dashboard", { replace: true });
 
         } catch (permErr) {
-          // กรณี API ยิงไปเช็ค Permission แล้วคืนค่า Error (เช่น 404, 204)
           console.log("Permission check failed or empty:", permErr);
           alert("บัญชีของคุณยังไม่ได้รับสิทธิ์เข้าใช้งานระบบหอพักนี้ กรุณาติดต่อผู้ดูแลระบบ");
           setIsLoading(false);
-          return; // ⛔️ หยุดการทำงานตรงนี้ ไม่ให้ไปต่อ!
+          return; 
         }
       }
     } catch (err) {
@@ -126,16 +131,6 @@ const Login = () => {
               placeholder="รหัสผ่าน"
               disabled={isLoading}
             />
-          </div>
-
-          <div className="flex items-center justify-between px-1">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" className="w-4 h-4 accent-orange-400" disabled={isLoading} />
-              <span className="text-xs font-bold text-gray-500">จดจำการเข้าสู่ระบบ</span>
-            </label>
-            <a href="#" className="text-xs font-bold text-gray-500 hover:text-orange-500 transition-colors">
-              ลืมรหัสผ่าน ?
-            </a>
           </div>
 
           <div className="pt-4 space-y-3">

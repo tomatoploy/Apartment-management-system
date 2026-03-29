@@ -156,7 +156,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
             if (onItemClick) onItemClick(); 
             setShowLogoutConfirm(false);
             
-            // แก้ไข: เพิ่ม { replace: true } เพื่อไม่ให้กด Back กลับมาได้
+            // ลบ Token และข้อมูลแอดมินออกจากเครื่อง
+            localStorage.removeItem("token");
+            localStorage.removeItem("adminId"); 
+
+            // เด้งกลับไปหน้า Login และกันไม่ให้กด Back
             navigate("/login", { replace: true }); 
           }}
           title="ยืนยันการออกจากระบบ"
