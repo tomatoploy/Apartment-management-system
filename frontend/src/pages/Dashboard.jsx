@@ -479,11 +479,11 @@ const Dashboard = () => {
         <SectionHeader title={`ผังห้องพัก (${totalRooms} ห้อง)`} />
         <div className="flex flex-wrap gap-x-3 gap-y-2 mb-4 sm:mb-6 border-b border-gray-100 pb-3 sm:pb-4">
           {[
-            { id: 'l1', color: 'bg-[#10b981]', label: `มีผู้เช่า (${occupied})` },
-            { id: 'l2', color: 'bg-[#fb7185]', label: `ค้างชำระ (${allUnpaidPayments.filter((v,i,a)=>a.findIndex(t=>(t.roomId===v.roomId))===i).length})` },
-            { id: 'l3', color: 'bg-[#facc15]', label: `จอง (${reserved})` },
-            { id: 'l4', color: 'bg-white border-2 border-gray-200', label: `ว่าง (${available})` },
-            { id: 'l5', color: 'bg-[#4b5563]', label: `ซ่อม/ปิด (${maintenance})` },
+            { id: 'l1', color: 'bg-[#10b981]', label: 'มีผู้เช่า' },
+            { id: 'l2', color: 'bg-[#fb7185]', label: 'ค้างชำระ' },
+            { id: 'l3', color: 'bg-[#facc15]', label: 'จอง' },
+            { id: 'l4', color: 'bg-white border-2 border-gray-200', label: 'ว่าง' },
+            { id: 'l5', color: 'bg-[#4b5563]', label: 'ซ่อม/ปิด' },
           ].map(({ id, color, label }) => (
             <div key={id} className="flex items-center gap-1.5">
               <div className={`w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-sm sm:rounded-md ${color}`} />

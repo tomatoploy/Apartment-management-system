@@ -28,6 +28,7 @@ import AdminAccessSetting from "./pages/AdminAccessSetting";
 import liff from '@line/liff';
 import TenantDashboard from "./pages/TenantDashboard";
 import RoomContractHistory from './pages/RoomContractHistory';
+import ViewBill from './pages/ViewBill';
 
 // import RoomsFilter from "./pages/Rooms-filterModal";
 
@@ -64,6 +65,7 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/adminregister" element={<AdminRegister />} />
       <Route path="/buildingregister" element={<BuildingRegister />} />
+      <Route path="/view-bill/:id" element={<ViewBill />} />
 
       {/* หน้า private (มี Layout) */}
       <Route
