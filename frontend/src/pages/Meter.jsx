@@ -70,7 +70,7 @@ const Meter = () => {
   );
   
   // 🌟 บังคับ recordDate ให้เป็นวันที่ 1 ของเดือนที่กำลังเลือกจดเสมอ ป้องกัน Database สับสน
-  const [recordDate, setRecordDate] = useState(`${selectedDate}-01`); 
+  const [recordDate, setRecordDate] = useState(new Date().toLocaleDateString('en-CA'));
   
   const [meterType, setMeterType] = useState("water");
   const [activeFloor, setActiveFloor] = useState("1");
@@ -82,7 +82,9 @@ const Meter = () => {
 
   // อัปเดต recordDate อัตโนมัติเมื่อมีการเปลี่ยนเดือนใน DatePicker
   useEffect(() => {
-    setRecordDate(`${selectedDate}-01`);
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, "0");
+    setRecordDate(`${selectedDate}-${day}`);
   }, [selectedDate]);
 
   // Export Excel (เฉพาะเดือนที่เลือก)
