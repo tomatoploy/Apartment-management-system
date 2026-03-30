@@ -152,99 +152,90 @@ public class RequestsController : ControllerBase
                     .Include(c => c.Tenant)
                     .FirstOrDefaultAsync(c => c.RoomId == room.Id && c.Status == "Active");
 
-                if (contract != null && contract.Tenant != null && !string.IsNullOrEmpty(contract.Tenant.LineId))
+                // 🌟 แก้ไข: ตรวจสอบและดึงข้อมูลจาก Tenant.Note แทน LineId
+                if (contract != null && contract.Tenant != null && !string.IsNullOrEmpty(contract.Tenant.Note))
                 {
+                    // ดักจับค่า Null เผื่อกรณีแอดมินไม่ได้พิมพ์รายละเอียดมา
+                    string safeSubject = string.IsNullOrEmpty(p.Subject) ? "-" : p.Subject;
+                    string safeBody = string.IsNullOrEmpty(p.Body) ? "-" : p.Body;
+
                     // 1. เตรียม JSON ส่วนของ "ค่าใช้จ่าย" (จะเพิ่มเข้าไปในการ์ดก็ต่อเมื่อมีค่าใช้จ่ายจริง)
                     string costRowJson = "";
                     if (p.IsTenantCost == true && p.Cost > 0)
                     {
+                        // สังเกตเครื่องหมายจุลภาค (,) ข้างหน้า เพื่อใช้ต่อกับ Array ใน JSON ตัวหลัก
                         costRowJson = $$"""
                         ,{
                           "type": "box",
                           "layout": "horizontal",
+                          "margin": "md",
                           "contents": [
-                            { "type": "text", "text": "ค่าใช้จ่าย", "size": "sm", "color": "#e74c3c", "flex": 1, "weight": "bold" },
-                            { "type": "text", "text": "{{p.Cost}} บาท", "size": "sm", "color": "#e74c3c", "flex": 2, "weight": "bold" }
-                          ],
-                          "margin": "md"
+                            { "type": "text", "text": "ค่าใช้จ่าย", "size": "sm", "color": "#888888", "flex": 1 },
+                            { "type": "text", "text": "{{p.Cost?.ToString("N2")}} ฿", "size": "sm", "color": "#e74c3c", "align": "end", "flex": 2, "weight": "bold" }
+                          ]
                         }
                         """;
                     }
 
-                    // 2. ประกอบร่าง JSON การ์ดทั้งหมด (ใช้ธีมสีฟ้า #2980b9)
+                    // 2. ประกอบร่าง JSON การ์ดทั้งหมด (สไตล์ Minimal แบบไม่มี Header/Footer กวนใจ)
                     string flexCardJson = $$"""
                     {
                       "type": "bubble",
                       "size": "mega",
-                      "header": {
-                        "type": "box",
-                        "layout": "vertical",
-                        "contents": [
-                          {
-                            "type": "text",
-                            "text": "🛠️ ดำเนินการเสร็จสิ้น",
-                            "color": "#ffffff",
-                            "weight": "bold",
-                            "size": "lg"
-                          }
-                        ],
-                        "backgroundColor": "#2980b9"
-                      },
                       "body": {
                         "type": "box",
                         "layout": "vertical",
-                        "contents": [
-                          {
-                            "type": "box",
-                            "layout": "horizontal",
-                            "contents": [
-                              { "type": "text", "text": "ห้องพัก", "size": "sm", "color": "#8c8c8c", "flex": 1 },
-                              { "type": "text", "text": "{{p.RoomNumber}}", "size": "sm", "color": "#111111", "flex": 2, "weight": "bold" }
-                            ],
-                            "margin": "md"
-                          },
-                          {
-                            "type": "box",
-                            "layout": "horizontal",
-                            "contents": [
-                              { "type": "text", "text": "รายการ", "size": "sm", "color": "#8c8c8c", "flex": 1 },
-                              { "type": "text", "text": "{{p.Subject}}", "size": "sm", "color": "#111111", "flex": 2 }
-                            ],
-                            "margin": "md"
-                          },
-                          {
-                            "type": "box",
-                            "layout": "horizontal",
-                            "contents": [
-                              { "type": "text", "text": "รายละเอียด", "size": "sm", "color": "#8c8c8c", "flex": 1 },
-                              { "type": "text", "text": "{{p.Body}}", "size": "sm", "color": "#111111", "flex": 2, "wrap": true }
-                            ],
-                            "margin": "md"
-                          }
-                          {{costRowJson}}
-                        ]
-                      },
-                      "footer": {
-                        "type": "box",
-                        "layout": "vertical",
+                        "paddingAll": "10%",
                         "contents": [
                           {
                             "type": "text",
-                            "text": "ขอบคุณที่ใช้บริการค่ะ",
-                            "size": "xs",
-                            "color": "#b2b2b2",
-                            "align": "center"
+                            "text": "● แจ้งดำเนินการเสร็จสิ้น",
+                            "color": "#5fbc78",
+                            "weight": "bold",
+                            "size": "xs"
+                          },
+                          {
+                            "type": "box",
+                            "layout": "horizontal",
+                            "margin": "lg",
+                            "contents": [
+                              { "type": "text", "text": "ห้อง", "size": "xl", "color": "#111111", "weight": "bold" },
+                              { "type": "text", "text": "{{p.RoomNumber}}", "size": "xl", "color": "#111111", "align": "end", "weight": "bold" }
+                            ]
+                          },
+                          { "type": "separator", "margin": "xl", "color": "#f0f0f0" },
+                          {
+                            "type": "box",
+                            "layout": "vertical",
+                            "margin": "xl",
+                            "contents": [
+                              {
+                                "type": "box", "layout": "horizontal", "margin": "md",
+                                "contents": [
+                                  { "type": "text", "text": "รายการ", "size": "sm", "color": "#888888", "flex": 1 },
+                                  { "type": "text", "text": "{{safeSubject}}", "size": "sm", "color": "#111111", "align": "end", "flex": 2, "wrap": true }
+                                ]
+                              },
+                              {
+                                "type": "box", "layout": "horizontal", "margin": "md",
+                                "contents": [
+                                  { "type": "text", "text": "รายละเอียด", "size": "sm", "color": "#888888", "flex": 1 },
+                                  { "type": "text", "text": "{{safeBody}}", "size": "sm", "color": "#111111", "align": "end", "flex": 2, "wrap": true }
+                                ]
+                              }
+                              {{costRowJson}}
+                            ]
                           }
                         ]
                       }
                     }
                     """;
 
-                    // ข้อความแจ้งเตือน (AltText)
-                    string altText = $"อัปเดตสถานะ: รายการ {p.Subject} ดำเนินการเสร็จสิ้นแล้วค่ะ";
+                    // ข้อความแจ้งเตือน (AltText) ที่แสดงบน Notification มือถือ
+                    string altText = $"🛠️ อัปเดต: รายการ {safeSubject} ของห้อง {p.RoomNumber} ดำเนินการเสร็จสิ้นแล้วค่ะ";
 
-                    // เรียกใช้ฟังก์ชันส่งการ์ด
-                    await _lineService.SendFlexMessageAsync(contract.Tenant.LineId, altText, flexCardJson);
+                    // 🌟 ส่งข้อมูลโดยใช้ UID จาก contract.Tenant.Note
+                    await _lineService.SendFlexMessageAsync(contract.Tenant.Note, altText, flexCardJson);
                     _logger.LogInformation($"ส่ง LINE การ์ดแจ้งสถานะ finish ไปที่ห้อง {p.RoomNumber} สำเร็จ");
                 }
             }
@@ -259,7 +250,6 @@ public class RequestsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    // ... โค้ด Delete() เหมือนเดิม ...
     public async Task<IActionResult> Delete(uint id)
     {
         var request = await _db.Request.FindAsync(id);

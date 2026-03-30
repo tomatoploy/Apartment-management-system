@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text;
 using Dormitory.DormitoryModels;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging; // เพิ่มสำหรับเก็บ Log
 
 namespace Dormitory.Controllers
 {
@@ -12,14 +13,16 @@ namespace Dormitory.Controllers
     {
         private readonly DormitoryDbContext _context;
         private readonly HttpClient _httpClient;
+        private readonly ILogger<LineWebhookController> _logger; // เปลี่ยนมาใช้ Logger แทน Console
         
         // ดึง Token จาก Environment Variable ของ Render (ถ้าไม่มีจะใช้ค่าสำรอง)
         private readonly string _channelAccessToken = Environment.GetEnvironmentVariable("Line__ChannelAccessToken") ?? "YOUR_CHANNEL_ACCESS_TOKEN";
 
-        public LineWebhookController(DormitoryDbContext context, HttpClient httpClient)
+        public LineWebhookController(DormitoryDbContext context, HttpClient httpClient, ILogger<LineWebhookController> logger)
         {
             _context = context;
             _httpClient = httpClient;
+            _logger = logger;
         }
 
         [HttpPost]
@@ -45,14 +48,17 @@ namespace Dormitory.Controllers
                                 var text = ev.GetProperty("message").GetProperty("text").GetString()?.Trim() ?? "";
                                 var replyToken = ev.GetProperty("replyToken").GetString() ?? "";
                                 
-                                // 🎯 นี่คือเป้าหมายหลักของเรา! ดึง UID ของคนที่ทักมา
+                                // 🎯 ดึง UID ของคนที่ทักมา
                                 var userId = ev.GetProperty("source").GetProperty("userId").GetString() ?? ""; 
 
                                 // 2. ดักจับคีย์เวิร์ดคำว่า "ผูกบัญชี"
                                 if (text.StartsWith("ผูกบัญชี"))
                                 {
-                                    // ตัดคำว่า "ผูกบัญชี" ออก เพื่อเอาแค่เบอร์โทร (เช่น "ผูกบัญชี 0891234567" -> "0891234567")
-                                    var phone = text.Replace("ผูกบัญชี", "").Trim();
+                                    // 🌟 ทำความสะอาดข้อมูล: ลบคำว่า "ผูกบัญชี", ลบขีด (-), ลบช่องว่างออก ให้เหลือแค่ตัวเลข
+                                    var phone = text.Replace("ผูกบัญชี", "")
+                                                    .Replace("-", "")
+                                                    .Replace(" ", "")
+                                                    .Trim();
                                     
                                     // เรียกฟังก์ชันไปบันทึกลง Database
                                     await HandleLinkAccount(userId, phone, replyToken);
@@ -67,7 +73,7 @@ namespace Dormitory.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Webhook Error: {ex.Message}");
+                _logger.LogError($"Webhook Error: {ex.Message}");
                 return StatusCode(500);
             }
         }
@@ -77,22 +83,36 @@ namespace Dormitory.Controllers
         {
             string replyMessage;
 
-            // 3. ค้นหาลูกบ้านจากเบอร์โทรที่พิมพ์เข้ามา (ใช้ _context.Tenant ตามชื่อตารางใน DbContext ของพลอย)
+            // 3. ค้นหาลูกบ้านจากเบอร์โทรที่พิมพ์เข้ามา
             var tenant = await _context.Tenant.FirstOrDefaultAsync(t => t.Phone == phone);
 
             if (tenant != null)
             {
-                // 🌟 4. ถ้าเจอตัว ให้เอา UID ไปใส่ในคอลัมน์ Note (แทน LineId) 🌟
+                // 🌟 4. ถ้าเจอตัว ให้เอา UID ไปใส่ในคอลัมน์ Note (แทน LineId)
                 tenant.Note = userId;
                 await _context.SaveChangesAsync();
 
-                // ข้อความตอบกลับเมื่อสำเร็จ
-                replyMessage = $"ผูกบัญชีสำเร็จเรียบร้อยค่ะ!\nสวัสดีคุณ {tenant.FirstName} {tenant.LastName}\n\nต่อไปนี้ระบบจะส่งการแจ้งเตือนบิลค่าเช่ามาที่นี่นะคะ";
+                // ข้อความตอบกลับเมื่อสำเร็จ (จัดหน้าชิดขอบซ้ายเพื่อให้แสดงผลใน LINE สวยงาม)
+                replyMessage = $"""
+✨ ผูกบัญชีเรียบร้อยแล้ว
+
+สวัสดีคุณ {tenant.FirstName} {tenant.LastName}
+ระบบได้เชื่อมต่อบัญชี LINE ของท่านเข้ากับฐานข้อมูลหอพักแล้วค่ะ
+
+ท่านจะได้รับการแจ้งเตือนบิลค่าเช่า และข่าวสารสำคัญผ่านช่องทางนี้ตั้งแต่นี้เป็นต้นไปค่ะ 🙏
+""";
             }
             else
             {
                 // ข้อความตอบกลับเมื่อหาเบอร์ไม่เจอ
-                replyMessage = "❌ ไม่พบเบอร์โทรนี้ในระบบ\nกรุณาตรวจสอบเบอร์โทรที่ลงทะเบียนไว้กับทางหอพัก หรือพิมพ์ 'ผูกบัญชี ตามด้วยเบอร์โทร' อีกครั้งค่ะ (เช่น ผูกบัญชี 08XXXXXXXX)";
+                replyMessage = $"""
+⚠️ ขออภัยค่ะ ระบบไม่พบข้อมูลเบอร์โทรศัพท์นี้
+
+ไม่พบเบอร์ {phone} ในฐานข้อมูลผู้เช่าค่ะ
+รบกวนตรวจสอบเบอร์โทรศัพท์ที่ระบุในสัญญาเช่า หรือพิมพ์ 'ผูกบัญชี ตามด้วยเบอร์โทร' อีกครั้งนะคะ
+
+หากข้อมูลถูกต้องแต่ยังพบปัญหา กรุณาติดต่อเจ้าหน้าที่ดูแลหอพักค่ะ
+""";
             }
 
             // 5. ส่งข้อความตอบกลับไปหาลูกบ้าน

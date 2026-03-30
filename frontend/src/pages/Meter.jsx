@@ -202,7 +202,23 @@ const Meter = () => {
         month,
       );
 
-      const mappedRooms = data.map((m) => ({
+      // --- 🛠️ ส่วนที่เพิ่มใหม่: กรองเอาเฉพาะ ID สูงสุด (ล่าสุด) ของแต่ละห้อง ---
+      const latestDataMap = new Map();
+      
+      data.forEach((item) => {
+        const existing = latestDataMap.get(item.roomId);
+        // ถ้ายังไม่มีห้องนี้ใน Map หรือ ถ้ามีแล้วแต่ ID ของรอบนี้สูงกว่า (ใหม่กว่า) ให้แทนที่
+        if (!existing || (item.id != null && existing.id != null && item.id > existing.id)) {
+          latestDataMap.set(item.roomId, item);
+        }
+      });
+
+      // แปลง Map กลับเป็น Array
+      const latestData = Array.from(latestDataMap.values());
+      // -----------------------------------------------------------------
+
+      // ใช้ latestData แทน data ในการ map
+      const mappedRooms = latestData.map((m) => ({
         meterId: m.id ?? null,
         roomId: m.roomId,
         floor: String(m.floor),

@@ -275,9 +275,7 @@ public class UtilityMetersController : ControllerBase
                 .OrderByDescending(m => m.Id)
                 .FirstOrDefaultAsync();
 
-            bool isLocked = existing != null && 
-                            !string.IsNullOrEmpty(existing.Note) && 
-                            existing.Note.Trim().StartsWith("*");
+            bool isLocked = existing != null && !string.IsNullOrEmpty(existing.Note) && existing.Note.Trim().StartsWith("*");
 
             if (existing == null || isLocked)
             {
