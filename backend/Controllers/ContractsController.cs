@@ -21,6 +21,9 @@ public class ContractsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<Contract>> GetId(uint id)
     {
+        // ตรวจสอบวันหมดอายุก่อนดึงข้อมูล
+        await CheckAndUpdateExpiredContracts();
+
         var contract = await _db.Contract.FindAsync(id);
         if (contract == null)
             return NotFound($"Contract id {id} is not found.");
@@ -30,6 +33,9 @@ public class ContractsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Contract>>> GetAll()
     {
+        // ✅ เพิ่มการตรวจเช็ควันหมดอายุทุกครั้งที่มีการเรียกดูรายการทั้งหมด
+        await CheckAndUpdateExpiredContracts();
+
         var contracts = await _db.Contract.ToListAsync();
         if (!contracts.Any()) return NoContent();
         return Ok(contracts);
@@ -82,7 +88,6 @@ public class ContractsController : ControllerBase
         using var transaction = await _db.Database.BeginTransactionAsync();
         try
         {
-            // เก็บ RoomId เดิมไว้เผื่อกรณีมีการเปลี่ยนห้องในสัญญา
             var oldRoomId = contract.RoomId;
 
             contract.RoomId = dto.RoomId;
@@ -96,10 +101,8 @@ public class ContractsController : ControllerBase
             contract.InitialWaterUnit = dto.InitialWaterUnit;
             contract.Note = dto.Note;
 
-            // 1. อัปเดตสถานะห้องปัจจุบัน (ตาม Status ใหม่)
             await UpdateRoomStatus(dto.RoomId, dto.Status);
 
-            // 2. ถ้ามีการเปลี่ยน RoomId ในสัญญา ต้องคืนค่าห้องเก่าให้เป็นว่าง (available)
             if (oldRoomId != dto.RoomId)
             {
                 await UpdateRoomStatus(oldRoomId, "available");
@@ -127,7 +130,6 @@ public class ContractsController : ControllerBase
         using var transaction = await _db.Database.BeginTransactionAsync();
         try
         {
-            // เมื่อลบสัญญา ให้คืนสถานะห้องเป็นว่าง
             await UpdateRoomStatus(contract.RoomId, "available");
 
             _db.Contract.Remove(contract);
@@ -144,6 +146,27 @@ public class ContractsController : ControllerBase
     }
 
     // --- Private Helper Methods ---
+
+    // ✅ ฟังก์ชันใหม่: ตรวจสอบสัญญาที่ 'Active' แต่เลยวันที่ 'EndDate' แล้ว ให้เปลี่ยนเป็น 'Expired'
+    private async Task CheckAndUpdateExpiredContracts()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+
+        // หาเฉพาะสัญญาที่ยังเป็น Active แต่หมดเวลาแล้ว
+        var expiredContracts = await _db.Contract
+            .Where(c => c.Status == "Active" && c.EndDate < today)
+            .ToListAsync();
+
+        if (expiredContracts.Any())
+        {
+            foreach (var contract in expiredContracts)
+            {
+                contract.Status = "Expired";
+                // หมายเหตุ: ไม่ต้องอัปเดตสถานะห้อง เพราะ 'Expired' ใน MapContractStatusToRoomStatus คือ 'occupied' อยู่แล้ว
+            }
+            await _db.SaveChangesAsync();
+        }
+    }
 
     private async Task UpdateRoomStatus(uint roomId, string contractStatus)
     {
@@ -162,7 +185,7 @@ public class ContractsController : ControllerBase
         {
             "reserved"   => "reserved",
             "active"     => "occupied",
-            "expired"    => "occupied",  // สัญญาหมดอายุ แต่ถือว่ายังมีคนอยู่ (ตามโจทย์)
+            "expired"    => "occupied",  // สัญญาหมดอายุ แต่ถือว่ายังมีคนอยู่
             "terminated" => "available", // สิ้นสุดสัญญา/ย้ายออก
             "cancle"     => "available", // ยกเลิกสัญญา
             "cancel"     => "available",
