@@ -500,18 +500,18 @@ public class PaymentsController : ControllerBase
 
         if (payment == null) return NotFound(new { message = "ไม่พบบิลนี้ในระบบ" });
         
-        // 🌟 1. เปลี่ยนการตรวจ LineId เป็น Note แทน (ตามที่เปลี่ยน Database) 🌟
+        // 🌟 1. เปลี่ยนการตรวจ LineId เป็น Note แทน
         if (string.IsNullOrEmpty(payment.Contract?.Tenant?.Note))
             return BadRequest(new { message = $"ห้อง {payment.Contract?.Room?.Number} ยังไม่ได้ผูก LINE" });
 
         var roomNumber = payment.Contract.Room?.Number ?? "-";
         var monthYear = payment.RecordDate.ToString("MM/yyyy");
 
-        // 🟢 1. เช็คสถานะบิลเพื่อเปลี่ยนหัวการ์ดและสี
+        // 🟢 1. เช็คสถานะบิล (สไตล์ Minimal จะใช้สีตัวอักษรแทนสีพื้นหลัง)
         bool isPaid = payment.Status?.ToLower() == "paid";
-        string headerText = isPaid ? "✅ ใบเสร็จรับเงิน" : "🧾 ใบแจ้งยอดชำระเงิน";
-        string headerBgColor = isPaid ? "#27ae60" : "#f39c12"; // สีเขียว = จ่ายแล้ว, สีส้ม = ยังไม่จ่าย
-        string footerText = isPaid ? "ได้รับชำระเงินเรียบร้อยแล้ว ขอบคุณค่ะ" : "กรุณาชำระเงินภายในวันที่กำหนด";
+        string headerText = isPaid ? "ใบเสร็จรับเงิน" : "ใบแจ้งยอดชำระเงิน";
+        string statusColor = isPaid ? "#27ae60" : "#f39c12"; // สีเขียว = จ่ายแล้ว, สีส้ม = ยังไม่จ่าย
+        string footerText = isPaid ? "ได้รับชำระเงินเรียบร้อย ขอบคุณค่ะ" : "กรุณาชำระเงินภายในวันที่กำหนด";
         string altTextStatus = isPaid ? "ใบเสร็จรับเงิน" : "ใบแจ้งยอดชำระเงิน";
 
         // 2. เตรียมรายการค่าใช้จ่าย
@@ -520,15 +520,15 @@ public class PaymentsController : ControllerBase
         {
             if (amount.HasValue && amount.Value > 0)
             {
-                string color = isDiscount ? "#27ae60" : "#555555";
+                string color = isDiscount ? "#27ae60" : "#888888"; // สีเทาละมุนๆ
                 string sign = isDiscount ? "-" : "";
                 rows.Add($$"""
                 {
-                  "type": "box", "layout": "horizontal", "margin": "sm",
-                  "contents": [
-                    { "type": "text", "text": "{{title}}", "size": "sm", "color": "#555555", "flex": 2 },
-                    { "type": "text", "text": "{{sign}}{{amount.Value:N2}} ฿", "size": "sm", "color": "{{color}}", "align": "end", "weight": "bold", "flex": 1 }
-                  ]
+                "type": "box", "layout": "horizontal", "margin": "md",
+                "contents": [
+                    { "type": "text", "text": "{{title}}", "size": "sm", "color": "#888888", "flex": 2 },
+                    { "type": "text", "text": "{{sign}}{{amount.Value:N2}} ฿", "size": "sm", "color": "{{color}}", "align": "end", "weight": "regular", "flex": 1 }
+                ]
                 }
                 """);
             }
@@ -545,70 +545,91 @@ public class PaymentsController : ControllerBase
 
         string itemsJson = string.Join(",", rows);
 
-        // 🌟 2. แก้ URL หน้าบ้าน ไม่ให้มี Slash '/' ซ้อนท้าย 🌟
+        // 🌟 2. URL หน้าบ้าน
         string frontendBaseUrl = "https://apartment-management-system-webapp.onrender.com";
         string billLink = $"{frontendBaseUrl}/view-bill/{payment.Id}"; 
 
-        // 4. ประกอบร่าง Flex Message (ใส่ตัวแปรสีและ Header ที่เช็คไว้)
+        // 4. ประกอบร่าง Flex Message สไตล์ Minimal
         string flexCardJson = $$"""
         {
-          "type": "bubble",
-          "size": "mega",
-          "header": {
+        "type": "bubble",
+        "size": "mega",
+        "body": {
             "type": "box",
             "layout": "vertical",
+            "paddingAll": "10%",
             "contents": [
-              { "type": "text", "text": "{{headerText}}", "color": "#ffffff", "weight": "bold", "size": "xl" },
-              { "type": "text", "text": "รอบบิล: {{monthYear}}", "color": "#ffffffcc", "size": "sm", "margin": "sm" }
-            ],
-            "backgroundColor": "{{headerBgColor}}",
-            "paddingAll": "20px"
-          },
-          "body": {
-            "type": "box",
-            "layout": "vertical",
-            "contents": [
-              {
-                "type": "box", "layout": "horizontal",
+            {
+                "type": "text",
+                "text": "● {{headerText}}",
+                "color": "{{statusColor}}",
+                "weight": "bold",
+                "size": "xs"
+            },
+            {
+                "type": "box",
+                "layout": "horizontal",
+                "margin": "lg",
                 "contents": [
-                  { "type": "text", "text": "ห้องพัก", "size": "md", "color": "#8c8c8c" },
-                  { "type": "text", "text": "{{roomNumber}}", "size": "lg", "color": "#111111", "align": "end", "weight": "bold" }
+                { "type": "text", "text": "ห้อง", "size": "xl", "color": "#111111", "weight": "bold" },
+                { "type": "text", "text": "{{roomNumber}}", "size": "xl", "color": "{{statusColor}}", "align": "end", "weight": "bold" }
                 ]
-              },
-              { "type": "separator", "margin": "lg", "color": "#ebebeb" },
-              {
-                "type": "box", "layout": "vertical", "margin": "lg",
+            },
+            {
+                "type": "text",
+                "text": "รอบบิล: {{monthYear}}",
+                "color": "#aaaaaa",
+                "size": "xs",
+                "margin": "xs"
+            },
+            { "type": "separator", "margin": "xl", "color": "#f0f0f0" },
+            {
+                "type": "box",
+                "layout": "vertical",
+                "margin": "xl",
                 "contents": [
-                  {{itemsJson}}
+                {{itemsJson}}
                 ]
-              },
-              { "type": "separator", "margin": "lg", "color": "#ebebeb" },
-              {
-                "type": "box", "layout": "horizontal", "margin": "lg",
+            },
+            { "type": "separator", "margin": "xl", "color": "#f0f0f0" },
+            {
+                "type": "box",
+                "layout": "horizontal",
+                "margin": "xl",
                 "contents": [
-                  { "type": "text", "text": "ยอดสุทธิ", "size": "md", "color": "#111111", "weight": "bold" },
-                  { "type": "text", "text": "{{payment.TotalAmount?.ToString("N2")}} ฿", "size": "xl", "color": "#e74c3c", "align": "end", "weight": "bold" }
+                { "type": "text", "text": "ยอดสุทธิ", "size": "sm", "color": "#111111" },
+                { "type": "text", "text": "{{payment.TotalAmount?.ToString("N2")}} ฿", "size": "lg", "color": "#111111", "align": "end", "weight": "bold" }
                 ]
-              }
+            }
             ]
-          },
-          "footer": {
-            "type": "box", "layout": "vertical",
-            "spacing": "sm",
+        },
+        "footer": {
+            "type": "box",
+            "layout": "vertical",
+            "paddingAll": "10%",
+            "paddingTop": "0px",
             "contents": [
-              {
+            {
                 "type": "button",
-                "style": "primary",
-                "color": "{{headerBgColor}}",
+                "style": "secondary",
+                "color": "#f4f4f4",
+                "height": "sm",
                 "action": {
-                  "type": "uri",
-                  "label": "📄 ดูรายละเอียด / ดาวน์โหลด",
-                  "uri": "{{billLink}}"
+                "type": "uri",
+                "label": "ดูรายละเอียด",
+                "uri": "{{billLink}}"
                 }
-              },
-              { "type": "text", "text": "{{footerText}}", "size": "xs", "color": "#b2b2b2", "align": "center", "margin": "md" }
+            },
+            {
+                "type": "text",
+                "text": "{{footerText}}",
+                "size": "xxs",
+                "color": "#cccccc",
+                "align": "center",
+                "margin": "lg"
+            }
             ]
-          }
+        }
         }
         """;
 
@@ -616,7 +637,7 @@ public class PaymentsController : ControllerBase
         {
             string altText = $"{altTextStatus} ห้อง {roomNumber} ยอดสุทธิ {payment.TotalAmount?.ToString("N2")} บาท";
             
-            // 🌟 3. ส่งไปหา payment.Contract.Tenant.Note แทน LineId 🌟
+            // 🌟 3. ส่งไปหา payment.Contract.Tenant.Note
             await _lineService.SendFlexMessageAsync(payment.Contract.Tenant.Note, altText, flexCardJson);
             
             return Ok(new { message = "ส่ง LINE สำเร็จ" });
