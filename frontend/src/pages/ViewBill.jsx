@@ -101,7 +101,19 @@ const ViewBill = () => {
           try {
             const contract = await contractService.getContract(cId);
             if (contract) {
-              setRoomNumber(contract.room?.number || contract.Room?.Number || contract.roomNumber || "-");
+              console.log("Contract Data:", contract);
+
+              // 🔍 2. ดึงเลขห้องแบบดักทุกทาง (Room.Number, Room.number, room.Number, room.number)
+              const roomNum = 
+                contract.room?.Number || 
+                contract.Room?.Number || 
+                contract.room?.number || 
+                contract.Room?.number || 
+                contract.roomNumber || 
+                contract.RoomNumber || 
+                "-";
+
+              setRoomNumber(roomNum);
               
               const tId = contract.tenantId || contract.TenantId;
               if (tId) setTenantInfo(await tenantService.getTenant(tId));
