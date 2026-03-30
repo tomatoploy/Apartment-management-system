@@ -69,8 +69,13 @@ const Meter = () => {
     new Date().toISOString().slice(0, 7),
   );
   
-  // 🌟 บังคับ recordDate ให้เป็นวันที่ 1 ของเดือนที่กำลังเลือกจดเสมอ ป้องกัน Database สับสน
-  const [recordDate, setRecordDate] = useState(new Date().toLocaleDateString('en-CA'));
+  const [recordDate, setRecordDate] = useState(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`; // จะได้ "2026-03-31" ตามวันที่ปัจจุบัน
+  });
   
   const [meterType, setMeterType] = useState("water");
   const [activeFloor, setActiveFloor] = useState("1");
@@ -81,11 +86,11 @@ const Meter = () => {
   const [rooms, setRooms] = useState([]);
 
   // อัปเดต recordDate อัตโนมัติเมื่อมีการเปลี่ยนเดือนใน DatePicker
-  useEffect(() => {
-    const today = new Date();
-    const day = String(today.getDate()).padStart(2, "0");
-    setRecordDate(`${selectedDate}-${day}`);
-  }, [selectedDate]);
+  // useEffect(() => {
+  //   const today = new Date();
+  //   const day = String(today.getDate()).padStart(2, "0");
+  //   setRecordDate(`${selectedDate}-${day}`);
+  // }, [selectedDate]);
 
   // Export Excel (เฉพาะเดือนที่เลือก)
   const handleDownload = async () => {
