@@ -194,7 +194,7 @@ const ViewBill = () => {
         </div>
         <h2 className="text-xl font-black text-gray-800 mb-2">ยืนยันตัวตน</h2>
         <p className="text-sm text-gray-500 mb-6 font-bold">
-          กรุณากรอกเบอร์โทรศัพท์ที่ลงทะเบียนไว้กับทางหอพัก เพื่อดูเอกสารห้อง {roomNumber}
+          กรุณากรอกเบอร์โทรศัพท์ที่ลงทะเบียนไว้กับทางหอพัก
         </p>
 
         <form onSubmit={handleVerify} className="flex flex-col gap-4">
@@ -260,9 +260,30 @@ const ViewBill = () => {
       <style>{`
         @media print {
           @page { size: A4 portrait; margin: 0 !important; }
-          body { background: white !important; margin: 0 !important; padding: 0 !important; }
+          body, html { 
+            background: white !important; 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            height: 100%; 
+            overflow: hidden !important;
+          }
           .print-hide { display: none !important; }
-          .receipt-paper { box-shadow: none !important; border: none !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; }
+          
+          /* ✨ ปิดความสูงหน้าจอและ Padding ด้านล่างตอนสั่งพิมพ์ */
+          .min-h-screen { 
+            min-height: auto !important; 
+            padding-bottom: 0 !important; 
+          }
+          
+          .receipt-paper { 
+            box-shadow: none !important; 
+            border: none !important; 
+            margin: 0 !important; 
+            width: 100% !important; 
+            max-width: 100% !important; 
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+          }
         }
       `}</style>
 

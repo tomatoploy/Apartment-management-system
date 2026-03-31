@@ -183,19 +183,28 @@ const BillMonthlyPrintTemplate = ({
     <>
       <style>{`
         @media print {
-          @page { size: A4 portrait; margin: 0 !important; }
-          body { margin: 0 !important; padding: 0 !important; display: flex !important; justify-content: center !important; }
+          @page { 
+            size: A4 portrait; 
+            margin: 0 !important; 
+          }
+          body, html { 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            background: white !important; 
+          }
+          .no-blank-page {
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+          }
         }
       `}</style>
 
-      <div className="hidden print:flex flex-col w-[210mm] h-[290mm] bg-white mx-auto relative overflow-hidden box-border border-x border-gray-100">
+      <div className="hidden print:flex flex-col w-[210mm] h-[290mm] bg-white mx-auto relative overflow-hidden box-border border-x border-gray-100 no-blank-page">
         <div className="flex-none h-[144mm]">
-           {/* ส่งผ่าน props billTitle */}
            <ReceiptHalf isCopy={false} items={items} roomNumber={roomNumber} apt={apt} cst={cst} ctc={ctc} adminName={adminName} total={total} billTitle={billTitle} />
         </div>
         <div className="flex-none border-b border-dashed border-gray-400 w-full h-0"></div>
         <div className="flex-none h-[144mm]">
-           {/* ส่งผ่าน props billTitle */}
            <ReceiptHalf isCopy={true} items={items} roomNumber={roomNumber} apt={apt} cst={cst} ctc={ctc} adminName={adminName} total={total} billTitle={billTitle} />
         </div>
       </div>

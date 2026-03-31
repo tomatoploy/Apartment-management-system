@@ -15,14 +15,16 @@ const BillSummaryPrintTemplate = ({ rooms = [], selectedDate = "" }) => {
     <>
       <style>{`
         @media print {
-          @page { 
-            size: A4 portrait; 
-            margin: 0 !important; /* ลบขอบขาวของเบราว์เซอร์ เพื่อใช้ Padding ของเราเอง */
-          }
-          body { 
+          @page { size: A4 portrait; margin: 0 !important; }
+          body, html { 
             margin: 0 !important; 
             padding: 0 !important; 
-            background: white; 
+            background: white !important; 
+          }
+          /* ✨ สั่งให้ไม่ต้องบังคับขึ้นหน้าใหม่ตอนจบ div นี้ */
+          .no-blank-page {
+            page-break-after: avoid !important;
+            break-after: avoid !important;
           }
         }
       `}</style>

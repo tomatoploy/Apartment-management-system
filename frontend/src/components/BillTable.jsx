@@ -14,7 +14,6 @@ const BillTable = ({
 }) => {
   return (
     <>
-      {/* แสดงเฉพาะ Table */}
       <div className="overflow-x-auto rounded-3xl border border-gray-300 mb-8 max-w-4xl mx-auto ">
         <table className="w-full table-fixed">
           <thead className="bg-gray-200 text-gray-600">
@@ -32,7 +31,6 @@ const BillTable = ({
                   {idx + 1}
                 </td>
 
-                {/* รายการ: ใช้คลาส break-words เพื่อกันข้อความยาวเกินจนดันตารางทะลุ */}
                 <td className="px-2 md:px-4 py-4">
                   {editingId === item.id ? (
                     <textarea
@@ -45,7 +43,17 @@ const BillTable = ({
                     />
                   ) : (
                     <div className="whitespace-pre-wrap break-words text-gray-700 text-sm md:text-base leading-snug">
-                      {getItemLabel(item, selectedDate)}
+                      <span className="font-bold">
+                        {/* ดึงแค่ชื่อรายการหลักมาแสดง ไม่ให้ซ้ำซ้อนกับ detail */}
+                        {getItemLabel(item, selectedDate).replace(/\(มิเตอร์:.*\)/, "")} 
+                      </span>
+                      
+                      {/* 🌟 แสดงรายละเอียดการคำนวณมิเตอร์ค่าน้ำ-ไฟ */}
+                      {item.detail && (
+                        <div className="text-[12px] md:text-sm text-gray-500 mt-1">
+                           {item.detail}
+                        </div>
+                      )}
                     </div>
                   )}
                 </td>
@@ -54,18 +62,17 @@ const BillTable = ({
                   {editingId === item.id ? (
                     <input
                       type="number"
-                      value={Math.abs(form.amount)} // ตอนแก้ให้แสดงเป็นค่าบวกเสมอ
+                      value={Math.abs(form.amount)}
                       onChange={(e) => {
                         const v = Number(e.target.value);
                         setForm({
                           ...form,
-                          amount: item.type === "discount" ? -Math.abs(v) : Math.abs(v), // บังคับส่วนลดติดลบเสมอ
+                          amount: item.type === "discount" ? -Math.abs(v) : Math.abs(v),
                         });
                       }}
                       className="w-full border border-gray-200 rounded-xl px-2 py-2 outline-none text-right text-sm focus:outline-none focus:border-[#f3a638] transition-all"
                     />
                   ) : (
-                    // ✨ Logic ใส่สี: ส่วนลด (เขียว), ค่าปรับ/เพิ่มเติม (แดง), ปกติ (เทา/ดำ)
                     <span
                       className={`font-bold text-sm md:text-base ${
                         item.type === "discount"
@@ -89,7 +96,7 @@ const BillTable = ({
                     {editingId === item.id ? (
                       <button
                         onClick={() => saveEdit(item.id)}
-                        className="md:w-auto px-2 py-1 md:px-4 md:py-2 bg-[#D5F5E3] text-[#1D8348] hover:bg-[#abebc6] rounded-xl"
+                        className="md:w-auto px-2 py-1 md:px-4 md:py-2 bg-[#D5F5E3] text-[#1D8348] hover:bg-[#abebc6] rounded-xl font-bold"
                       >
                         บันทึก
                       </button>
@@ -114,7 +121,6 @@ const BillTable = ({
               </tr>
             ))}
             
-            {/* ส่วนสรุปยอดรวม */}
             <tr className="bg-gray-100 border-t border-gray-300">
               <td className="hidden md:table-cell p-4"></td>
               <td className="p-4 text-right font-bold text-gray-700">

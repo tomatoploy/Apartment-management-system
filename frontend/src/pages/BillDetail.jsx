@@ -231,9 +231,10 @@ const BillDetail = ({
     } catch (err) { console.error(err); } finally { setIsLoadingConst(false); }
   }, []);
 
-  const loadBillData = useCallback(async () => {
-    if (mode === "checkout" || initialData?.length) return;
-    setIsLoading(true);
+const loadBillData = useCallback(async () => {
+    // 🛑 1. ลบ if (mode === "checkout"...) บรรทัดนี้ทิ้งไป เพื่อให้โหลดมิเตอร์เสมอ
+
+    if (mode !== "checkout") setIsLoading(true);
     setLoadError("");
     try {
       const [year, month] = selectedDate.split("-").map(Number); 
@@ -281,7 +282,15 @@ const BillDetail = ({
       const rId = targetRoom.roomId || targetRoom.id;
       setRoomId(rId);
 
-      const contract = extractArray(allContracts).find((c) => Number(c.roomId) === Number(rId) && (c.status === "Active" || c.status === "Reserved"));
+      // 🌟 2. อนุโลมให้ดึงสัญญาที่ Expired/Terminated มาใช้คำนวณมิเตอร์ได้ในกรณีหน้า Checkout
+      const contractStatusList = mode === "checkout" 
+        ? ["active", "reserved", "expired", "terminated"] 
+        : ["active", "reserved"];
+
+      const contract = extractArray(allContracts).find((c) => 
+        Number(c.roomId) === Number(rId) && contractStatusList.includes((c.status || "").toLowerCase())
+      );
+      
       if (!contract) { setLoadError("ห้องนี้ไม่มีสัญญา Active"); return; }
       setContractId(contract.id || contract.Id);
       
@@ -302,79 +311,81 @@ const BillDetail = ({
       const effectiveWater = (priorityMode === "contract" && customWater !== null) ? customWater : Number(waterRateConst);
       setEffectiveRates({ electric: effectiveElec, water: effectiveWater });
 
-      const payments = extractArray(await paymentService.getPaymentsByContract(contract.id || contract.Id));
-      const existing = payments.find((p) => {
-        const d = p.recordDate ? new Date(p.recordDate) : null;
-        return d && d.getFullYear() === year && (d.getMonth() + 1) === month;
-      });
-
-      if (existing) {
-        setPaymentId(existing.id || existing.Id);
-        setPaymentStatus(existing.status?.toLowerCase() ?? "unpaid");
-        setItems(paymentToItems(existing, selectedDate));
-      } else {
-        const selectedMonthObj = new Date(year, month - 1, 1);
-        const currentMonthObj = new Date(today.getFullYear(), today.getMonth(), 1);
-
-        if (selectedMonthObj < currentMonthObj) {
-          setLoadError("ไม่มีการออกบิลในเดือนนี้ (ไม่อนุญาตให้สร้างบิลย้อนหลัง)");
-          setIsLoading(false);
-          return;
-        }
-
-        // 🌟 ดึงข้อมูลแบบ Real-time จาก Backend
-        const result = await paymentService.generatePayment(contract.id || contract.Id, year, month).catch(()=>({}));
-        
-        // 🌟 อัปเดต State latestMeter ทันที!
-        if (result) {
-          setLatestMeter({
-            electricityUnit: result.previousElectricUnit ?? 0,
-            waterUnit: result.previousWaterUnit ?? 0
-          });
-        }
-
-        if (result.calculationNote) {
-          const eMatch = result.calculationNote.match(/ไฟ:\s*\(([\d.]+)-([\d.]+)\)\*([\d.]+)/);
-          if (eMatch) {
-            const cur = Number(eMatch[1]), prv = Number(eMatch[2]);
-            const diff = cur >= prv ? cur - prv : (Number("9".repeat(String(prv).length)) - prv) + cur + 1;
-            result.electricalCost = diff * effectiveElec;
-            result.calculationNote = result.calculationNote.replace(/ไฟ:\s*\([\d.]+-[\d.]+\)\*[\d.]+/, `ไฟ: (มิเตอร์: ${cur} - ${prv} = ${diff} หน่วย) * ${effectiveElec} ฿`);
-          }
-          const wMatch = result.calculationNote.match(/น้ำ:\s*\(([\d.]+)-([\d.]+)\)\*([\d.]+)/);
-          if (wMatch) {
-            const cur = Number(wMatch[1]), prv = Number(wMatch[2]);
-            const diff = cur >= prv ? cur - prv : (Number("9".repeat(String(prv).length)) - prv) + cur + 1;
-            result.waterCost = diff * effectiveWater;
-            result.calculationNote = result.calculationNote.replace(/น้ำ:\s*\([\d.]+-[\d.]+\)\*[\d.]+/, `น้ำ: (มิเตอร์: ${cur} - ${prv} = ${diff} หน่วย) * ${effectiveWater} ฿`);
-          }
-        }
-
-        let newItems = generateResultToItems(result, selectedDate);
-        if (!newItems.some(i => i.type === "rent")) {
-          let rentAmt = Number(contract.monthlyRent || contract.MonthlyRent || 0);
-          if (rentAmt <= 0) {
-            const m = roomNote.match(/\{ค่าเช่า:\s*([\d,]+)฿?\}/);
-            if (m) rentAmt = Number(m[1].replace(/,/g, ""));
-          }
-          if (rentAmt > 0) newItems.push({ id: Date.now()+1, type: "rent", amount: rentAmt, labels: { [selectedDate]: `ค่าเช่าห้อง เดือน${toThaiMonth(selectedDate)}` } });
-        }
-        const additionalServices = [...parseNoteToItems(roomNote, "ค่าบริการ", "other"), ...parseNoteToItems(contractNote, "ค่าบริการ", "other")];
-        const additionalDiscounts = [...parseNoteToItems(roomNote, "ส่วนลด", "discount", true), ...parseNoteToItems(contractNote, "ส่วนลด", "discount", true)];
-        setItems([...newItems, ...additionalServices, ...additionalDiscounts]);
-        setPaymentId(null); setPaymentStatus(null);
+      // 🌟 3. ดึงข้อมูลแบบ Real-time จาก Backend เสมอ เพื่ออัปเดต LatestMeter
+      const result = await paymentService.generatePayment(contract.id || contract.Id, year, month).catch(()=>({}));
+      
+      if (result) {
+        setLatestMeter({
+          electricityUnit: result.previousElectricUnit ?? 0,
+          waterUnit: result.previousWaterUnit ?? 0
+        });
       }
 
-      if (today > dueDate && existing?.status?.toLowerCase() !== "paid") {
-        const diffTime = today.getTime() - dueDate.getTime();
-        const overdueDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        if (overdueDays > 0) {
-           setPenaltyInfo({ dueDate, overdueDays, penaltyTotal: overdueDays * penaltyRate });
-           setShowPenaltyBanner(true);
-        }
-      } else setShowPenaltyBanner(false);
+      // 🛑 4. ถ้าอยู่ในโหมดปกติ (ไม่ใช่ checkout) ถึงจะไปทับข้อมูลตารางบิล
+      if (mode !== "checkout") {
+        const payments = extractArray(await paymentService.getPaymentsByContract(contract.id || contract.Id));
+        const existing = payments.find((p) => {
+          const d = p.recordDate ? new Date(p.recordDate) : null;
+          return d && d.getFullYear() === year && (d.getMonth() + 1) === month;
+        });
 
-    } catch (err) { setLoadError("โหลดข้อมูลไม่สำเร็จ"); } finally { setIsLoading(false); }
+        if (existing) {
+          setPaymentId(existing.id || existing.Id);
+          setPaymentStatus(existing.status?.toLowerCase() ?? "unpaid");
+          setItems(paymentToItems(existing, selectedDate));
+        } else {
+          const selectedMonthObj = new Date(year, month - 1, 1);
+          const currentMonthObj = new Date(today.getFullYear(), today.getMonth(), 1);
+
+          if (selectedMonthObj < currentMonthObj) {
+            setLoadError("ไม่มีการออกบิลในเดือนนี้ (ไม่อนุญาตให้สร้างบิลย้อนหลัง)");
+            setIsLoading(false);
+            return;
+          }
+
+          if (result.calculationNote) {
+            const eMatch = result.calculationNote.match(/ไฟ:\s*\(([\d.]+)-([\d.]+)\)\*([\d.]+)/);
+            if (eMatch) {
+              const cur = Number(eMatch[1]), prv = Number(eMatch[2]);
+              const diff = cur >= prv ? cur - prv : (Number("9".repeat(String(prv).length)) - prv) + cur + 1;
+              result.electricalCost = diff * effectiveElec;
+              result.calculationNote = result.calculationNote.replace(/ไฟ:\s*\([\d.]+-[\d.]+\)\*[\d.]+/, `ไฟ: (มิเตอร์: ${cur} - ${prv} = ${diff} หน่วย) * ${effectiveElec} ฿`);
+            }
+            const wMatch = result.calculationNote.match(/น้ำ:\s*\(([\d.]+)-([\d.]+)\)\*([\d.]+)/);
+            if (wMatch) {
+              const cur = Number(wMatch[1]), prv = Number(wMatch[2]);
+              const diff = cur >= prv ? cur - prv : (Number("9".repeat(String(prv).length)) - prv) + cur + 1;
+              result.waterCost = diff * effectiveWater;
+              result.calculationNote = result.calculationNote.replace(/น้ำ:\s*\([\d.]+-[\d.]+\)\*[\d.]+/, `น้ำ: (มิเตอร์: ${cur} - ${prv} = ${diff} หน่วย) * ${effectiveWater} ฿`);
+            }
+          }
+
+          let newItems = generateResultToItems(result, selectedDate);
+          if (!newItems.some(i => i.type === "rent")) {
+            let rentAmt = Number(contract.monthlyRent || contract.MonthlyRent || 0);
+            if (rentAmt <= 0) {
+              const m = roomNote.match(/\{ค่าเช่า:\s*([\d,]+)฿?\}/);
+              if (m) rentAmt = Number(m[1].replace(/,/g, ""));
+            }
+            if (rentAmt > 0) newItems.push({ id: Date.now()+1, type: "rent", amount: rentAmt, labels: { [selectedDate]: `ค่าเช่าห้อง เดือน${toThaiMonth(selectedDate)}` } });
+          }
+          const additionalServices = [...parseNoteToItems(roomNote, "ค่าบริการ", "other"), ...parseNoteToItems(contractNote, "ค่าบริการ", "other")];
+          const additionalDiscounts = [...parseNoteToItems(roomNote, "ส่วนลด", "discount", true), ...parseNoteToItems(contractNote, "ส่วนลด", "discount", true)];
+          setItems([...newItems, ...additionalServices, ...additionalDiscounts]);
+          setPaymentId(null); setPaymentStatus(null);
+        }
+
+        if (today > dueDate && existing?.status?.toLowerCase() !== "paid") {
+          const diffTime = today.getTime() - dueDate.getTime();
+          const overdueDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          if (overdueDays > 0) {
+             setPenaltyInfo({ dueDate, overdueDays, penaltyTotal: overdueDays * penaltyRate });
+             setShowPenaltyBanner(true);
+          }
+        } else setShowPenaltyBanner(false);
+      } // ปิด if (mode !== "checkout")
+
+    } catch (err) { setLoadError("โหลดข้อมูลไม่สำเร็จ"); } finally { if (mode !== "checkout") setIsLoading(false); }
   }, [roomNumber, selectedDate, mode, initialData, currentAdminId]);
 
   useEffect(() => { loadBillData(); }, [loadBillData]);
