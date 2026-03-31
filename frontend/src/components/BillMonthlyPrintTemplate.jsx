@@ -41,12 +41,12 @@ const parseMeterInfo = (detailStr) => {
   return null;
 };
 
+// 💡 แก้ไขให้ใช้ h-full 100% เพื่อให้พอดีกับกรอบครึ่งหน้า
 const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, total, billTitle }) => {
   const printDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
   return (
-    // ✨ เปลี่ยนจาก h-[144mm] เป็น h-full เพื่อให้ยืดหดพอดีกรอบแม่
-    <div className="w-full min-h-[142mm] flex flex-col box-border bg-white text-black px-10 py-4 pb-6">
+    <div className="w-full h-full flex flex-col box-border bg-transparent text-black px-10 py-5">
       
       <div className="flex justify-between items-start mb-2 border-b border-gray-200 pb-1">
         <div className="flex items-center gap-3 w-[50%]">
@@ -88,7 +88,8 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
         <div className="mt-0.5"><span className="font-bold">ที่อยู่:</span> {cst.address || "-"}</div>
       </div>
 
-      <div className="w-full mb-auto pb-4">
+      {/* 💡 เปลี่ยน mb-auto เป็น flex-1 เพื่อดันยอดเงินสุทธิไปชิดขอบล่างพอดี */}
+      <div className="w-full flex-1 overflow-hidden">
         <table className="w-full border-collapse text-[11px]">
           <thead>
             <tr className="border-b-2 border-black">
@@ -106,7 +107,6 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
               if (item.type === 'rent') labelName = 'ค่าเช่าห้อง';
               if (item.type === 'discount') labelName = 'ส่วนลด';
 
-              // ✨ ประกอบร่างข้อความค่าน้ำค่าไฟสำหรับตอนปริ้นต์ ให้อยู่บรรทัดเดียวกัน
               if (item.type === 'electric') {
                  let detail = item.detail || "";
                  detail = detail.replace(/ไฟ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(");
@@ -121,12 +121,9 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
               return (
                 <tr key={item.id || idx} className="border-b border-gray-100">
                   <td className="py-1 text-center text-gray-500">{idx + 1}</td>
-                  
-                  {/* ✨ แสดงแค่ labelName อย่างเดียวตัวหนาๆ ไม่ต้องโชว์ (รอบบิล | x-y) ต่อท้ายแล้ว */}
                   <td className="py-1 px-2">
                     <span className="font-bold">{labelName}</span>
                   </td>
-                  
                   <td className="py-1 text-center">{meter ? meter.diff : (item.type === 'discount' ? "-" : "1")}</td>
                   <td className="py-1 text-right pr-4">{meter ? Number(meter.rate).toLocaleString() : Math.abs(item.amount || 0).toLocaleString()}</td>
                   <td className="py-1 px-1 text-right font-bold">
@@ -139,7 +136,7 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
         </table>
       </div>
 
-      <div className="mt-2">
+      <div className="mt-2 shrink-0">
         <div className="flex border-2 border-black text-[12px] rounded-sm overflow-hidden h-[30px]">
           <div className="flex-1 px-4 flex items-center bg-gray-50 font-bold italic text-gray-700 border-r-2 border-black">
             ยอดเงินสุทธิ {bahtText(total)}
@@ -175,7 +172,7 @@ const BillMonthlyPrintTemplate = ({
 }) => {
   const apt = apartmentInfo || { 
     name: "หอพักนิตยวดี", 
-    address: "63/246 ถนน ดาวดึงส์ อ.เมือง นครสวรรค์ 60000", 
+    address: "63/246 ถนน ดาวดึงส์ อ.เมือง นครสวรรค์ 70000", 
     phone: "0867439033", 
     lineId: "@075fbmzv", 
     email: "seniordorm.2025@gmail.com",
@@ -198,26 +195,49 @@ const BillMonthlyPrintTemplate = ({
             padding: 0 !important; 
             background: white !important; 
           }
-          .no-blank-page {
-            page-break-after: avoid !important;
-            break-after: avoid !important;
+          /* ซ่อน scrollbar เวลากด print ป้องกันจอขยับ */
+          ::-webkit-scrollbar {
+              display: none;
           }
         }
       `}</style>
 
-      <div className="w-full px-2 py-6 print:py-0 flex justify-center">
-        <div className="receipt-paper w-[210mm] h-auto bg-white relative box-border border border-gray-200 shadow-xl text-black">
-          <ReceiptHalf 
-            isCopy={false} 
-            items={items} 
-            roomNumber={roomNumber} 
-            apt={apartmentInfo} 
-            cst={tenantInfo} 
-            ctc={{ cycleStart: cycleMonthYear, cycleEnd: cycleMonthYear }} 
-            adminName={adminName} 
-            total={totalAmount} 
-            billTitle={billTitle} 
-          />
+      {/* 💡 กำหนดพยายามให้หน้าจอปกติอยู่ตรงกลาง และเวลาปรินต์ให้ลบ margin/padding ออก */}
+      <div className="w-full min-h-screen bg-gray-100 print:bg-white py-8 print:py-0 flex justify-center items-start">
+        
+        {/* 💡 Fix ขนาดตรงนี้เป็น A4 เป๊ะๆ (210x297mm) */}
+        <div className="receipt-paper w-[210mm] h-[297mm] bg-white flex flex-col relative box-border border border-gray-300 shadow-xl print:border-0 print:shadow-none print:overflow-hidden">
+          
+          {/* ครึ่งบน: ต้นฉบับ */}
+          <div className="flex-1 border-b border-dashed border-gray-300 print:border-gray-300">
+            <ReceiptHalf 
+              isCopy={false} 
+              items={items} 
+              roomNumber={roomNumber} 
+              apt={apt} 
+              cst={cst} 
+              ctc={ctc} 
+              adminName={adminName} 
+              total={total} 
+              billTitle={billTitle} 
+            />
+          </div>
+
+          {/* ครึ่งล่าง: สำเนา */}
+          <div className="flex-1">
+            <ReceiptHalf 
+              isCopy={true} 
+              items={items} 
+              roomNumber={roomNumber} 
+              apt={apt} 
+              cst={cst} 
+              ctc={ctc} 
+              adminName={adminName} 
+              total={total} 
+              billTitle={billTitle} 
+            />
+          </div>
+
         </div>
       </div>
     </>
