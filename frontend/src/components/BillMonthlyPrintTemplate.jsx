@@ -41,12 +41,12 @@ const parseMeterInfo = (detailStr) => {
   return null;
 };
 
-// เพิ่มรับค่า billTitle เข้ามา
 const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, total, billTitle }) => {
   const printDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
   return (
-    <div className="w-full h-[144mm] flex flex-col box-border bg-white text-black px-10 py-4 overflow-hidden">
+    // ✨ เปลี่ยนจาก h-[144mm] เป็น h-full เพื่อให้ยืดหดพอดีกรอบแม่
+    <div className="w-full h-full flex flex-col box-border bg-white text-black px-10 py-4 overflow-hidden">
       
       <div className="flex justify-between items-start mb-2 border-b border-gray-200 pb-1">
         <div className="flex items-center gap-3 w-[50%]">
@@ -65,7 +65,6 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
 
         <div className="w-[50%] flex items-center justify-end gap-2 leading-tight">
           <div className="text-right">
-            {/* แก้ไขให้ใช้ตัวแปร billTitle */}
             <h2 className="text-[16px] font-black">{isCopy ? `${billTitle} (สำเนา)` : billTitle}</h2>
             <div className="flex flex-col items-end text-[9px] text-gray-800 space-y-0.5">
               <span><b className="font-bold">รอบบิล:</b> {ctc.cycleStart} - {ctc.cycleEnd}</span>
@@ -105,21 +104,29 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
               const meter = parseMeterInfo(item.detail);
               let labelName = item.label || 'รายการทั่วไป';
               if (item.type === 'rent') labelName = 'ค่าเช่าห้อง';
-              if (item.type === 'electric') labelName = 'ค่าไฟฟ้า';
-              if (item.type === 'water') labelName = 'ค่าน้ำประปา';
               if (item.type === 'discount') labelName = 'ส่วนลด';
+
+              // ✨ ประกอบร่างข้อความค่าน้ำค่าไฟสำหรับตอนปริ้นต์ ให้อยู่บรรทัดเดียวกัน
+              if (item.type === 'electric') {
+                 let detail = item.detail || "";
+                 detail = detail.replace(/ไฟ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(");
+                 labelName = detail ? `ค่าไฟฟ้า ${detail}` : `ค่าไฟฟ้า`;
+              }
+              if (item.type === 'water') {
+                 let detail = item.detail || "";
+                 detail = detail.replace(/น้ำ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(");
+                 labelName = detail ? `ค่าน้ำประปา ${detail}` : `ค่าน้ำประปา`;
+              }
 
               return (
                 <tr key={item.id || idx} className="border-b border-gray-100">
                   <td className="py-1 text-center text-gray-500">{idx + 1}</td>
+                  
+                  {/* ✨ แสดงแค่ labelName อย่างเดียวตัวหนาๆ ไม่ต้องโชว์ (รอบบิล | x-y) ต่อท้ายแล้ว */}
                   <td className="py-1 px-2">
                     <span className="font-bold">{labelName}</span>
-                    {meter && (
-                      <span className="text-[9px] text-gray-600 ml-2">
-                        ({ctc.cycleStart}-{ctc.cycleEnd} | {meter.prv}-{meter.cur})
-                      </span>
-                    )}
                   </td>
+                  
                   <td className="py-1 text-center">{meter ? meter.diff : (item.type === 'discount' ? "-" : "1")}</td>
                   <td className="py-1 text-right pr-4">{meter ? Number(meter.rate).toLocaleString() : Math.abs(item.amount || 0).toLocaleString()}</td>
                   <td className="py-1 px-1 text-right font-bold">
@@ -161,7 +168,6 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
   );
 };
 
-// เพิ่มรับค่า billTitle เข้ามา โดยให้ default เป็น "ใบแจ้งหนี้ / ใบเสร็จรับเงิน"
 const BillMonthlyPrintTemplate = ({ 
   items = [], roomNumber = "-", apartmentInfo = null, 
   customerInfo = null, contractInfo = null, adminName = "-", total = 0, 
@@ -199,12 +205,15 @@ const BillMonthlyPrintTemplate = ({
         }
       `}</style>
 
-      <div className="hidden print:flex flex-col w-[210mm] h-[290mm] bg-white mx-auto relative overflow-hidden box-border border-x border-gray-100 no-blank-page">
-        <div className="flex-none h-[144mm]">
+      {/* ✨ เปลี่ยนเป็น 285mm */}
+      <div className="hidden print:flex flex-col w-[210mm] h-[285mm] bg-white mx-auto relative overflow-hidden box-border border-x border-gray-100 no-blank-page">
+        {/* ✨ เปลี่ยนเป็น 142mm */}
+        <div className="flex-none h-[142mm]">
            <ReceiptHalf isCopy={false} items={items} roomNumber={roomNumber} apt={apt} cst={cst} ctc={ctc} adminName={adminName} total={total} billTitle={billTitle} />
         </div>
         <div className="flex-none border-b border-dashed border-gray-400 w-full h-0"></div>
-        <div className="flex-none h-[144mm]">
+        {/* ✨ เปลี่ยนเป็น 142mm */}
+        <div className="flex-none h-[142mm]">
            <ReceiptHalf isCopy={true} items={items} roomNumber={roomNumber} apt={apt} cst={cst} ctc={ctc} adminName={adminName} total={total} billTitle={billTitle} />
         </div>
       </div>

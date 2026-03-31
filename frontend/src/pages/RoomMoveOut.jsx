@@ -240,19 +240,29 @@ const CheckoutManager = () => {
 
       const unpaid = allPayments.filter((p) => p.status?.toLowerCase() === "unpaid");
       setUnpaidBills(
-        unpaid.map((p) => ({
-          paymentId: p.id || p.Id,
-          period:    p.recordDate?.slice(0, 7) ?? "",
-          note:      p.note || "",
-          details: [
-            ...(p.roomRate       ? [{ label: "ค่าเช่าห้อง",      amount: Number(p.roomRate)       }] : []),
-            ...(p.electricalCost ? [{ label: "ค่าไฟฟ้า",          amount: Number(p.electricalCost) }] : []),
-            ...(p.waterCost      ? [{ label: "ค่าน้ำประปา",        amount: Number(p.waterCost)      }] : []),
-            ...(p.internetCost   ? [{ label: "ค่าอินเทอร์เน็ต",   amount: Number(p.internetCost)   }] : []),
-            ...(p.laundryCost    ? [{ label: "ค่าซักรีด",          amount: Number(p.laundryCost)    }] : []),
-            ...(p.additionalCost ? [{ label: p.additionalDetail || "รายการเพิ่มเติม", amount: Number(p.additionalCost) }] : []),
-          ],
-        }))
+        unpaid.map((p) => {
+          // ✨ ดึง detail มิเตอร์มาจัดรูปแบบให้สวยงาม
+          const getDetail = (noteStr, prefix) => {
+            let d = noteStr?.match(new RegExp(`${prefix}:[^|]*`))?.[0]?.trim() || "";
+            return d.replace(new RegExp(`${prefix}:\\s*`), "").replace(/\(มิเตอร์:\s*/, "(");
+          };
+          const elecDetail = getDetail(p.note, "ไฟ");
+          const waterDetail = getDetail(p.note, "น้ำ");
+
+          return {
+            paymentId: p.id || p.Id,
+            period:    p.recordDate?.slice(0, 7) ?? "",
+            note:      p.note || "",
+            details: [
+              ...(p.roomRate       ? [{ label: "ค่าเช่าห้อง",      amount: Number(p.roomRate)       }] : []),
+              ...(p.electricalCost ? [{ label: elecDetail ? `ค่าไฟฟ้า ${elecDetail}` : "ค่าไฟฟ้า",          amount: Number(p.electricalCost) }] : []),
+              ...(p.waterCost      ? [{ label: waterDetail ? `ค่าน้ำประปา ${waterDetail}` : "ค่าน้ำประปา",        amount: Number(p.waterCost)      }] : []),
+              ...(p.internetCost   ? [{ label: "ค่าอินเทอร์เน็ต",   amount: Number(p.internetCost)   }] : []),
+              ...(p.laundryCost    ? [{ label: "ค่าซักรีด",          amount: Number(p.laundryCost)    }] : []),
+              ...(p.additionalCost ? [{ label: p.additionalDetail || "รายการเพิ่มเติม", amount: Number(p.additionalCost) }] : []),
+            ],
+          };
+        })
       );
 
       const now  = new Date();
@@ -264,13 +274,21 @@ const CheckoutManager = () => {
       });
       
       if (curBill) {
+        // ✨ ดึง detail มิเตอร์เหมือนกัน
+        const getDetail = (noteStr, prefix) => {
+          let d = noteStr?.match(new RegExp(`${prefix}:[^|]*`))?.[0]?.trim() || "";
+          return d.replace(new RegExp(`${prefix}:\\s*`), "").replace(/\(มิเตอร์:\s*/, "(");
+        };
+        const elecDetail = getDetail(curBill.note, "ไฟ");
+        const waterDetail = getDetail(curBill.note, "น้ำ");
+
         setCurrentMonthBill({
           paymentId: curBill.id || curBill.Id,
           note: curBill.note || "",
           items: [
             ...(curBill.roomRate       ? [{ id: "cm-rent",     label: "ค่าเช่าห้อง",     amount: Number(curBill.roomRate)       }] : []),
-            ...(curBill.electricalCost ? [{ id: "cm-elec",     label: "ค่าไฟฟ้า",         amount: Number(curBill.electricalCost) }] : []),
-            ...(curBill.waterCost      ? [{ id: "cm-water",    label: "ค่าน้ำประปา",       amount: Number(curBill.waterCost)      }] : []),
+            ...(curBill.electricalCost ? [{ id: "cm-elec",     label: elecDetail ? `ค่าไฟฟ้า ${elecDetail}` : "ค่าไฟฟ้า",         amount: Number(curBill.electricalCost) }] : []),
+            ...(curBill.waterCost      ? [{ id: "cm-water",    label: waterDetail ? `ค่าน้ำประปา ${waterDetail}` : "ค่าน้ำประปา",       amount: Number(curBill.waterCost)      }] : []),
             ...(curBill.internetCost   ? [{ id: "cm-inet",     label: "ค่าอินเทอร์เน็ต",  amount: Number(curBill.internetCost)   }] : []),
             ...(curBill.laundryCost    ? [{ id: "cm-laundry",  label: "ค่าซักรีด",         amount: Number(curBill.laundryCost)   }] : []),
             ...(curBill.additionalCost ? [{ id: "cm-add",      label: curBill.additionalDetail || "รายการเพิ่มเติม", amount: Number(curBill.additionalCost) }] : []),

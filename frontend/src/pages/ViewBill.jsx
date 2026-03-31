@@ -103,17 +103,31 @@ const ViewBill = () => {
             if (contract) {
               console.log("Contract Data:", contract);
 
-              // 🔍 2. ดึงเลขห้องแบบดักทุกทาง (Room.Number, Room.number, room.Number, room.number)
-              const roomNum = 
+              // 🔍 1. พยายามดึง RoomNumber จากข้อมูลต่างๆ ที่อาจจะมีแนบมาใน Contract ก่อน
+              let roomNum = 
                 contract.room?.Number || 
                 contract.Room?.Number || 
                 contract.room?.number || 
                 contract.Room?.number || 
                 contract.roomNumber || 
-                contract.RoomNumber || 
-                "-";
+                contract.RoomNumber;
 
-              setRoomNumber(roomNum);
+              // 🔍 2. ถ้ายังไม่ได้เลขห้อง ให้ไป Fetch ข้อมูลจากตาราง Room โดยตรง!
+              const roomId = contract.roomId || contract.RoomId;
+              if (!roomNum && roomId) {
+                try {
+                  const roomsData = extractArray(await roomService.getRoomOverview());
+                  const targetRoom = roomsData.find(r => (r.roomId || r.id) === roomId);
+                  if (targetRoom) {
+                    roomNum = targetRoom.roomNumber || targetRoom.number;
+                  }
+                } catch (roomErr) {
+                  console.warn("Failed to fetch room detail", roomErr);
+                }
+              }
+
+              // ถ้าดึงอะไรไม่ได้เลยจริงๆ ค่อยแสดง "-"
+              setRoomNumber(roomNum || "-");
               
               const tId = contract.tenantId || contract.TenantId;
               if (tId) setTenantInfo(await tenantService.getTenant(tId));
@@ -359,13 +373,31 @@ const ViewBill = () => {
               <tbody>
                 {items.map((item, idx) => {
                   const meter = parseMeterInfo(item.detail);
+                  let labelName = item.label || 'รายการทั่วไป';
+                  if (item.type === 'rent') labelName = 'ค่าเช่าห้อง';
+                  if (item.type === 'discount') labelName = 'ส่วนลด';
+
+                  // ✨ รวมข้อความค่าน้ำ-ไฟ ให้อยู่บรรทัดเดียวกัน
+                  if (item.type === 'electric') {
+                     let detail = item.detail || "";
+                     detail = detail.replace(/ไฟ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(");
+                     labelName = detail ? `ค่าไฟฟ้า ${detail}` : `ค่าไฟฟ้า`;
+                  }
+                  if (item.type === 'water') {
+                     let detail = item.detail || "";
+                     detail = detail.replace(/น้ำ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(");
+                     labelName = detail ? `ค่าน้ำประปา ${detail}` : `ค่าน้ำประปา`;
+                  }
+
                   return (
                     <tr key={idx} className="border-b border-gray-100">
                       <td className="py-1 text-center text-gray-500">{idx + 1}</td>
+                      
+                      {/* ✨ แสดงแค่ labelName บรรทัดเดียวตัวหนา ไม่มีตัวเล็กต่อท้ายแล้ว */}
                       <td className="py-1 px-2">
-                        <span className="font-bold">{item.label}</span>
-                        {meter && <span className="text-[9px] text-gray-600 ml-2">({cycleMonthYear} | {meter.prv}-{meter.cur})</span>}
+                        <span className="font-bold">{labelName}</span>
                       </td>
+                      
                       <td className="py-1 text-center">{meter ? meter.diff : (item.type === 'discount' ? "-" : "1")}</td>
                       <td className="py-1 text-right pr-4">{meter ? Number(meter.rate).toLocaleString() : Math.abs(item.amount || 0).toLocaleString()}</td>
                       <td className="py-1 px-1 text-right font-bold">

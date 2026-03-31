@@ -46,8 +46,19 @@ const getItemLabel = (item, selectedDate, type) => {
   if (item.labels?.[selectedDate]) return item.labels[selectedDate];
   if (item.type === "discount") return "ส่วนลด";
   if (item.type === "rent")     return `ค่าเช่าห้อง เดือน${month}`;
-  if (item.type === "electric") return `ค่าไฟฟ้า เดือน${month} ${item.detail || ""}`;
-  if (item.type === "water")    return `ค่าน้ำประปา เดือน${month} ${item.detail || ""}`;
+  
+  // ✨ อัปเดตค่าน้ำ-ไฟให้อยู่บรรทัดเดียวกัน และตัดคำว่า "มิเตอร์" ออก
+  if (item.type === "electric") {
+    let detail = item.detail || "";
+    detail = detail.replace(/ไฟ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(");
+    return detail ? `ค่าไฟฟ้า ${detail}` : `ค่าไฟฟ้า เดือน${month}`;
+  }
+  if (item.type === "water") {
+    let detail = item.detail || "";
+    detail = detail.replace(/น้ำ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(");
+    return detail ? `ค่าน้ำประปา ${detail}` : `ค่าน้ำประปา เดือน${month}`;
+  }
+  
   if (item.label)               return item.label;
   if (type === "asset" || item.type === "asset" || item.type === "damage") return item.label || "ค่าเสียหาย/ทรัพย์สิน";
   return "รายการอื่น ๆ";
