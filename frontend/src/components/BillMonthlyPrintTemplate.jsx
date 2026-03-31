@@ -45,7 +45,7 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
   const printDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
   return (
-    <div className="w-full h-full flex flex-col box-border bg-white text-black px-8 py-4">
+    <div className="w-full h-full flex flex-col box-border bg-white text-black px-8 py-2 overflow-hidden">
       
       {/* --- หัวบิล --- */}
       <div className="flex justify-between items-start mb-2 border-b border-gray-200 pb-2 shrink-0">
@@ -90,7 +90,7 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
       </div>
 
       {/* --- ตารางรายการ --- */}
-      <div className="w-full flex-1 min-h-[50px] overflow-hidden">
+      <div className="w-full overflow-hidden" style={{maxHeight: '52mm'}}>
         <table className="w-full border-collapse text-[11px]">
           <thead>
             <tr className="border-b-2 border-black">
