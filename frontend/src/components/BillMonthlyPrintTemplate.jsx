@@ -41,12 +41,11 @@ const parseMeterInfo = (detailStr) => {
   return null;
 };
 
-// 💡 ลด padding เหลือ px-6 py-4 ให้พื้นที่ตรงกลางขยายได้เต็มที่
 const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, total, billTitle }) => {
   const printDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
   return (
-    <div className="w-full h-full flex flex-col box-border bg-white text-black px-6 py-4">
+    <div className="w-full h-full flex flex-col box-border bg-white text-black px-8 py-4">
       
       {/* --- หัวบิล --- */}
       <div className="flex justify-between items-start mb-2 border-b border-gray-200 pb-2 shrink-0">
@@ -189,33 +188,24 @@ const BillMonthlyPrintTemplate = ({
     <>
       <style>{`
         @media print {
-          /* 💡 บังคับขนาดกระดาษและปิด Margin ดื้อๆ เลย */
           @page { 
             size: A4 portrait; 
-            margin: 0 !important;
+            margin: 0; 
           }
-          /* 💡 ล้างขยะของ Browser ทิ้งให้หมด บังคับความสูงเท่าหน้าจอเป๊ะๆ */
-          html, body { 
-            width: 100% !important;
-            height: 100% !important;
+          body, html { 
             margin: 0 !important; 
             padding: 0 !important; 
             background: white !important; 
             -webkit-print-color-adjust: exact;
-            overflow: hidden !important; 
-          }
-          /* ซ่อน Header/Footer ของ Browser เล็กๆ ด้านบนและล่าง */
-          header, footer {
-             display: none !important;
           }
         }
       `}</style>
 
-      {/* 💡 เปลี่ยนมาใช้ w-screen และ h-screen แทน mm */}
-      <div className="hidden print:flex print:flex-col print:w-[100vw] print:h-[100vh] bg-white box-border text-black overflow-hidden">
+      {/* 💡 กลับมาใช้กว้าง 100% แต่บังคับไม่ให้เกิน 210mm (ความกว้าง A4) และล็อกความสูงที่ 296mm */}
+      <div className="hidden print:flex print:flex-col w-full max-w-[210mm] h-[296mm] mx-auto bg-white box-border text-black overflow-hidden">
         
-        {/* ครึ่งบน: เอาพื้นที่ไป 50% ของหน้าจอ */}
-        <div className="w-full h-[50vh] border-b border-dashed border-gray-400 box-border overflow-hidden">
+        {/* ครึ่งบน: สูง 148mm (ครึ่งหนึ่งของหน้า A4 พอดี) */}
+        <div className="w-full h-[148mm] border-b border-dashed border-gray-400 box-border overflow-hidden">
           <ReceiptHalf 
             isCopy={false} 
             items={items} 
@@ -229,8 +219,8 @@ const BillMonthlyPrintTemplate = ({
           />
         </div>
 
-        {/* ครึ่งล่าง: เอาพื้นที่ไปอีก 50% ของหน้าจอ */}
-        <div className="w-full h-[50vh] box-border overflow-hidden">
+        {/* ครึ่งล่าง: สูง 148mm */}
+        <div className="w-full h-[148mm] box-border overflow-hidden">
           <ReceiptHalf 
             isCopy={true} 
             items={items} 
