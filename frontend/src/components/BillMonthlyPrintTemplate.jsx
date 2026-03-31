@@ -41,13 +41,12 @@ const parseMeterInfo = (detailStr) => {
   return null;
 };
 
-// Component สำหรับครึ่งหน้ากระดาษ
+// 💡 1. ปรับ py-5 เป็น py-3 เพื่อลดช่องว่างบน-ล่างให้กระชับขึ้น
 const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, total, billTitle }) => {
   const printDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
   return (
-    // 💡 ปรับลด Padding ลงนิดหน่อย (px-8 py-5) เพื่อไม่ให้ล้นขอบซ้ายขวา
-    <div className="w-full h-full flex flex-col box-border bg-white text-black px-8 py-5">
+    <div className="w-full h-full flex flex-col box-border bg-white text-black px-8 py-3">
       
       {/* --- หัวบิล --- */}
       <div className="flex justify-between items-start mb-2 border-b border-gray-200 pb-2 shrink-0">
@@ -81,7 +80,7 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
       </div>
 
       {/* --- ข้อมูลลูกค้า --- */}
-      <div className="text-[11px] text-gray-800 border-b border-gray-300 pb-2 mb-3 shrink-0">
+      <div className="text-[11px] text-gray-800 border-b border-gray-300 pb-2 mb-2 shrink-0">
         <div className="flex justify-between">
           <div>
             <span className="font-bold">ลูกค้า:</span> {cst.title || ""}{cst.firstName || "-"} {cst.lastName || ""} 
@@ -150,7 +149,7 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
           </div>
         </div>
 
-        <div className="flex justify-between items-end mt-3 text-[10px]">
+        <div className="flex justify-between items-end mt-2 text-[10px]">
           <div className="w-[65%] border border-gray-200 rounded px-3 py-2 bg-gray-50 leading-tight">
             <p className="font-bold text-black mb-1">ชำระเงินผ่านบัญชีธนาคาร</p>
             <p>{apt.bankName || "ธนาคารกสิกรไทย สาขาถนนสวรรค์วิถี"}</p>
@@ -192,25 +191,22 @@ const BillMonthlyPrintTemplate = ({
         @media print {
           @page { 
             size: A4 portrait; 
-            margin: 0; /* ล้าง margin ของกระดาษออกทั้งหมด */
+            margin: 0; /* ล้างขอบที่ Browser ชอบแถมมา */
           }
           body, html { 
             margin: 0 !important; 
             padding: 0 !important; 
-            height: 100% !important; 
             background: white !important; 
-            -webkit-print-color-adjust: exact; /* บังคับให้ปริ้นต์สี Background (สีเทาในบิล) ออกมาด้วย */
+            -webkit-print-color-adjust: exact;
           }
         }
       `}</style>
 
-      {/* 💡 เปลี่ยนโครงสร้างเป็น print:flex และ print:h-screen เพื่อให้ความสูงยืดพอดี 1 หน้ากระดาษ
-        💡 ใช้ w-full เพื่อป้องกันด้านข้างโดนตัด 
-      */}
-      <div className="hidden print:flex print:flex-col print:w-full print:h-screen print:overflow-hidden bg-white box-border text-black">
+      {/* 💡 2. เปลี่ยนมาใช้ขนาดที่เซฟสุดๆ คือกว้าง 100% แต่สูงไม่เกิน 290mm (กันทะลุ) */}
+      <div className="hidden print:flex print:flex-col w-full max-w-[210mm] mx-auto h-[290mm] overflow-hidden bg-white box-border text-black">
         
-        {/* ครึ่งบน: ต้นฉบับ (แบ่งพื้นที่คนละ 50%) */}
-        <div className="w-full h-1/2 border-b border-dashed border-gray-400 overflow-hidden box-border">
+        {/* ครึ่งบน: สูง 145mm (รวม 2 ครึ่ง = 290mm ห่างจากขอบ A4 เล็กน้อย) */}
+        <div className="w-full h-[145mm] border-b border-dashed border-gray-400 overflow-hidden box-border">
           <ReceiptHalf 
             isCopy={false} 
             items={items} 
@@ -224,8 +220,8 @@ const BillMonthlyPrintTemplate = ({
           />
         </div>
 
-        {/* ครึ่งล่าง: สำเนา (แบ่งพื้นที่คนละ 50%) */}
-        <div className="w-full h-1/2 overflow-hidden box-border">
+        {/* ครึ่งล่าง: สูง 145mm */}
+        <div className="w-full h-[145mm] overflow-hidden box-border">
           <ReceiptHalf 
             isCopy={true} 
             items={items} 
