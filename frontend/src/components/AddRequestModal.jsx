@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { DateInput } from "../components/DateController";
+import { ExitButton } from "../components/ActionButtons";
 
 const FieldLabel = ({ children, required }) => (
   <label className="text-[13px] font-bold text-gray-500 mb-2 ml-1 block">
@@ -8,13 +9,16 @@ const FieldLabel = ({ children, required }) => (
   </label>
 );
 
-const InputField = ({ type = "text", ...props }) => (
+const InputField = ({ type = "text", value, ...props }) => (
   <input
     type={type}
+    // ✅ ดักค่า null/undefined ให้เป็น "" เสมอ ป้องกัน Error: Uncontrolled input
+    value={value ?? ""} 
     {...props}
     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#f3a638] transition-all placeholder:text-gray-400"
   />
 );
+
 // สร้าง State สำหรับเก็บข้อมูลตาม Schema ที่กำหนด
 const RequestModal = ({ isOpen, onClose, onSave }) => {
   const [formData, setFormData] = useState({
@@ -31,6 +35,7 @@ const RequestModal = ({ isOpen, onClose, onSave }) => {
 
   useEffect(() => {
     if (isOpen) {
+      // รีเซ็ตค่าฟอร์มกลับเป็นค่าเริ่มต้นเมื่อเปิด Modal ใหม่ (ถ้าต้องการ)
       setFormData((prev) => ({
         ...prev,
         requestDate: new Date().toISOString().split("T")[0],
@@ -62,141 +67,143 @@ const RequestModal = ({ isOpen, onClose, onSave }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex flex-col md:flex-row md:items-center justify-center bg-black/30 backdrop-blur-sm p-0 md:p-4 overflow-hidden"
       onClick={onClose}
     >
       <div
-        className="bg-white p-8 rounded-[40px] shadow-2xl w-full max-w-2xl animate-in zoom-in duration-200"
+        className="w-full h-[100dvh] md:h-auto md:max-h-[90vh] md:max-w-2xl bg-white flex flex-col rounded-none md:rounded-[40px] overflow-hidden shadow-2xl animate-in zoom-in duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="relative flex items-center justify-between mb-6">
+        <div className="shrink-0 relative flex items-center justify-between p-6 md:p-8 pb-4">
           <h2 className="text-2xl font-bold text-gray-800">เพิ่มการแจ้ง</h2>
-          <button
-            onClick={onClose}
-            className="absolute right-0 p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X size={24} strokeWidth={3} />
-          </button>
+          <ExitButton onClick={onClose} />
         </div>
 
-        {/* Form Body */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-          {" "}
-          <div className="col-span-1">
-            <FieldLabel required>เลขห้อง</FieldLabel>
-            <InputField
-              name="roomNumber"
-              value={formData.roomNumber}
-              onChange={handleChange}
-            />
-          </div>
-          <div className="col-span-1">
-            {/* <FieldLabel required>วันที่แจ้ง</FieldLabel>
-            <InputField type="date" name="requestDate" value={formData.requestDate} onChange={handleChange}   /> */}
-            <DateInput
-              label="วันที่แจ้ง"
-              name="requestDate"
-              value={formData.requestDate}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="col-span-1">
-            <FieldLabel required>เรื่องที่แจ้ง</FieldLabel>
-            <div className="relative">
-              <select
-                name="subject"
-                value={formData.subject}
+        {/* Form Body: flex-1 overflow-y-auto ให้ Scroll ได้ */}
+        <div className="flex-1 overflow-y-auto px-6 md:px-8 py-2">
+          
+          {/* 3. ✅ Grid: 1 คอลัมน์บนมือถือ, 2 คอลัมน์บนคอม */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+            
+            <div className="col-span-1">
+              <FieldLabel required>เลขห้อง</FieldLabel>
+              <InputField
+                name="roomNumber"
+                value={formData.roomNumber}
                 onChange={handleChange}
-                className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#f3a638] focus:ring-2 focus:ring-[#f3a638]/20 appearance-none cursor-pointer transition-all font-medium text-gray-700"
-              >
-                <option value="fix">แจ้งซ่อม</option>
-                <option value="clean">ทำความสะอาด</option>
-                <option value="leave">แจ้งย้ายออก</option>
-                <option value="other">อื่นๆ</option>
-              </select>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-700">
-                <ChevronDown size={20} />
-              </div>
-            </div>
-          </div>
-          <div className="col-span-1">
-            <FieldLabel required>สถานะการดำเนินการ</FieldLabel>
-            <div className="relative">
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#f3a638] focus:ring-2 focus:ring-[#f3a638]/20 appearance-none cursor-pointer transition-all font-medium text-gray-700"
-              >
-                <option value="pending">รอดำเนินการ</option>
-                <option value="finish">เสร็จสิ้น</option>
-                <option value="cancel">ยกเลิก</option>
-              </select>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-700">
-                <ChevronDown size={20} />
-              </div>
-            </div>
-          </div>
-          <div className="col-span-2">
-            <FieldLabel>รายละเอียด</FieldLabel>
-            <textarea
-              name="body"
-              rows="3"
-              value={formData.body}
-              onChange={handleChange}
-              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#f3a638]"
-            />
-          </div>
-          <div className="col-span-1">
-            <DateInput
-              label="วันนัดหมาย"
-              name="appointmentDate"
-              value={formData.appointmentDate}
-              onChange={handleChange}
-            />
-          </div>
-          <div className="col-span-1 relative">
-            <FieldLabel>ค่าใช้จ่าย (ถ้ามี)</FieldLabel>
-            <InputField
-              type="number"
-              name="cost"
-              value={formData.cost}
-              onChange={handleChange}
-            />
-            <div className="absolute top-22 left-2 flex items-center gap-2">
-              <input
-                type="checkbox"
-                name="isTenantCost"
-                checked={formData.isTenantCost}
-                onChange={handleChange}
-                className="w-4 h-4 accent-[#f3a638] cursor-pointer"
               />
-              <span className="text-xs text-gray-500">ผู้เช่าจ่าย</span>
             </div>
-          </div>
-          <div className="col-span-2 ">
-            <FieldLabel>หมายเหตุ</FieldLabel>
-            <InputField
-              type="text"
-              name="note"
-              value={formData.note}
-              onChange={handleChange}
-              placeholder="บันทึกเพิ่มเติมสำหรับผู้ดูแล..."
-            />
+
+            <div className="col-span-1">
+              <DateInput
+                label="วันที่แจ้ง"
+                name="requestDate"
+                value={formData.requestDate}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="col-span-1">
+              <FieldLabel required>เรื่องที่แจ้ง</FieldLabel>
+              <div className="relative group">
+                <select
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleChange}
+                  className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#f3a638] focus:ring-2 focus:ring-[#f3a638]/20 appearance-none cursor-pointer transition-all font-medium text-gray-700"
+                >
+                  <option value="fix">แจ้งซ่อม</option>
+                  <option value="clean">ทำความสะอาด</option>
+                  <option value="leave">แจ้งย้ายออก</option>
+                  <option value="other">อื่นๆ</option>
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-[#f3a638] transition-all">
+                  <ChevronDown size={20} />
+                </div>
+              </div>
+            </div>
+
+            <div className="col-span-1">
+              <FieldLabel required>สถานะการดำเนินการ</FieldLabel>
+              <div className="relative group">
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                  className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#f3a638] focus:ring-2 focus:ring-[#f3a638]/20 appearance-none cursor-pointer transition-all font-medium text-gray-700"
+                >
+                  <option value="pending">รอดำเนินการ</option>
+                  <option value="finish">เสร็จสิ้น</option>
+                  <option value="cancel">ยกเลิก</option>
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-[#f3a638] transition-all">
+                  <ChevronDown size={20} />
+                </div>
+              </div>
+            </div>
+
+            <div className="col-span-1 md:col-span-2">
+              <FieldLabel>รายละเอียด</FieldLabel>
+              <textarea
+                name="body"
+                rows="3"
+                value={formData.body}
+                onChange={handleChange}
+                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#f3a638]"
+              />
+            </div>
+
+            <div className="col-span-1">
+              <DateInput
+                label="วันนัดหมาย"
+                name="appointmentDate"
+                value={formData.appointmentDate}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="col-span-1 relative">
+              <FieldLabel>ค่าใช้จ่าย (ถ้ามี)</FieldLabel>
+              <InputField
+                type="number"
+                name="cost"
+                value={formData.cost}
+                onChange={handleChange}
+              />
+              <div className="absolute top-22 left-2 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="isTenantCost"
+                  checked={formData.isTenantCost}
+                  onChange={handleChange}
+                  className="w-4 h-4 accent-[#f3a638] cursor-pointer"
+                />
+                <span className="text-xs text-gray-500">ผู้เช่าจ่าย</span>
+              </div>
+            </div>
+
+            <div className="mt-6 col-span-1 md:col-span-2">
+              <FieldLabel>หมายเหตุ</FieldLabel>
+              <InputField
+                type="text"
+                name="note"
+                value={formData.note}
+                onChange={handleChange}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Footer Buttons */}
-        <div className="flex gap-4 pt-6 mt-6 border-t border-gray-400">
+        <div className="shrink-0 flex gap-4 p-6 pt-4 border-t border-gray-100 bg-white pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           <button
             onClick={handleSubmit}
-            className="flex-1  bg-[#f3a638] text-white py-4 rounded-2xl font-bold shadow-lg shadow-orange-100 hover:brightness-90 transition-all"
+            className="flex-1 bg-[#f3a638] text-white py-3 rounded-2xl font-bold shadow-md shadow-orange-100 hover:brightness-90 transition-all"
           >
             บันทึก
           </button>
         </div>
+
       </div>
     </div>
   );

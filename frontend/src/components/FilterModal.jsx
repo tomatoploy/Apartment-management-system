@@ -1,5 +1,5 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { ExitButton } from './ActionButtons';
 
 const FilterModal = ({ 
   isOpen, 
@@ -24,12 +24,7 @@ const FilterModal = ({
         {/* Header: หัวข้ออยู่ตรงกลาง ปุ่มปิดอยู่ขวาสุด */}
         <div className="relative flex items-center justify-center mb-8">
           <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
-          <button
-            onClick={onClose}
-            className="absolute p-2 right-0 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X size={24} strokeWidth={3} />
-          </button>
+          <ExitButton onClick={onClose} className="absolute right-0" />      
         </div>
 
         {/* Content Section: รับเนื้อหาจากภายนอกผ่าน children */}

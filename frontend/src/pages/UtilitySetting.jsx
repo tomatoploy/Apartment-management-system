@@ -99,9 +99,7 @@ const ConstantPanel = ({ constants, onClose, onSaved }) => {
             <h3 className="text-lg font-black text-gray-800">ค่า Constant น้ำ-ไฟ</h3>
             <p className="text-xs font-bold text-gray-400 mt-0.5">แก้ไขได้ ลบไม่ได้</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
-            <X size={20} strokeWidth={3} />
-          </button>
+          <ExitButton onClick={onClose} className="absolute right-0" />
         </div>
 
         <div className="px-7 py-5 space-y-3 max-h-[55vh] overflow-y-auto">

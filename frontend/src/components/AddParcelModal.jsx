@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { DateInput } from "./DateController";
+import { ExitButton } from "./ActionButtons";
 
 const FieldLabel = ({ children, required }) => (
   <label className="text-[13px] font-bold text-gray-500 mb-2 ml-1 block">
@@ -8,9 +9,10 @@ const FieldLabel = ({ children, required }) => (
   </label>
 );
 
-const InputField = ({ type = "text", ...props }) => (
+const InputField = ({ type = "text", value, ...props }) => (
   <input
     type={type}
+    value={value ?? ""} // ✅ ป้องกัน Error Uncontrolled input
     {...props}
     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl
     focus:outline-none focus:border-[#f3a638] transition-all
@@ -70,132 +72,124 @@ const AddParcelModal = ({ isOpen, onClose, onSave }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center
-      bg-black/30 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex flex-col md:flex-row md:items-center justify-center bg-black/30 backdrop-blur-sm p-0 md:p-4 overflow-hidden"
       onClick={onClose}
     >
       <div
-        className="bg-white p-8 rounded-[40px] shadow-2xl
-        w-full max-w-2xl animate-in zoom-in duration-200
-        max-h-[90vh] overflow-y-auto" // ✅ เพิ่ม Scroll
+        className="w-full h-[100dvh] md:h-auto md:max-h-[90vh] md:max-w-2xl bg-white flex flex-col rounded-none md:rounded-[40px] overflow-hidden shadow-2xl animate-in zoom-in duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative flex items-center justify-between mb-6">
+        <div className="shrink-0 relative flex items-center justify-between p-6 md:p-8 pb-4">
           <h2 className="text-2xl font-bold text-gray-800">เพิ่มรายการพัสดุ</h2>
-          <button
-            onClick={onClose}
-            className="absolute right-0 p-2 hover:bg-gray-100
-            rounded-full transition-colors"
-          >
-            <X size={24} strokeWidth={3} />
-          </button>
+          <ExitButton onClick={onClose} />
         </div>
 
-        <div className="grid grid-cols-2 gap-4 text-left">
-          <div>
-            <FieldLabel required>เลขห้อง</FieldLabel>
-            <InputField
-              name="roomNumber"
-              value={formData.roomNumber}
-              onChange={handleChange}
-              placeholder="ระบุเลขห้อง"
-            />
-          </div>
-
-          <div>
-            <FieldLabel>ชื่อผู้รับ</FieldLabel>
-            <InputField
-              name="recipient"
-              value={formData.recipient}
-              onChange={handleChange}
-              placeholder="ระบุชื่อผู้มารับพัสดุ"
-            />
-          </div>
-
-          <div>
-            <FieldLabel>บริษัทขนส่ง</FieldLabel>
-            <div className="relative group">
-              <select
-                name="shippingCompany"
-                value={formData.shippingCompany}
+        <div className="flex-1 overflow-y-auto px-6 md:px-8 py-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+            <div className="col-span-1">
+              <FieldLabel required>เลขห้อง</FieldLabel>
+              <InputField
+                name="roomNumber"
+                value={formData.roomNumber}
                 onChange={handleChange}
-                className="w-full p-3.5 bg-gray-50 border border-gray-200
-                rounded-2xl appearance-none focus:outline-none
-                focus:border-[#f3a638] font-medium text-gray-700"
-              >
-                <option value="thaipost">ไปรษณีย์ไทย</option>
-                <option value="kerry">Kerry Express</option>
-                <option value="j&t">J&T Express</option>
-                <option value="shopee">Shopee Express</option>
-                <option value="lazada">Lazada Logistics</option>
-                <option value="dhl">DHL</option>
-                <option value="other">อื่นๆ</option>
-              </select>
-              <ChevronDown
-                size={20}
-                className="absolute right-4 top-1/2 -translate-y-1/2
-                text-gray-400 pointer-events-none"
+              />
+            </div>
+
+            <div className="col-span-1">
+              <FieldLabel>ชื่อผู้รับ</FieldLabel>
+              <InputField
+                name="recipient"
+                value={formData.recipient}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="col-span-1">
+              <FieldLabel>บริษัทขนส่ง</FieldLabel>
+              <div className="relative group">
+                <select
+                  name="shippingCompany"
+                  value={formData.shippingCompany}
+                  onChange={handleChange}
+                  className="w-full p-3.5 bg-gray-50 border border-gray-200
+                  rounded-2xl appearance-none focus:outline-none
+                  focus:border-[#f3a638] font-medium text-gray-700"
+                >
+                  <option value="thaipost">ไปรษณีย์ไทย</option>
+                  <option value="kerry">Kerry Express</option>
+                  <option value="j&t">J&T Express</option>
+                  <option value="shopee">Shopee Express</option>
+                  <option value="lazada">Lazada Logistics</option>
+                  <option value="dhl">DHL</option>
+                  <option value="other">อื่นๆ</option>
+                </select>
+                <ChevronDown
+                  size={20}
+                  className="absolute right-4 top-1/2 -translate-y-1/2
+                  text-gray-400 pointer-events-none"
+                />
+              </div>
+            </div>
+
+            <div className="col-span-1">
+              <FieldLabel>ประเภท</FieldLabel>
+              <div className="relative group">
+                <select
+                  name="type"
+                  value={formData.type}
+                  onChange={handleChange}
+                  className="w-full p-3.5 bg-gray-50 border border-gray-200
+                  rounded-2xl appearance-none focus:outline-none
+                  focus:border-[#f3a638] font-medium text-gray-700"
+                >
+                  <option value="box">กล่อง</option>
+                  <option value="pack">ซอง</option>
+                  <option value="other">อื่นๆ</option>
+                </select>
+                <ChevronDown
+                  size={20}
+                  className="absolute right-4 top-1/2 -translate-y-1/2
+                  text-gray-400 pointer-events-none"
+                />
+              </div>
+            </div>
+
+            <div className="col-span-1 md:col-span-2">
+              <FieldLabel>เลขติดตามพัสดุ</FieldLabel>
+              <InputField
+                name="trackingNumber"
+                value={formData.trackingNumber}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="col-span-1">
+              <DateInput
+                label="วันที่พัสดุมาถึง"
+                name="arrivalDate"
+                value={formData.arrivalDate}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            
+            <div className="col-span-1">
+              <DateInput
+                label="วันที่รับพัสดุ"
+                name="pickupDate"
+                value={formData.pickupDate}
+                onChange={handleChange}
               />
             </div>
           </div>
-
-          <div>
-            <FieldLabel>ประเภท</FieldLabel>
-            <div className="relative group">
-              <select
-                name="type"
-                value={formData.type}
-                onChange={handleChange}
-                className="w-full p-3.5 bg-gray-50 border border-gray-200
-                rounded-2xl appearance-none focus:outline-none
-                focus:border-[#f3a638] font-medium text-gray-700"
-              >
-                <option value="box">กล่อง</option>
-                <option value="pack">ซอง</option>
-                <option value="other">อื่นๆ</option>
-              </select>
-              <ChevronDown
-                size={20}
-                className="absolute right-4 top-1/2 -translate-y-1/2
-                text-gray-400 pointer-events-none"
-              />
-            </div>
-          </div>
-
-          <div className="col-span-2">
-            <FieldLabel>หมายเลข Tracking</FieldLabel>
-            <InputField
-              name="trackingNumber"
-              value={formData.trackingNumber}
-              onChange={handleChange}
-              placeholder="ระบุเลขติดตามพัสดุ"
-            />
-          </div>
-
-          <div>
-            <DateInput
-              label="วันที่พัสดุมาถึง"
-              name="arrivalDate"
-              value={formData.arrivalDate}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div>
-            <DateInput
-              label="วันที่รับพัสดุ"
-              name="pickupDate"
-              value={formData.pickupDate}
-              onChange={handleChange}
-            />
-          </div>
         </div>
 
-        <div className="flex gap-4 pt-6 mt-6 border-t border-gray-200">
+        {/* Footer  */}
+        <div className="shrink-0 flex gap-4 p-6 pt-4 border-t border-gray-100 bg-white pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           <button
             onClick={handleSubmit}
-            className="flex-1 bg-[#f3a638] text-white py-4
-            rounded-2xl font-bold shadow-lg hover:brightness-90"
+            className="flex-1 bg-[#f3a638] text-white py-3
+            rounded-2xl font-bold shadow-lg shadow-orange-100 hover:brightness-90 transition-all"
           >
             บันทึก
           </button>

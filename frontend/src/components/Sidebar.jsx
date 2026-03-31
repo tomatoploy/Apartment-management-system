@@ -50,12 +50,13 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-    useEffect(() => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        navigate("/login", { replace: true });
-      }
-    }, [navigate]);
+  //logout
+  useEffect(() => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    navigate("/login", { replace: true });
+  }
+}, [navigate]);
 
   return (
     <>
