@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import logoImg from '../assets/logo.png'; 
 
 const bahtText = (num) => {
@@ -41,15 +41,17 @@ const parseMeterInfo = (detailStr) => {
   return null;
 };
 
+// Component สำหรับการแสดงครึ่งหน้า
 const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, total, billTitle }) => {
   const printDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
   return (
-    <div className="w-full h-[144mm] flex flex-col box-border bg-white text-black px-10 py-4 overflow-hidden">
+    // 💡 ใช้โครงสร้างจาก "โค้ดอันบน" ที่จัดหน้าสวยแล้ว แต่ปรับ Padding ลดลงนิดนึงกันล้น
+    <div className="w-full h-full flex flex-col box-border bg-white text-black px-8 py-3 overflow-hidden">
       
       {/* --- หัวบิล --- */}
       <div className="flex justify-between items-start mb-2 border-b border-gray-200 pb-1 shrink-0">
-        <div className="flex items-center gap-3 w-[50%]">
+        <div className="flex items-center gap-3 w-[55%]">
           <img 
             src={logoImg} 
             alt="Logo" 
@@ -58,16 +60,15 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
           />
           <div className="leading-tight">
             <h1 className="text-[16px] font-black">{apt.name}</h1>
-            <p className="text-[9px] text-gray-700">{apt.address}</p>
-            <p className="text-[9px] text-gray-700">โทร. {apt.phone} | อีเมล. {apt.email || "-"}</p>
+            <p className="text-[10px] text-gray-700">{apt.address}</p>
+            <p className="text-[10px] text-gray-700">โทร. {apt.phone} | อีเมล. {apt.email || "-"}</p>
           </div>
         </div>
 
-        <div className="w-[50%] flex items-center justify-end gap-2 leading-tight">
+        <div className="w-[45%] flex items-center justify-end gap-2 leading-tight">
           <div className="text-right">
-            <h2 className="text-[16px] font-black">
-              {isCopy ? `${billTitle} (สำเนา)` : billTitle}
-            </h2>
+            {/* 💡 ดึง billTitle มาใช้จากโค้ดอันล่าง */}
+            <h2 className="text-[16px] font-black">{isCopy ? `${billTitle} (สำเนา)` : billTitle}</h2>
             <div className="flex flex-col items-end text-[9px] text-gray-800 space-y-0.5">
               <span><b className="font-bold">รอบบิล:</b> {ctc.cycleStart} - {ctc.cycleEnd}</span>
               <span><b className="font-bold">วันที่พิมพ์:</b> {printDate}</span>
@@ -107,17 +108,22 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
             {items.map((item, idx) => {
               const meter = parseMeterInfo(item.detail);
               let labelName = item.label || 'รายการทั่วไป';
+              
+              // 💡 ใช้ Logic การแสดงชื่อจาก "โค้ดอันล่าง"
               if (item.type === 'rent') labelName = 'ค่าเช่าห้อง';
               if (item.type === 'discount') labelName = 'ส่วนลด';
+              
               if (item.type === 'electric') {
-                let detail = item.detail || "";
-                detail = detail.replace(/ไฟ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(");
-                labelName = detail ? `ค่าไฟฟ้า ${detail}` : `ค่าไฟฟ้า`;
+                 let detail = item.detail || "";
+                 // ตัดคำว่า "ไฟ:" ออก เพื่อความสวยงาม
+                 detail = detail.replace(/ไฟ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(");
+                 labelName = detail ? `ค่าไฟฟ้า ${detail}` : `ค่าไฟฟ้า`;
               }
               if (item.type === 'water') {
-                let detail = item.detail || "";
-                detail = detail.replace(/น้ำ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(");
-                labelName = detail ? `ค่าน้ำประปา ${detail}` : `ค่าน้ำประปา`;
+                 let detail = item.detail || "";
+                 // ตัดคำว่า "น้ำ:" ออก เพื่อความสวยงาม
+                 detail = detail.replace(/น้ำ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(");
+                 labelName = detail ? `ค่าน้ำประปา ${detail}` : `ค่าน้ำประปา`;
               }
 
               return (
@@ -138,9 +144,9 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
         </table>
       </div>
 
-      {/* --- Footer --- */}
-      {/* mt-auto ดัน footer ลงล่างเสมอ ไม่ว่า items จะน้อยแค่ไหน */}
-      <div className="mt-auto pt-1">
+      {/* --- Footer (ยอดรวม & ข้อมูลโอนเงิน) --- */}
+      {/* 💡 ใช้ mt-auto จาก "โค้ดอันล่าง" ดันให้ส่วนนี้อยู่ติดขอบล่างเสมอ */}
+      <div className="mt-auto shrink-0 pb-1">
         <div className="flex border-2 border-black text-[12px] rounded-sm overflow-hidden h-[30px]">
           <div className="flex-1 px-4 flex items-center bg-gray-50 font-bold italic text-gray-700 border-r-2 border-black">
             ยอดเงินสุทธิ {bahtText(total)}
@@ -150,18 +156,18 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
           </div>
         </div>
 
-        <div className="flex justify-between items-end mt-2 text-[9px]">
+        <div className="flex justify-between items-end mt-2 text-[10px]">
           <div className="w-[65%] border border-gray-200 rounded px-3 py-1.5 bg-gray-50 leading-tight">
             <p className="font-bold text-black mb-1">ชำระเงินผ่านบัญชีธนาคาร</p>
             <p>{apt.bankName || "ธนาคารกสิกรไทย สาขาถนนสวรรค์วิถี"}</p>
-            <p className="font-black text-[13px] tracking-wider text-black">{apt.bankAccNo || "XXX-X-XXXXX-X"}</p>
-            <p>ชื่อบัญชี: {apt.name} | Line: {apt.lineId || "-"}</p>
+            <p className="font-black text-[13px] tracking-wider text-black mt-0.5">{apt.bankAccNo || "XXX-X-XXXXX-X"}</p>
+            <p className="mt-0.5">ชื่อบัญชี: {apt.name} | Line: {apt.lineId || "-"}</p>
           </div>
 
           <div className="w-[30%] text-center pb-1">
             <div className="border-b border-black border-dashed mb-1 w-full mx-auto"></div>
             <p className="font-bold text-black text-[11px]">( {adminName} )</p>
-            <p className="text-[9px] text-gray-500">ผู้รับเงิน / ผู้ออกบิล</p>
+            <p className="text-[9px] text-gray-500 mt-0.5">ผู้รับเงิน / ผู้ออกบิล</p>
           </div>
         </div>
       </div>
@@ -169,14 +175,27 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
   );
 };
 
+// Component หลักสำหรับประกอบร่าง
 const BillMonthlyPrintTemplate = ({ 
   items = [], roomNumber = "-", apartmentInfo = null, 
-  customerInfo = null, contractInfo = null, adminName = "-", total = 0,
-  billTitle = "ใบแจ้งหนี้ / ใบเสร็จรับเงิน"
+  customerInfo = null, contractInfo = null, adminName = "-", total = 0, 
+  billTitle = "ใบแจ้งหนี้ / ใบเสร็จรับเงิน" 
 }) => {
+  
+  // 💡 ฟังก์ชันตั้งชื่อไฟล์ PDF ตอน Save โดยอัตโนมัติ
+  useEffect(() => {
+    const originalTitle = document.title;
+    // สกัดเอาชื่อเดือนจาก ctc.cycleEnd ถ้ามี
+    const cycleDate = contractInfo?.cycleEnd || new Date().toLocaleDateString('th-TH');
+    document.title = `บิลค่าเช่า_ห้อง${roomNumber}_${cycleDate.replace(/\//g, '-')}`;
+    
+    // คืนค่า title เดิมเมื่อ Component นี้ถูกทำลาย
+    return () => { document.title = originalTitle; };
+  }, [roomNumber, contractInfo]);
+
   const apt = apartmentInfo || { 
     name: "หอพักนิตยวดี", 
-    address: "63/246 ถนน ดาวดึงส์ อ.เมือง นครสวรรค์ 60000", 
+    address: "63/246 ถนน ดาวดึงส์ อ.เมือง นครสวรรค์ 70000", 
     phone: "0867439033", 
     lineId: "@075fbmzv", 
     email: "seniordorm.2025@gmail.com",
@@ -189,69 +208,47 @@ const BillMonthlyPrintTemplate = ({
   return (
     <>
       <style>{`
-        @media print {
-          @page { size: A4 portrait; margin: 0 !important; }
-          body, html {
-            margin: 0 !important;
-            padding: 0 !important;
-            background: white !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-          .print-hide { display: none !important; }
-        }
-        /* ซ่อนบนหน้าจอ ไม่แสดงที่หน้า billdetail */
+        /* 💡 ซ่อนบนหน้าจอปกติ */
         @media screen {
           #bill-print-area { display: none !important; }
         }
-        /* แสดงเฉพาะตอนกด print */
+        
+        /* 💡 แสดงผลเฉพาะตอนสั่งปริ้นต์และบังคับขนาดหน้ากระดาษ */
         @media print {
+          @page { size: A4 portrait; margin: 0 !important; }
+          body, html { 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            background: white !important; 
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact;
+          }
           #bill-print-area { display: flex !important; }
         }
       `}</style>
 
-      <div
+      {/* Container หลักตอนปริ้นต์ บังคับขนาด A4 และจัดกึ่งกลางให้สวยงาม */}
+      <div 
         id="bill-print-area"
-        style={{
-          flexDirection: 'column',
-          width: '210mm',
-          height: '290mm',
-          margin: '0 auto',
-          background: 'white',
-          boxSizing: 'border-box',
-          overflow: 'hidden',
-        }}
+        className="hidden flex-col mx-auto bg-white box-border text-black overflow-hidden relative"
+        style={{ width: '210mm', height: '290mm' }} /* ใช้ 290mm แทน 297mm ป้องกันล้นขอบกระดาษ */
       >
         {/* ครึ่งบน — ต้นฉบับ */}
-        <div style={{ flexShrink: 0, height: '144mm', overflow: 'hidden' }}>
-          <ReceiptHalf
-            isCopy={false}
-            items={items}
-            roomNumber={roomNumber}
-            apt={apt}
-            cst={cst}
-            ctc={ctc}
-            adminName={adminName}
-            total={total}
-            billTitle={billTitle}
+        <div style={{ flexShrink: 0, height: '145mm', overflow: 'hidden' }}>
+          <ReceiptHalf 
+            isCopy={false} items={items} roomNumber={roomNumber} apt={apt} 
+            cst={cst} ctc={ctc} adminName={adminName} total={total} billTitle={billTitle} 
           />
         </div>
 
-        {/* เส้นแบ่งกลาง */}
+        {/* เส้นประแบ่งกลางกระดาษ */}
         <div style={{ borderBottom: '1px dashed #9ca3af', width: '100%', flexShrink: 0 }} />
 
         {/* ครึ่งล่าง — สำเนา */}
-        <div style={{ flexShrink: 0, height: '144mm', overflow: 'hidden' }}>
-          <ReceiptHalf
-            isCopy={true}
-            items={items}
-            roomNumber={roomNumber}
-            apt={apt}
-            cst={cst}
-            ctc={ctc}
-            adminName={adminName}
-            total={total}
-            billTitle={billTitle}
+        <div style={{ flexShrink: 0, height: '145mm', overflow: 'hidden' }}>
+          <ReceiptHalf 
+            isCopy={true} items={items} roomNumber={roomNumber} apt={apt} 
+            cst={cst} ctc={ctc} adminName={adminName} total={total} billTitle={billTitle} 
           />
         </div>
       </div>
