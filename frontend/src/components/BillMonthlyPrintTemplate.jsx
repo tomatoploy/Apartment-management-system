@@ -46,7 +46,8 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
   const printDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
   return (
-    <div className="w-full h-full flex flex-col box-border bg-white text-black px-10 py-6">
+    // 💡 ปรับลด Padding ลงนิดหน่อย (px-8 py-5) เพื่อไม่ให้ล้นขอบซ้ายขวา
+    <div className="w-full h-full flex flex-col box-border bg-white text-black px-8 py-5">
       
       {/* --- หัวบิล --- */}
       <div className="flex justify-between items-start mb-2 border-b border-gray-200 pb-2 shrink-0">
@@ -90,7 +91,7 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
         <div className="mt-0.5"><span className="font-bold">ที่อยู่:</span> {cst.address || "-"}</div>
       </div>
 
-      {/* --- ตารางรายการ (flex-1 จะดันให้ส่วนนี้ขยายเต็มพื้นที่ที่เหลือ เพื่อดัน Footer ลงล่างสุด) --- */}
+      {/* --- ตารางรายการ --- */}
       <div className="w-full flex-1 min-h-[50px]">
         <table className="w-full border-collapse text-[11px]">
           <thead>
@@ -191,21 +192,25 @@ const BillMonthlyPrintTemplate = ({
         @media print {
           @page { 
             size: A4 portrait; 
-            margin: 0 !important; 
+            margin: 0; /* ล้าง margin ของกระดาษออกทั้งหมด */
           }
           body, html { 
             margin: 0 !important; 
             padding: 0 !important; 
+            height: 100% !important; 
             background: white !important; 
+            -webkit-print-color-adjust: exact; /* บังคับให้ปริ้นต์สี Background (สีเทาในบิล) ออกมาด้วย */
           }
         }
       `}</style>
 
-      {/* 💡 เปลี่ยนเป็น hidden สำหรับจอปกติ และ block สำหรับตอนพิมพ์ */}
-      <div className="hidden print:block w-[210mm] h-[297mm] mx-auto bg-white box-border text-black">
+      {/* 💡 เปลี่ยนโครงสร้างเป็น print:flex และ print:h-screen เพื่อให้ความสูงยืดพอดี 1 หน้ากระดาษ
+        💡 ใช้ w-full เพื่อป้องกันด้านข้างโดนตัด 
+      */}
+      <div className="hidden print:flex print:flex-col print:w-full print:h-screen print:overflow-hidden bg-white box-border text-black">
         
-        {/* ครึ่งบน: ต้นฉบับ (ล็อกความสูงครึ่ง A4 พอดี) */}
-        <div className="w-full h-[148.5mm] border-b border-dashed border-gray-400 overflow-hidden box-border">
+        {/* ครึ่งบน: ต้นฉบับ (แบ่งพื้นที่คนละ 50%) */}
+        <div className="w-full h-1/2 border-b border-dashed border-gray-400 overflow-hidden box-border">
           <ReceiptHalf 
             isCopy={false} 
             items={items} 
@@ -219,8 +224,8 @@ const BillMonthlyPrintTemplate = ({
           />
         </div>
 
-        {/* ครึ่งล่าง: สำเนา (ล็อกความสูงครึ่ง A4 พอดี) */}
-        <div className="w-full h-[148.5mm] overflow-hidden box-border">
+        {/* ครึ่งล่าง: สำเนา (แบ่งพื้นที่คนละ 50%) */}
+        <div className="w-full h-1/2 overflow-hidden box-border">
           <ReceiptHalf 
             isCopy={true} 
             items={items} 
