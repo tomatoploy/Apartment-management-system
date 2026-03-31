@@ -45,42 +45,44 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
   const printDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
   return (
-    // 💡 ลด Padding ด้านบน (pt-1) เพื่อดันทุกอย่างขึ้น
-    <div className="w-full h-full flex flex-col box-border bg-white text-black px-6 pt-1 pb-3 overflow-hidden">
+    // 💡 ปรับลด Padding แบบสุดโหด: pt-0 (ด้านบนชิดขอบ) pb-1 (ด้านล่างชิดขอบ) px-4 (ด้านข้างหุบเข้ามานิดนึง)
+    <div className="w-full h-full flex flex-col box-border bg-white text-black px-4 pt-0 pb-1 overflow-hidden">
       
       {/* --- หัวบิล --- */}
-      <div className="flex justify-between items-start mb-1 border-b border-gray-200 pb-1 shrink-0">
-        <div className="flex items-center gap-2 w-[55%]">
+      {/* 💡 ลด Margin Bottom (mb-0.5) เพื่อให้ส่วนล่างขยับขึ้นมา */}
+      <div className="flex justify-between items-start mb-0.5 border-b border-gray-200 pb-0.5 shrink-0 mt-1">
+        <div className="flex items-center gap-1.5 w-[55%]">
           <img 
             src={logoImg} 
             alt="Logo" 
-            className="w-7 h-7 object-contain grayscale opacity-90"
+            className="w-6 h-6 object-contain grayscale opacity-90"
             onError={(e) => { e.target.style.display = 'none'; }} 
           />
           <div className="leading-tight">
-            <h1 className="text-[12px] font-black">{apt.name}</h1>
-            <p className="text-[7px] text-gray-700">{apt.address}</p>
-            <p className="text-[7px] text-gray-700">โทร. {apt.phone} | อีเมล. {apt.email || "-"}</p>
+            <h1 className="text-[11px] font-black">{apt.name}</h1>
+            <p className="text-[6px] text-gray-700">{apt.address}</p>
+            <p className="text-[6px] text-gray-700">โทร. {apt.phone} | อีเมล. {apt.email || "-"}</p>
           </div>
         </div>
 
-        <div className="w-[45%] flex items-center justify-end gap-2 leading-tight">
+        <div className="w-[45%] flex items-center justify-end gap-1.5 leading-tight">
           <div className="text-right">
-            <h2 className="text-[12px] font-black">{isCopy ? `${billTitle} (สำเนา)` : billTitle}</h2>
-            <div className="flex flex-col items-end text-[7px] text-gray-800 space-y-0.5 mt-0.5">
+            <h2 className="text-[11px] font-black">{isCopy ? `${billTitle} (สำเนา)` : billTitle}</h2>
+            <div className="flex flex-col items-end text-[6px] text-gray-800 space-y-0.5 mt-0.5">
               <span><b className="font-bold">รอบบิล:</b> {ctc.cycleStart} - {ctc.cycleEnd}</span>
               <span><b className="font-bold">วันที่พิมพ์:</b> {printDate}</span>
             </div>
           </div>
-          <div className="flex flex-col items-center border-[1.5px] border-black px-1.5 py-0.5 rounded bg-gray-50 min-w-[50px]">
-            <span className="font-bold text-[7px]">ห้อง (Room)</span>
-            <span className="text-[14px] font-black leading-none mt-0.5">{roomNumber}</span>
+          <div className="flex flex-col items-center border-[1px] border-black px-1.5 py-0.5 rounded bg-gray-50 min-w-[45px]">
+            <span className="font-bold text-[6px]">ห้อง (Room)</span>
+            <span className="text-[13px] font-black leading-none mt-0.5">{roomNumber}</span>
           </div>
         </div>
       </div>
 
       {/* --- ข้อมูลลูกค้า --- */}
-      <div className="text-[9px] text-gray-800 border-b border-gray-300 pb-1 mb-1.5 shrink-0">
+      {/* 💡 เอา mb ออกไปเลย เพื่อให้ตารางชิดขึ้น */}
+      <div className="text-[8px] text-gray-800 border-b border-gray-300 pb-0.5 shrink-0">
         <div className="flex justify-between">
           <div>
             <span className="font-bold">ลูกค้า:</span> {cst.title || ""}{cst.firstName || "-"} {cst.lastName || ""} 
@@ -91,16 +93,16 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
       </div>
 
       {/* --- ตารางรายการ --- */}
-      <div className="flex-1 w-full overflow-hidden">
-        {/* 💡 ลดขนาดตารางเป็น text-[9px] และบีบ padding */}
-        <table className="w-full border-collapse text-[9px]">
+      <div className="flex-1 w-full overflow-hidden mt-0.5">
+        {/* 💡 ลดขนาดตารางเป็น text-[8px] เล็กลงอีก */}
+        <table className="w-full border-collapse text-[8px]">
           <thead>
-            <tr className="border-b-[1.5px] border-black">
-              <th className="py-0.5 w-8 text-center font-bold">ลำดับ</th>
+            <tr className="border-b-[1px] border-black">
+              <th className="py-0.5 w-6 text-center font-bold">ลำดับ</th>
               <th className="py-0.5 px-1 text-left font-bold">รายการ (Description)</th>
-              <th className="py-0.5 w-12 text-center font-bold">จำนวน</th>
+              <th className="py-0.5 w-10 text-center font-bold">จำนวน</th>
               <th className="py-0.5 w-16 text-right pr-2 font-bold">ราคา/หน่วย</th>
-              <th className="py-0.5 w-20 text-right px-1 font-bold">รวมเงิน</th>
+              <th className="py-0.5 w-16 text-right px-1 font-bold">รวมเงิน</th>
             </tr>
           </thead>
           <tbody>
@@ -140,28 +142,28 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
       </div>
 
       {/* --- Footer --- */}
-      <div className="mt-auto shrink-0 pt-1">
-        <div className="flex border-[1.5px] border-black text-[10px] rounded-sm overflow-hidden h-[24px]">
-          <div className="flex-1 px-2 flex items-center bg-gray-50 font-bold italic text-gray-700 border-r-[1.5px] border-black">
+      <div className="mt-auto shrink-0 pt-0.5">
+        <div className="flex border-[1px] border-black text-[9px] rounded-sm overflow-hidden h-[22px]">
+          <div className="flex-1 px-2 flex items-center bg-gray-50 font-bold italic text-gray-700 border-r-[1px] border-black">
             ยอดเงินสุทธิ {bahtText(total)}
           </div>
-          <div className="w-32 px-2 flex items-center justify-end font-black text-[12px] text-black bg-gray-100">
+          <div className="w-28 px-2 flex items-center justify-end font-black text-[11px] text-black bg-gray-100">
             {total.toLocaleString(undefined, {minimumFractionDigits: 2})}
           </div>
         </div>
 
-        <div className="flex justify-between items-end mt-1 text-[7px]">
-          <div className="w-[65%] border border-gray-200 rounded px-2 py-1 bg-gray-50 leading-tight">
+        <div className="flex justify-between items-end mt-1 text-[6px]">
+          <div className="w-[65%] border border-gray-200 rounded px-1.5 py-1 bg-gray-50 leading-tight">
             <p className="font-bold text-black mb-0.5">ชำระเงินผ่านบัญชีธนาคาร</p>
             <p>{apt.bankName || "ธนาคารกสิกรไทย สาขาถนนสวรรค์วิถี"}</p>
-            <p className="font-black text-[10px] tracking-wider text-black mt-0.5">{apt.bankAccNo || "XXX-X-XXXXX-X"}</p>
+            <p className="font-black text-[9px] tracking-wider text-black mt-0.5">{apt.bankAccNo || "XXX-X-XXXXX-X"}</p>
             <p className="mt-0.5">ชื่อบัญชี: {apt.name} | Line: {apt.lineId || "-"}</p>
           </div>
 
           <div className="w-[30%] text-center pb-0.5">
             <div className="border-b border-black border-dashed mb-0.5 w-full mx-auto"></div>
-            <p className="font-bold text-black text-[9px]">( {adminName} )</p>
-            <p className="text-[7px] text-gray-500 mt-0.5">ผู้รับเงิน / ผู้ออกบิล</p>
+            <p className="font-bold text-black text-[8px]">( {adminName} )</p>
+            <p className="text-[6px] text-gray-500 mt-0.5">ผู้รับเงิน / ผู้ออกบิล</p>
           </div>
         </div>
       </div>
@@ -198,8 +200,11 @@ const BillMonthlyPrintTemplate = ({
   return (
     <>
       <style>{`
+        /* ปิดการแสดง scrollbar ทั้งหมดอย่างเด็ดขาด */
         ::-webkit-scrollbar {
-          display: none;
+          width: 0px !important;
+          height: 0px !important;
+          display: none !important;
         }
         
         @media print {
@@ -211,7 +216,7 @@ const BillMonthlyPrintTemplate = ({
             margin: 0 !important; 
             padding: 0 !important; 
             background: white !important; 
-            overflow: hidden !important; 
+            overflow: hidden !important; /* บังคับไม่ให้มี Scrollbar */
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
