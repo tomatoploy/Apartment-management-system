@@ -90,7 +90,7 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
       </div>
 
       {/* --- ตารางรายการ --- */}
-      <div className="w-full flex-1 min-h-[50px] overflow-hidden">
+      <div className="w-full min-h-0 flex-1 overflow-hidden">
         <table className="w-full border-collapse text-[11px]">
           <thead>
             <tr className="border-b-2 border-black">
