@@ -55,7 +55,6 @@ const RequestCalendar = ({ requests, subjectConfig, onItemClick }) => {
 
   const getAppointmentsForDay = (date) => {
     if (!date) return [];
-    // แปลงวันที่เป็น YYYY-MM-DD เพื่อเทียบกับข้อมูล (รองรับทั้ง Timezone ไทยและสากล)
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -65,18 +64,17 @@ const RequestCalendar = ({ requests, subjectConfig, onItemClick }) => {
   };
 
   return (
-    <div className="bg-white rounded-[30px] p-6 shadow-sm border border-gray-200">
+<div className="w-full bg-transparent md:bg-white rounded-none md:rounded-[30px] p-0 md:p-6 shadow-none md:shadow-sm border-0 md:border md:border-gray-200">      
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <CalendarIcon className="text-[#f3a638]" />
+      <div className="flex flex-wrap items-center justify-between mb-4 md:mb-6 gap-2">
+        <div className="flex items-center gap-1 md:gap-2">
+          <CalendarIcon className="text-[#f3a638] w-5 h-5 md:w-6 md:h-6 shrink-0" />
 
-          {/* Month + Year selector */}
-          <div className="flex gap-2">
+          <div className="flex gap-1 md:gap-2">
             <select
               value={currentDate.getMonth()}
               onChange={handleMonthChange}
-              className="px-3 py-1.5 rounded-xl bg-gray-100 font-bold text-gray-700"
+              className="px-1 md:px-3 py-1.5 rounded-lg md:rounded-xl bg-gray-100 font-bold text-gray-700 text-xs md:text-base outline-none"
             >
               {monthNames.map((name, index) => (
                 <option key={index} value={index}>{name}</option>
@@ -86,7 +84,7 @@ const RequestCalendar = ({ requests, subjectConfig, onItemClick }) => {
             <select
               value={currentDate.getFullYear()}
               onChange={handleYearChange}
-              className="px-3 py-1.5 rounded-xl bg-gray-100 font-bold text-gray-700"
+              className="px-1 md:px-3 py-1.5 rounded-lg md:rounded-xl bg-gray-100 font-bold text-gray-700 text-xs md:text-base outline-none"
             >
               {years.map((year) => (
                 <option key={year} value={year}>{year + 543}</option>
@@ -95,23 +93,27 @@ const RequestCalendar = ({ requests, subjectConfig, onItemClick }) => {
           </div>
         </div>
 
-        <div className="flex gap-2">
-          <button onClick={handlePrevMonth} className="p-2 hover:bg-gray-100 rounded-full">
-            <ChevronLeft />
+        <div className="flex gap-1 md:gap-2 ml-auto">
+          <button onClick={handlePrevMonth} className="p-1.5 md:p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
           </button>
-          <button onClick={handleNextMonth} className="p-2 hover:bg-gray-100 rounded-full">
-            <ChevronRight />
+          <button onClick={handleNextMonth} className="p-1.5 md:p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
           </button>
         </div>
       </div>
 
       {/* Calendar Grid */}
-      <div className="grid grid-cols-7 gap-px bg-gray-200 rounded-xl overflow-hidden border border-gray-200">
+      <div className="grid grid-cols-7 gap-px bg-gray-200 rounded-lg md:rounded-xl overflow-hidden border border-gray-200">
+        
+        {/* Days of week */}
         {daysOfWeek.map(day => (
-          <div key={day} className="bg-gray-50 p-3 text-center text-sm font-bold text-gray-500">
+          <div key={day} className="bg-gray-50 p-1 md:p-3 text-center text-[10px] md:text-sm font-bold text-gray-500">
             {day}
           </div>
         ))}
+
+        {/* Calendar Days */}
         {days.map((date, index) => {
           const appointments = getAppointmentsForDay(date);
           const isToday = date && date.toDateString() === new Date().toDateString();
@@ -119,53 +121,54 @@ const RequestCalendar = ({ requests, subjectConfig, onItemClick }) => {
           return (
             <div
               key={index}
-              className={`relative min-h-30 bg-white p-2 flex flex-col gap-1 transition-colors hover:bg-gray-50 ${
+              className={`relative min-h-[80px] md:min-h-[120px] bg-white p-1 md:p-2 flex flex-col gap-1 transition-colors hover:bg-gray-50 ${
                 !date ? "bg-gray-50/50" : ""
               }`}
             >
               {date && (
                 <>
-                  <span className={`text-sm font-bold mb-1 w-7 h-7 flex items-center justify-center rounded-full ${isToday ? 'bg-[#f3a638] text-white' : 'text-gray-700'}`}>
+                  <span className={`text-[10px] md:text-sm font-bold mb-0.5 md:mb-1 w-5 h-5 md:w-7 md:h-7 flex items-center justify-center rounded-full shrink-0 ${isToday ? 'bg-[#f3a638] text-white' : 'text-gray-700'}`}>
                     {date.getDate()}
                   </span>
 
                   {/* รายการนัดหมาย */}
-                  <div className="flex flex-col gap-1.5 overflow-y-auto max-h-20 no-scrollbar">
-                  {appointments.map(req => {
-  const subject = subjectConfig[req.subject] || subjectConfig.other;
-  const status = STATUS_CONFIG[req.status];
+                  <div className="flex flex-col gap-1 md:gap-1.5 overflow-y-auto max-h-[50px] md:max-h-20 no-scrollbar">
+                    {appointments.map(req => {
+                      const subject = subjectConfig[req.subject] || subjectConfig.other;
+                      const status = STATUS_CONFIG[req.status];
 
-  return (
-    <div
-      key={req.id}
-      onClick={() => onItemClick(req)}
-      title={`ห้อง ${req.roomNumber}\nเรื่อง: ${subject.label}\nสถานะ: ${status?.label ?? "-"}`}
-      className={`
-        ${subject.color}
-        text-[11px] px-2 py-1.5 rounded-lg cursor-pointer font-bold shadow-sm
-        transition-all hover:brightness-90 flex items-center gap-2
-      `}
-    >
-      {/* จุดสถานะ */}
-      {status && (
-        <span className={`w-2 h-2 rounded-full ${status.dot}`} />
-      )}
+                      return (
+                        <div
+                          key={req.id}
+                          onClick={() => onItemClick(req)}
+                          title={`ห้อง ${req.roomNumber}\nเรื่อง: ${subject.label}\nสถานะ: ${status?.label ?? "-"}`}
+                          // ✅ 5. ลดขนาด Padding และย่อข้อความในมือถือ
+                          className={`
+                            ${subject.color}
+                            text-[9px] md:text-[11px] px-1 md:px-2 py-1 md:py-1.5 rounded-md md:rounded-lg cursor-pointer font-bold shadow-sm
+                            transition-all hover:brightness-90 flex items-center gap-1 md:gap-2
+                          `}
+                        >
+                          {/* จุดสถานะ */}
+                          {status && (
+                            <span className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full shrink-0 ${status.dot}`} />
+                          )}
 
-      {/* ข้อความ */}
-      <span className="truncate">
-        {req.roomNumber} : {subject.label}
-      </span>
-    </div>
-  );
-})}
-
+                          {/* ข้อความ */}
+                          <span className="truncate w-full leading-tight">
+                            <span className="hidden md:inline">{req.roomNumber} : {subject.label}</span>
+                            {/* บนมือถืออาจจะโชว์แค่เลขห้องถ้ายาวเกิน หรือโชว์ย่อๆ */}
+                            <span className="md:hidden">{req.roomNumber}</span>
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </>
               )}
             </div>
           );
         })}
-        
       </div>
     </div>
   );

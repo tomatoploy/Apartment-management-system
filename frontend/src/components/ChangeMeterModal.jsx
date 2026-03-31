@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { X, Loader2 } from "lucide-react";
+import {  Loader2 } from "lucide-react";
+import { ExitButton } from "./ActionButtons";
 
 const ChangeMeterModal = ({ isOpen, onClose, onSave, room, meterType }) => {
  const [formData, setFormData] = useState({
@@ -91,12 +92,7 @@ const isInvalid = formData.oldMeterEnd === "" && formData.newMeterStart === "";
          <h2 className="text-xl font-bold text-gray-800">
            เปลี่ยน<span className="text-gray-800">{meterLabel}</span> ห้อง {room?.roomNumber}
          </h2>
-         <button
-           onClick={onClose}
-           className="absolute right-0 p-1 hover:bg-black/5 rounded-full text-gray-800 hover:text-gray-600 transition-colors"
-         >
-           <X size={24} />
-         </button>
+         <ExitButton onClick={onClose} />
        </div>
 
 
