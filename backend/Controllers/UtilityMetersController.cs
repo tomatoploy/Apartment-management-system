@@ -137,7 +137,7 @@ public class UtilityMetersController : ControllerBase
         return Ok(meter);
     }
 
-[HttpGet("by-month")]
+    [HttpGet("by-month")]
     public async Task<ActionResult<IEnumerable<UtilityMeterMonthlyDto>>> GetByMonth(
         [FromQuery] int year,
         [FromQuery] int month)
@@ -237,18 +237,19 @@ public class UtilityMetersController : ControllerBase
 
         if (existing != null)
         {
-            // UPDATE
-            existing.ElectricityUnit = p.ElectricityUnit;
-            existing.WaterUnit = p.WaterUnit;
-            existing.ChangeElectricityMeterStart = p.ChangeElectricityMeterStart;
-            existing.ChangeElectricityMeterEnd = p.ChangeElectricityMeterEnd;
-            existing.ChangeWaterMeterStart = p.ChangeWaterMeterStart;
-            existing.ChangeWaterMeterEnd = p.ChangeWaterMeterEnd;
-            existing.Note = p.Note;
+            // 🟡 UPDATE: อัปเดตเฉพาะที่มีค่าส่งมาเท่านั้น
+            if (p.ElectricityUnit.HasValue) existing.ElectricityUnit = p.ElectricityUnit;
+            if (p.WaterUnit.HasValue) existing.WaterUnit = p.WaterUnit;
+            if (p.ChangeElectricityMeterStart.HasValue) existing.ChangeElectricityMeterStart = p.ChangeElectricityMeterStart;
+            if (p.ChangeElectricityMeterEnd.HasValue) existing.ChangeElectricityMeterEnd = p.ChangeElectricityMeterEnd;
+            if (p.ChangeWaterMeterStart.HasValue) existing.ChangeWaterMeterStart = p.ChangeWaterMeterStart;
+            if (p.ChangeWaterMeterEnd.HasValue) existing.ChangeWaterMeterEnd = p.ChangeWaterMeterEnd;
+            
+            if (p.Note != null) existing.Note = p.Note;
         }
         else
         {
-            // INSERT
+            // 🟢 INSERT
             var meter = new UtilityMeter
             {
                 RoomId = p.RoomId,
@@ -268,23 +269,16 @@ public class UtilityMetersController : ControllerBase
         return Ok();
     }
 
-[HttpPost("bulk-upsert")]
-    public async Task<IActionResult> BulkUpsert(
-        [FromBody] List<UtilityMeterBulkDto> dtos)
+    [HttpPost("bulk-upsert")]
+    public async Task<IActionResult> BulkUpsert([FromBody] List<UtilityMeterBulkDto> dtos)
     {
         if (dtos == null || !dtos.Any())
             return BadRequest("Empty payload");
 
-        var validDtos = dtos; 
-
-        if (!validDtos.Any())
-            return Ok("No data");
-
-        foreach (var dto in validDtos)
+        foreach (var dto in dtos)
         {
             var recordDate = dto.RecordDate ?? DateOnly.FromDateTime(DateTime.Today);
 
-            // 🌟 หา Record ของเดือนนี้
             var existing = await _db.UtilityMeter
                 .Where(m =>
                     m.RoomId == dto.RoomId &&
@@ -296,7 +290,7 @@ public class UtilityMetersController : ControllerBase
 
             if (existing == null)
             {
-                // INSERT (ห้องที่ยังไม่เคยจดมิเตอร์เดือนนี้)
+                // 🟢 INSERT
                 var newMeter = new UtilityMeter
                 {
                     RoomId = dto.RoomId,
@@ -313,14 +307,17 @@ public class UtilityMetersController : ControllerBase
             }
             else
             {
-                // 🌟 UPDATE เซฟทับบรรทัดเดิมของเดือนนี้ไปเลย (ลบลอจิก isLocked ที่เช็ค * ทิ้ง)
-                existing.ElectricityUnit = dto.ElectricityUnit;
-                existing.WaterUnit = dto.WaterUnit;
+                // 🟡 UPDATE: ป้องกันการทับค่าเดิมด้วย null
+                if (dto.ElectricityUnit.HasValue) 
+                    existing.ElectricityUnit = dto.ElectricityUnit;
+
+                if (dto.WaterUnit.HasValue) 
+                    existing.WaterUnit = dto.WaterUnit;
                 
-                existing.ChangeElectricityMeterStart = dto.ChangeElectricityMeterStart;
-                existing.ChangeElectricityMeterEnd = dto.ChangeElectricityMeterEnd;
-                existing.ChangeWaterMeterStart = dto.ChangeWaterMeterStart;
-                existing.ChangeWaterMeterEnd = dto.ChangeWaterMeterEnd;
+                if (dto.ChangeElectricityMeterStart.HasValue) existing.ChangeElectricityMeterStart = dto.ChangeElectricityMeterStart;
+                if (dto.ChangeElectricityMeterEnd.HasValue) existing.ChangeElectricityMeterEnd = dto.ChangeElectricityMeterEnd;
+                if (dto.ChangeWaterMeterStart.HasValue) existing.ChangeWaterMeterStart = dto.ChangeWaterMeterStart;
+                if (dto.ChangeWaterMeterEnd.HasValue) existing.ChangeWaterMeterEnd = dto.ChangeWaterMeterEnd;
 
                 if (dto.Note != null) 
                     existing.Note = dto.Note;

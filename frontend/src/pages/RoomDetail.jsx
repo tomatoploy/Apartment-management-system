@@ -451,11 +451,11 @@ const RoomDetail = () => {
               <UserPlus size={48} />
             </div>
             <h3 className="text-xl font-black text-gray-500 mb-3">ไม่มีข้อมูลผู้เช่า</h3>
-            <OrangeButton
+            {/* <OrangeButton
               label="เพิ่มผู้เช่าใหม่"
               icon={Plus}
               onClick={() => navigate(`/rooms/${roomNumber}/add-tenant`)}
-            />
+            /> */}
           </div>
         )}
       </RoomHeader>
