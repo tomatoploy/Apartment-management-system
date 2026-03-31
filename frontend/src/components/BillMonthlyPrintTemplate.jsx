@@ -46,7 +46,7 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
 
   return (
     // ✨ เปลี่ยนจาก h-[144mm] เป็น h-full เพื่อให้ยืดหดพอดีกรอบแม่
-    <div className="w-full h-full flex flex-col box-border bg-white text-black px-10 py-4 overflow-hidden">
+    <div className="w-full min-h-[142mm] flex flex-col box-border bg-white text-black px-10 py-4 pb-6">
       
       <div className="flex justify-between items-start mb-2 border-b border-gray-200 pb-1">
         <div className="flex items-center gap-3 w-[50%]">
@@ -88,7 +88,7 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
         <div className="mt-0.5"><span className="font-bold">ที่อยู่:</span> {cst.address || "-"}</div>
       </div>
 
-      <div className="flex-1 w-full overflow-hidden">
+      <div className="w-full mb-auto pb-4">
         <table className="w-full border-collapse text-[11px]">
           <thead>
             <tr className="border-b-2 border-black">
@@ -205,16 +205,19 @@ const BillMonthlyPrintTemplate = ({
         }
       `}</style>
 
-      {/* ✨ เปลี่ยนเป็น 285mm */}
-      <div className="hidden print:flex flex-col w-[210mm] h-[285mm] bg-white mx-auto relative overflow-hidden box-border border-x border-gray-100 no-blank-page">
-        {/* ✨ เปลี่ยนเป็น 142mm */}
-        <div className="flex-none h-[142mm]">
-           <ReceiptHalf isCopy={false} items={items} roomNumber={roomNumber} apt={apt} cst={cst} ctc={ctc} adminName={adminName} total={total} billTitle={billTitle} />
-        </div>
-        <div className="flex-none border-b border-dashed border-gray-400 w-full h-0"></div>
-        {/* ✨ เปลี่ยนเป็น 142mm */}
-        <div className="flex-none h-[142mm]">
-           <ReceiptHalf isCopy={true} items={items} roomNumber={roomNumber} apt={apt} cst={cst} ctc={ctc} adminName={adminName} total={total} billTitle={billTitle} />
+      <div className="w-full px-2 py-6 print:py-0 flex justify-center">
+        <div className="receipt-paper w-[210mm] h-auto bg-white relative box-border border border-gray-200 shadow-xl text-black">
+          <ReceiptHalf 
+            isCopy={false} 
+            items={items} 
+            roomNumber={roomNumber} 
+            apt={apartmentInfo} 
+            cst={tenantInfo} 
+            ctc={{ cycleStart: cycleMonthYear, cycleEnd: cycleMonthYear }} 
+            adminName={adminName} 
+            total={totalAmount} 
+            billTitle={billTitle} 
+          />
         </div>
       </div>
     </>
