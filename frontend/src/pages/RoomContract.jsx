@@ -208,8 +208,12 @@ const RoomContract = () => {
   const [elecRate, setElecRate] = useState("");
   const [waterRate, setWaterRate] = useState("");
 
+  const todayStr = new Date().toISOString().split('T')[0];
+
   const [formData, setFormData] = useState({
-    startDate: "", endDate: "", monthlyRent: 0, deposit: 0,
+    startDate: todayStr,
+    endDate: todayStr,
+    monthlyRent: 0, deposit: 0,
     initialElectricUnit: 0, initialWaterUnit: 0, Note: "", 
   });
 
@@ -321,8 +325,14 @@ const RoomContract = () => {
         if (location.state?.autoEdit || activeContract.status === "Reserved") {
           setIsEditing(true);
         }
-      } else if (defaultRent) {
-        setFormData(prev => ({ ...prev, monthlyRent: defaultRent }));
+      } else {
+        const todayStr = new Date().toISOString().split('T')[0];
+        setFormData(prev => ({ 
+          ...prev, 
+          monthlyRent: defaultRent || 0,
+          startDate: todayStr,
+          endDate: todayStr 
+        }));
         setElecMode(rElec === "constant" ? "constant" : "custom");
         setWaterMode(rWater === "constant" ? "constant" : "custom");
       }
@@ -431,7 +441,7 @@ const RoomContract = () => {
 
       setFormData({
         startDate: today, 
-        endDate: "", 
+        endDate: today, // ✨ เปลี่ยนจาก "" เป็น today
         monthlyRent: renewRent,
         deposit: contract?.deposit || 0, 
         initialElectricUnit: latestMeter ? latestMeter.electricityUnit : (contract?.initialElectricUnit || 0),
@@ -442,10 +452,12 @@ const RoomContract = () => {
       console.error("Error fetching latest meters:", error);
       showToast("ไม่สามารถดึงข้อมูลมิเตอร์ล่าสุดได้", "error");
       const renewRent = contract?.monthlyRent || defaultRentFromRoom || 0;
+      const todayFallback = new Date().toISOString().split('T')[0]; // ✨ เพิ่มบรรทัดนี้
+      
       setFormData(prev => ({
         ...prev,
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: "",
+        startDate: todayFallback, // ✨ เปลี่ยนเป็น todayFallback
+        endDate: todayFallback,   // ✨ เปลี่ยนจาก "" เป็น todayFallback
         monthlyRent: renewRent,
         Note: cleanNoteForDisplay(contract?.Note || ""),
       }));

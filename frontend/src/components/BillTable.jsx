@@ -42,18 +42,9 @@ const BillTable = ({
                       rows={2}
                     />
                   ) : (
-                    <div className="whitespace-pre-wrap break-words text-gray-700 text-sm md:text-base leading-snug">
-                      <span className="font-bold">
-                        {/* ดึงแค่ชื่อรายการหลักมาแสดง ไม่ให้ซ้ำซ้อนกับ detail */}
-                        {getItemLabel(item, selectedDate).replace(/\(มิเตอร์:.*\)/, "")} 
-                      </span>
-                      
-                      {/* 🌟 แสดงรายละเอียดการคำนวณมิเตอร์ค่าน้ำ-ไฟ */}
-                      {item.detail && (
-                        <div className="text-[12px] md:text-sm text-gray-500 mt-1">
-                           {item.detail}
-                        </div>
-                      )}
+                    // ✨ ลบส่วน detail ทิ้งไป แล้วโชว์ข้อความที่ประกอบมาแล้วแบบบรรทัดเดียวหนาๆ เลย
+                    <div className="whitespace-pre-wrap break-words text-gray-800 font-bold text-sm md:text-base leading-snug">
+                      {getItemLabel(item, selectedDate)}
                     </div>
                   )}
                 </td>
