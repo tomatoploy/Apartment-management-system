@@ -487,7 +487,11 @@ const RoomContract = () => {
 
       if (isRenewing) {
         if (contract) {
-          await contractService.putContract(contract.id, { ...contract, status: "Expired" });
+          await contractService.putContract(contract.id, { ...contract, 
+            status: "Expired",
+            finalElectricUnit: Number(formData.initialElectricUnit) || null,
+            finalWaterUnit: Number(formData.initialWaterUnit) || null
+          });
         }
         const newContractPayload = {
           RoomId: roomId,

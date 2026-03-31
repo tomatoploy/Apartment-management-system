@@ -141,17 +141,44 @@ public class PaymentsController : ControllerBase
             .OrderByDescending(m => m.RecordDate)
             .FirstOrDefaultAsync();
 
+        // 🌟 1. ตรวจสอบเงื่อนไขการย้ายเข้า-ย้ายออก
+        bool isFirstMonth = contract.StartDate.HasValue && 
+                            contract.StartDate.Value.Year == year && 
+                            contract.StartDate.Value.Month == month;
+
+        // ถ้ายกเลิกสัญญาแล้ว หรือ EndDate อยู่ในเดือนนี้ ให้ถือเป็นเดือนสุดท้าย
+        bool isLastMonth = contract.Status == "Terminated" || contract.Status == "Expired" ||
+                           (contract.EndDate.HasValue && contract.EndDate.Value.Year == year && contract.EndDate.Value.Month == month);
+
+        // 🌟 2. เลือกตัวเลขมิเตอร์ตั้งต้นให้ถูกต้อง (ดึงจากสัญญาถ้าเป็นเดือนแรก/เดือนสุดท้าย)
+        uint? resolvedPrevElec = (isFirstMonth && contract.InitialElectricUnit.HasValue) 
+            ? contract.InitialElectricUnit 
+            : previousMeter?.ElectricityUnit;
+
+        uint? resolvedPrevWater = (isFirstMonth && contract.InitialWaterUnit.HasValue) 
+            ? contract.InitialWaterUnit 
+            : previousMeter?.WaterUnit;
+
+        uint? resolvedCurrElec = (isLastMonth && contract.FinalElectricUnit.HasValue) 
+            ? contract.FinalElectricUnit 
+            : currentMeter?.ElectricityUnit;
+
+        uint? resolvedCurrWater = (isLastMonth && contract.FinalWaterUnit.HasValue) 
+            ? contract.FinalWaterUnit 
+            : currentMeter?.WaterUnit;
+
+        // 🌟 3. โยนค่า Resolved ที่ถูกต้องเข้าฟังก์ชันคำนวณ
         uint? electricUsed = CalculateUsedWithMeterChange(
-            previousMeter?.ElectricityUnit,
+            resolvedPrevElec,
             currentMeter?.ChangeElectricityMeterEnd,
             currentMeter?.ChangeElectricityMeterStart,
-            currentMeter?.ElectricityUnit);
+            resolvedCurrElec);
 
         uint? waterUsed = CalculateUsedWithMeterChange(
-            previousMeter?.WaterUnit,
+            resolvedPrevWater,
             currentMeter?.ChangeWaterMeterEnd,
             currentMeter?.ChangeWaterMeterStart,
-            currentMeter?.WaterUnit);
+            resolvedCurrWater);
 
         decimal roomRate = contract.MonthlyRent;
 
@@ -172,10 +199,10 @@ public class PaymentsController : ControllerBase
                             + internetCost + laundryCost;
 
         string calcNote = BuildCalculationNote(
-            previousMeter?.ElectricityUnit, currentMeter?.ElectricityUnit,
+            resolvedPrevElec, resolvedCurrElec,
             currentMeter?.ChangeElectricityMeterEnd,
             currentMeter?.ChangeElectricityMeterStart, electricityRate,
-            previousMeter?.WaterUnit, currentMeter?.WaterUnit,
+            resolvedPrevWater, resolvedCurrWater,
             currentMeter?.ChangeWaterMeterEnd,
             currentMeter?.ChangeWaterMeterStart, waterRate);
 
@@ -201,10 +228,10 @@ public class PaymentsController : ControllerBase
             LaundryCost      = laundryCost,
             TotalAmount     = totalAmount,
             CalculationNote = calcNote,
-            CurrentElectricUnit  = currentMeter?.ElectricityUnit,
-            PreviousElectricUnit = previousMeter?.ElectricityUnit,
-            CurrentWaterUnit     = currentMeter?.WaterUnit,
-            PreviousWaterUnit    = previousMeter?.WaterUnit,
+            CurrentElectricUnit  = resolvedCurrElec,
+            PreviousElectricUnit = resolvedPrevElec,
+            CurrentWaterUnit     = resolvedCurrWater,
+            PreviousWaterUnit    = resolvedPrevWater,
         };
     }
 

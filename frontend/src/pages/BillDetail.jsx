@@ -176,7 +176,9 @@ const BillDetail = ({
   const isFromRoomMap = mode === "room-map" || location.state?.from === "room-map";
   const backPath = location.state?.backTo ?? "/billings";
 
-  const [selectedDate, setSelectedDate] = useState(externalSelectedDate || new Date().toISOString().slice(0, 7));
+  const [selectedDate, setSelectedDate] = useState(
+    externalSelectedDate || new Date().toLocaleDateString('en-CA').slice(0, 7)
+  );
   const [items, setItems] = useState(initialData || []);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ label: "", amount: 0 });
@@ -332,7 +334,17 @@ const BillDetail = ({
           return;
         }
 
+        // 🌟 ดึงข้อมูลแบบ Real-time จาก Backend
         const result = await paymentService.generatePayment(contract.id || contract.Id, year, month).catch(()=>({}));
+        
+        // 🌟 อัปเดต State latestMeter ทันที!
+        if (result) {
+          setLatestMeter({
+            electricityUnit: result.previousElectricUnit ?? 0,
+            waterUnit: result.previousWaterUnit ?? 0
+          });
+        }
+
         if (result.calculationNote) {
           const eMatch = result.calculationNote.match(/ไฟ:\s*\(([\d.]+)-([\d.]+)\)\*([\d.]+)/);
           if (eMatch) {
@@ -428,7 +440,7 @@ const BillDetail = ({
     });
 
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toLocaleDateString('en-CA');
       let checkoutSuffix = (mode === "checkout" || checkoutMode) ? (checkoutMode === "absconded" ? " (ผู้เช่าหนี)" : " (ย้ายออก)") : "";
       const parts = []; if (elec) parts.push("ไฟ"); if (water) parts.push("น้ำ");
       const meterNote = `* อัปเดตมิเตอร์${parts.join("+")} จากหน้าออกบิล (เดือน ${toThaiMonth(selectedDate)})${checkoutSuffix}`;
@@ -456,7 +468,8 @@ const BillDetail = ({
     
     setIsSaving(true);
     try {
-      const recordDate = `${selectedDate}-01`; 
+      const now = new Date();
+      const recordDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
       
       const payload = { 
         ...itemsToPayload(currentItems), 
