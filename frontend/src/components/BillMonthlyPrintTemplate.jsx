@@ -1,5 +1,5 @@
 import React from 'react';
-import logoImg from '../assets/logo.png'; 
+import logoImg from '../assets/logo.png';
 
 const bahtText = (num) => {
   if (!num || isNaN(num)) return ' บาทถ้วน';
@@ -45,17 +45,27 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
   const printDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
   return (
-    <div className="w-full h-full grid box-border bg-white text-black px-8 py-2 overflow-hidden"
-     style={{ gridTemplateRows: 'auto auto 1fr auto' }}>
-      
+    // ใช้ inline style ทั้งหมด เพื่อให้แน่ใจว่า layout ถูกต้องตอนปริ้น
+    <div style={{
+      width: '100%',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      boxSizing: 'border-box',
+      padding: '8px 28px',
+      overflow: 'hidden',
+      background: 'white',
+      color: 'black',
+    }}>
+
       {/* --- หัวบิล --- */}
-      <div className="flex justify-between items-start mb-2 border-b border-gray-200 pb-2">
+      <div className="flex justify-between items-start mb-2 border-b border-gray-200 pb-2 shrink-0">
         <div className="flex items-center gap-3 w-[55%]">
-          <img 
-            src={logoImg} 
-            alt="Logo" 
+          <img
+            src={logoImg}
+            alt="Logo"
             className="w-10 h-10 object-contain grayscale opacity-90"
-            onError={(e) => { e.target.style.display = 'none'; }} 
+            onError={(e) => { e.target.style.display = 'none'; }}
           />
           <div className="leading-tight">
             <h1 className="text-[16px] font-black">{apt.name}</h1>
@@ -80,10 +90,10 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
       </div>
 
       {/* --- ข้อมูลลูกค้า --- */}
-      <div className="text-[11px] text-gray-800 border-b border-gray-300 pb-2 mb-2">
+      <div className="text-[11px] text-gray-800 border-b border-gray-300 pb-2 mb-2 shrink-0">
         <div className="flex justify-between">
           <div>
-            <span className="font-bold">ลูกค้า:</span> {cst.title || ""}{cst.firstName || "-"} {cst.lastName || ""} 
+            <span className="font-bold">ลูกค้า:</span> {cst.title || ""}{cst.firstName || "-"} {cst.lastName || ""}
             <span className="font-bold ml-4">โทร:</span> {cst.phone || "-"}
           </div>
         </div>
@@ -91,7 +101,8 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
       </div>
 
       {/* --- ตารางรายการ --- */}
-      <div className="w-full overflow-hidden">
+      {/* flex: 1 + minHeight: 0 คือ key สำคัญ ป้องกัน table ล้น */}
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', width: '100%' }}>
         <table className="w-full border-collapse text-[11px]">
           <thead>
             <tr className="border-b-2 border-black">
@@ -108,28 +119,24 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
               let labelName = item.label || 'รายการทั่วไป';
               if (item.type === 'rent') labelName = 'ค่าเช่าห้อง';
               if (item.type === 'discount') labelName = 'ส่วนลด';
-
               if (item.type === 'electric') {
-                 let detail = item.detail || "";
-                 detail = detail.replace(/ไฟ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(");
-                 labelName = detail ? `ค่าไฟฟ้า ${detail}` : `ค่าไฟฟ้า`;
+                let detail = item.detail || "";
+                detail = detail.replace(/ไฟ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(");
+                labelName = detail ? `ค่าไฟฟ้า ${detail}` : `ค่าไฟฟ้า`;
               }
               if (item.type === 'water') {
-                 let detail = item.detail || "";
-                 detail = detail.replace(/น้ำ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(");
-                 labelName = detail ? `ค่าน้ำประปา ${detail}` : `ค่าน้ำประปา`;
+                let detail = item.detail || "";
+                detail = detail.replace(/น้ำ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(");
+                labelName = detail ? `ค่าน้ำประปา ${detail}` : `ค่าน้ำประปา`;
               }
-
               return (
                 <tr key={item.id || idx} className="border-b border-gray-100">
                   <td className="py-1 text-center text-gray-500">{idx + 1}</td>
-                  <td className="py-1 px-2">
-                    <span className="font-bold">{labelName}</span>
-                  </td>
+                  <td className="py-1 px-2"><span className="font-bold">{labelName}</span></td>
                   <td className="py-1 text-center">{meter ? meter.diff : (item.type === 'discount' ? "-" : "1")}</td>
                   <td className="py-1 text-right pr-4">{meter ? Number(meter.rate).toLocaleString() : Math.abs(item.amount || 0).toLocaleString()}</td>
                   <td className="py-1 px-1 text-right font-bold">
-                    {item.type === 'discount' && "-"} {Math.abs(item.amount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                    {item.type === 'discount' && "-"} {Math.abs(item.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
               );
@@ -138,14 +145,15 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
         </table>
       </div>
 
-      {/* --- Footer (ยอดรวม & ข้อมูลโอนเงิน) --- */}
-      <div className="self-end w-full">
+      {/* --- Footer --- */}
+      {/* shrink-0 ป้องกัน footer ถูกบีบ, mt-auto ดันลงล่างเสมอ */}
+      <div className="shrink-0 mt-auto pt-1">
         <div className="flex border-2 border-black text-[12px] rounded-sm overflow-hidden h-[30px]">
           <div className="flex-1 px-4 flex items-center bg-gray-50 font-bold italic text-gray-700 border-r-2 border-black">
             ยอดเงินสุทธิ {bahtText(total)}
           </div>
           <div className="w-40 px-4 flex items-center justify-end font-black text-[16px] text-black bg-gray-100">
-            {total.toLocaleString(undefined, {minimumFractionDigits: 2})}
+            {total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </div>
         </div>
 
@@ -156,7 +164,6 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
             <p className="font-black text-[13px] tracking-wider text-black mt-0.5">{apt.bankAccNo || "XXX-X-XXXXX-X"}</p>
             <p className="mt-0.5">ชื่อบัญชี: {apt.name} | Line: {apt.lineId || "-"}</p>
           </div>
-
           <div className="w-[30%] text-center pb-1">
             <div className="border-b border-black border-dashed mb-1 w-full mx-auto"></div>
             <p className="font-bold text-black text-[11px]">( {adminName} )</p>
@@ -164,20 +171,21 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
           </div>
         </div>
       </div>
+
     </div>
   );
 };
 
-const BillMonthlyPrintTemplate = ({ 
-  items = [], roomNumber = "-", apartmentInfo = null, 
-  customerInfo = null, contractInfo = null, adminName = "-", total = 0, 
-  billTitle = "ใบแจ้งหนี้ / ใบเสร็จรับเงิน" 
+const BillMonthlyPrintTemplate = ({
+  items = [], roomNumber = "-", apartmentInfo = null,
+  customerInfo = null, contractInfo = null, adminName = "-", total = 0,
+  billTitle = "ใบแจ้งหนี้ / ใบเสร็จรับเงิน"
 }) => {
-  const apt = apartmentInfo || { 
-    name: "หอพักนิตยวดี", 
-    address: "63/246 ถนน ดาวดึงส์ อ.เมือง นครสวรรค์ 70000", 
-    phone: "0867439033", 
-    lineId: "@075fbmzv", 
+  const apt = apartmentInfo || {
+    name: "หอพักนิตยวดี",
+    address: "63/246 ถนน ดาวดึงส์ อ.เมือง นครสวรรค์ 70000",
+    phone: "0867439033",
+    lineId: "@075fbmzv",
     email: "seniordorm.2025@gmail.com",
     bankName: "ธนาคารกสิกรไทย สาขาถนนสวรรค์วิถี",
     bankAccNo: "XXX-X-XXXXX-X"
@@ -186,77 +194,96 @@ const BillMonthlyPrintTemplate = ({
   const ctc = contractInfo || { billId: "-", cycleStart: "-", cycleEnd: "-" };
 
   return (
-  <>
-    <style>{`
-      @media print {
-        @page { 
-          size: A4 portrait; 
-          margin: 0; 
+    <>
+      <style>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 0;
+          }
+          body, html {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          /* ซ่อนทุกอย่างในหน้าก่อน แล้วแสดงเฉพาะ print-area */
+          body > * {
+            display: none !important;
+          }
+          #bill-print-area {
+            display: flex !important;
+          }
         }
-        body, html { 
-          margin: 0 !important; 
-          padding: 0 !important; 
-          background: white !important; 
-          -webkit-print-color-adjust: exact;
+
+        /* ซ่อน print-area บนหน้าจอปกติ */
+        @media screen {
+          #bill-print-area {
+            display: none;
+          }
         }
-      }
-    `}</style>
+      `}</style>
 
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      width: '210mm',
-      height: '296mm',
-      margin: '0 auto',
-      background: 'white',
-      boxSizing: 'border-box',
-      overflow: 'hidden',
-    }}>
-      
-      {/* ครึ่งบน */}
-      <div style={{
-        width: '100%',
-        height: '148mm',
-        boxSizing: 'border-box',
-        overflow: 'hidden',
-        borderBottom: '1px dashed #9ca3af',
-      }}>
-        <ReceiptHalf 
-          isCopy={false} 
-          items={items} 
-          roomNumber={roomNumber} 
-          apt={apt} 
-          cst={cst} 
-          ctc={ctc} 
-          adminName={adminName} 
-          total={total} 
-          billTitle={billTitle} 
-        />
+      {/* 
+        id="bill-print-area" — ซ่อนบนหน้าจอ แสดงเฉพาะตอนปริ้น
+        ขนาด A4 พอดี แบ่งครึ่งบน-ล่าง 148mm 
+      */}
+      <div
+        id="bill-print-area"
+        style={{
+          flexDirection: 'column',
+          width: '210mm',
+          height: '296mm',
+          margin: '0 auto',
+          background: 'white',
+          boxSizing: 'border-box',
+          overflow: 'hidden',
+        }}
+      >
+        {/* ครึ่งบน */}
+        <div style={{
+          width: '100%',
+          height: '148mm',
+          boxSizing: 'border-box',
+          overflow: 'hidden',
+          borderBottom: '1px dashed #9ca3af',
+        }}>
+          <ReceiptHalf
+            isCopy={false}
+            items={items}
+            roomNumber={roomNumber}
+            apt={apt}
+            cst={cst}
+            ctc={ctc}
+            adminName={adminName}
+            total={total}
+            billTitle={billTitle}
+          />
+        </div>
+
+        {/* ครึ่งล่าง */}
+        <div style={{
+          width: '100%',
+          height: '148mm',
+          boxSizing: 'border-box',
+          overflow: 'hidden',
+        }}>
+          <ReceiptHalf
+            isCopy={true}
+            items={items}
+            roomNumber={roomNumber}
+            apt={apt}
+            cst={cst}
+            ctc={ctc}
+            adminName={adminName}
+            total={total}
+            billTitle={billTitle}
+          />
+        </div>
       </div>
-
-      {/* ครึ่งล่าง */}
-      <div style={{
-        width: '100%',
-        height: '148mm',
-        boxSizing: 'border-box',
-        overflow: 'hidden',
-      }}>
-        <ReceiptHalf 
-          isCopy={true} 
-          items={items} 
-          roomNumber={roomNumber} 
-          apt={apt} 
-          cst={cst} 
-          ctc={ctc} 
-          adminName={adminName} 
-          total={total} 
-          billTitle={billTitle} 
-        />
-      </div>
-
-    </div>
-  </>
-);
+    </>
+  );
 };
 
 export default BillMonthlyPrintTemplate;
