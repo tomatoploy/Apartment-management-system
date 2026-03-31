@@ -49,7 +49,7 @@ const RoomCard = ({
 
         {/* 🔴 badge ซ้ายบน: จำนวนเดือนค้างชำระ */}
         {overdueCount > 0 && (
-          <div className="absolute -top-2 -left-2 bg-red-600 text-white rounded-full min-w-[24px] h-[24px] px-1.5 flex items-center justify-center text-[11px] font-black shadow-lg z-50 border-2 border-white">
+          <div className="absolute -top-2 -left-2 bg-red-600 text-white rounded-full min-w-[24px] h-[24px] px-1.5 flex items-center justify-center text-[11px] font-black shadow-lg z-10 border-2 border-white">
             {overdueCount}
           </div>
         )}
@@ -57,7 +57,7 @@ const RoomCard = ({
         {/* 🟠/🔴 badge ขวาบน: ใกล้หมด/หมดสัญญา */}
         {(isContractExpired || isContractUrgent) && (
           <div
-            className={`absolute -top-2 -right-2 rounded-full w-7 h-7 flex items-center justify-center shadow-lg z-50 border-2 border-white
+            className={`absolute -top-2 -right-2 rounded-full w-7 h-7 flex items-center justify-center shadow-lg z-10 border-2 border-white
               ${isContractExpired ? "bg-red-600" : "bg-orange-400"}`}
             title={isContractExpired ? "สัญญาหมดอายุแล้ว" : "สัญญาใกล้ครบกำหนด (≤ 30 วัน)"}
           >
