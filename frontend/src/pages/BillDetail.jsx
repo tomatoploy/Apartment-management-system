@@ -223,18 +223,6 @@ const BillDetail = ({
 
   useEffect(() => { if (externalRoomId != null) setRoomId(externalRoomId); }, [externalRoomId]);
 
-  useEffect(() => {
-    if (!roomId) return;
-    const fetchMeters = async () => {
-      try {
-        const { data: meters } = await axios.get("https://apartment-management-system-zllm.onrender.com/UtilityMeters");
-        const roomMeters = meters.filter(m => m.roomId === roomId).sort((a, b) => new Date(b.recordDate) - new Date(a.recordDate));
-        if (roomMeters.length > 0) setLatestMeter({ electricityUnit: roomMeters[0].electricityUnit, waterUnit: roomMeters[0].waterUnit });
-      } catch (e) { console.error("Meter fetch error", e); }
-    };
-    fetchMeters();
-  }, [roomId]);
-
   const loadConstants = useCallback(async () => {
     setIsLoadingConst(true);
     try {
