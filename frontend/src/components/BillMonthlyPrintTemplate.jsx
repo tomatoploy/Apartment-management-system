@@ -186,58 +186,77 @@ const BillMonthlyPrintTemplate = ({
   const ctc = contractInfo || { billId: "-", cycleStart: "-", cycleEnd: "-" };
 
   return (
-    <>
-      <style>{`
-        @media print {
-          @page { 
-            size: A4 portrait; 
-            margin: 0; 
-          }
-          body, html { 
-            margin: 0 !important; 
-            padding: 0 !important; 
-            background: white !important; 
-            -webkit-print-color-adjust: exact;
-          }
+  <>
+    <style>{`
+      @media print {
+        @page { 
+          size: A4 portrait; 
+          margin: 0; 
         }
-      `}</style>
+        body, html { 
+          margin: 0 !important; 
+          padding: 0 !important; 
+          background: white !important; 
+          -webkit-print-color-adjust: exact;
+        }
+      }
+    `}</style>
 
-      {/* 💡 กลับมาใช้กว้าง 100% แต่บังคับไม่ให้เกิน 210mm (ความกว้าง A4) และล็อกความสูงที่ 296mm */}
-      <div className="hidden print:flex print:flex-col w-full max-w-[210mm] h-[296mm] mx-auto bg-white box-border text-black overflow-hidden">
-        
-        {/* ครึ่งบน: สูง 148mm (ครึ่งหนึ่งของหน้า A4 พอดี) */}
-        <div className="w-full h-[148mm] border-b border-dashed border-gray-400 box-border overflow-hidden">
-          <ReceiptHalf 
-            isCopy={false} 
-            items={items} 
-            roomNumber={roomNumber} 
-            apt={apt} 
-            cst={cst} 
-            ctc={ctc} 
-            adminName={adminName} 
-            total={total} 
-            billTitle={billTitle} 
-          />
-        </div>
-
-        {/* ครึ่งล่าง: สูง 148mm */}
-        <div className="w-full h-[148mm] box-border overflow-hidden">
-          <ReceiptHalf 
-            isCopy={true} 
-            items={items} 
-            roomNumber={roomNumber} 
-            apt={apt} 
-            cst={cst} 
-            ctc={ctc} 
-            adminName={adminName} 
-            total={total} 
-            billTitle={billTitle} 
-          />
-        </div>
-
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      width: '210mm',
+      height: '296mm',
+      margin: '0 auto',
+      background: 'white',
+      boxSizing: 'border-box',
+      overflow: 'hidden',
+    }}>
+      
+      {/* ครึ่งบน */}
+      <div style={{
+        width: '100%',
+        height: '148mm',
+        boxSizing: 'border-box',
+        overflow: 'hidden',
+        borderBottom: '1px dashed #9ca3af',
+      }}>
+        <ReceiptHalf 
+          isCopy={false} 
+          items={items} 
+          roomNumber={roomNumber} 
+          apt={apt} 
+          cst={cst} 
+          ctc={ctc} 
+          adminName={adminName} 
+          total={total} 
+          billTitle={billTitle} 
+        />
       </div>
-    </>
-  );
+
+      {/* ครึ่งล่าง */}
+      <div style={{
+        width: '100%',
+        height: '148mm',
+        boxSizing: 'border-box',
+        overflow: 'hidden',
+      }}>
+        <ReceiptHalf 
+          isCopy={true} 
+          items={items} 
+          roomNumber={roomNumber} 
+          apt={apt} 
+          cst={cst} 
+          ctc={ctc} 
+          adminName={adminName} 
+          total={total} 
+          billTitle={billTitle} 
+        />
+      </div>
+
+    </div>
+  </>
+);
 };
 
 export default BillMonthlyPrintTemplate;
