@@ -414,6 +414,7 @@ const BillDetail = ({
     };
   }, [newMeters, latestMeter, effectiveRates, calcUsedUnit]);
 
+  // 🌟 แก้ไขฟังก์ชัน handleAddBothUtilities ใน BillDetail.jsx
   const handleAddBothUtilities = async () => {
     const hasElec = newMeters.electric !== "";
     const hasWater = newMeters.water !== "";
@@ -445,9 +446,22 @@ const BillDetail = ({
       const parts = []; if (elec) parts.push("ไฟ"); if (water) parts.push("น้ำ");
       const meterNote = `* อัปเดตมิเตอร์${parts.join("+")} จากหน้าออกบิล (เดือน ${toThaiMonth(selectedDate)})${checkoutSuffix}`;
 
-      const meterPayload = [{ RoomId: roomId, RecordDate: today, ElectricityUnit: elec ? elec.newUnit : latestMeter.electricityUnit, WaterUnit: water ? water.newUnit : latestMeter.waterUnit, Note: meterNote }];
+      // 🌟 จุดสำคัญ: เปลี่ยนจากล่าสุด (ยอดเก่า) เป็น null หากไม่ได้กรอก
+      // เพื่อให้ Backend รู้ว่าไม่ต้องอัปเดตฟิลด์นั้น
+      const meterPayload = [{ 
+        RoomId: roomId, 
+        RecordDate: today, 
+        ElectricityUnit: elec ? elec.newUnit : null,
+        WaterUnit: water ? water.newUnit : null,
+        Note: meterNote 
+      }];
+      
       await axios.post("https://apartment-management-system-zllm.onrender.com/UtilityMeters/bulk-upsert", meterPayload);
-      setLatestMeter(prev => ({ electricityUnit: elec ? elec.newUnit : prev.electricityUnit, waterUnit: water ? water.newUnit : prev.waterUnit }));
+      
+      setLatestMeter(prev => ({ 
+        electricityUnit: elec ? elec.newUnit : prev.electricityUnit, 
+        waterUnit: water ? water.newUnit : prev.waterUnit 
+      }));
       setNewMeters({ electric: "", water: "" });
       alert(`คำนวณและบันทึกมิเตอร์${parts.join(" และ ")} เรียบร้อยแล้ว`);
     } catch (err) { alert("เพิ่มลงบิลแล้ว แต่ไม่สามารถอัปเดตประวัติมิเตอร์ในฐานข้อมูลได้"); }
