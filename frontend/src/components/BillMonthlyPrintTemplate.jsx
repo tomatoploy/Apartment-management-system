@@ -90,7 +90,7 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
       </div>
 
       {/* --- ตารางรายการ --- */}
-      <div className="w-full overflow-hidden" style={{maxHeight: '52mm'}}>
+      <div className="w-full flex-1 min-h-[50px] overflow-hidden">
         <table className="w-full border-collapse text-[11px]">
           <thead>
             <tr className="border-b-2 border-black">
@@ -138,7 +138,7 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
       </div>
 
       {/* --- Footer (ยอดรวม & ข้อมูลโอนเงิน) --- */}
-      <div className="shrink-0 mt-2">
+      <div className="shrink-0 mt-auto">
         <div className="flex border-2 border-black text-[12px] rounded-sm overflow-hidden h-[30px]">
           <div className="flex-1 px-4 flex items-center bg-gray-50 font-bold italic text-gray-700 border-r-2 border-black">
             ยอดเงินสุทธิ {bahtText(total)}
