@@ -25,6 +25,9 @@ public partial class Contract
 
     public uint? InitialWaterUnit { get; set; }
 
+    public uint? FinalElectricUnit { get; set; }
+    public uint? FinalWaterUnit { get; set; }
+
     /// <summary>
     /// save a name of file
     /// </summary>

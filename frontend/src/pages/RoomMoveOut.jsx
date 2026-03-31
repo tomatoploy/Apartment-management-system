@@ -342,10 +342,16 @@ const CheckoutManager = () => {
   };
 
   /* ── Confirm checkout ──────────────────────────────────────── */
-  const handleConfirmCheckout = async (finalConfirmedItems, actualPaidAmount, isRefund) => {
+const handleConfirmCheckout = async (finalConfirmedItems, actualPaidAmount, isRefund) => {
     setIsConfirming(true);
     try {
-      // 1. สิ้นสุดสัญญา
+      // ✨ 1. แอบถาม Backend ก่อนว่าเลขมิเตอร์ล่าสุดของห้องนี้คืออะไร (ใช้ API ที่เราทำไว้)
+      const now = new Date();
+      const calcResult = await paymentService.generatePayment(contractId, now.getFullYear(), now.getMonth() + 1).catch(() => ({}));
+      const finalElec = calcResult?.currentElectricUnit ?? null;
+      const finalWater = calcResult?.currentWaterUnit ?? null;
+
+      // ✨ 2. สิ้นสุดสัญญา พร้อมแนบเลขมิเตอร์สุดท้ายไปด้วย
       const cleanContract = {
         Id: Number(contractId),
         RoomId: Number(contract.roomId || contract.RoomId),
@@ -357,7 +363,11 @@ const CheckoutManager = () => {
         Deposit: Number(contract.deposit || contract.Deposit || 0),
         InitialElectricUnit: contract.initialElectricUnit || contract.InitialElectricUnit || 0,
         InitialWaterUnit: contract.initialWaterUnit || contract.InitialWaterUnit || 0,
-        Note: contract.Note || contract.Note || null
+        
+        FinalElectricUnit: finalElec,
+        FinalWaterUnit: finalWater,
+        
+        Note: contract.Note || contract.note || null
       };
       await contractService.putContract(contractId, cleanContract);
       

@@ -17,35 +17,18 @@ public partial class DormitoryDbContext : DbContext
     }
 
     public virtual DbSet<Admin> Admin { get; set; }
-
     public virtual DbSet<Apartment> Apartment { get; set; }
-
     public virtual DbSet<Constant> Constant { get; set; }
-
     public virtual DbSet<Contract> Contract { get; set; }
-
     public virtual DbSet<Document> Document { get; set; }
-
     public virtual DbSet<Parcel> Parcel { get; set; }
-
     public virtual DbSet<Payment> Payment { get; set; }
-
     public virtual DbSet<Permission> Permission { get; set; }
-
     public virtual DbSet<Request> Request { get; set; }
-
     public virtual DbSet<Room> Room { get; set; }
-
     public virtual DbSet<Tenant> Tenant { get; set; }
-
     public virtual DbSet<UtilityMeter> UtilityMeter { get; set; }
 
-//     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-// //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-//         //ploy
-//         => optionsBuilder.UseMySql("server=localhost;port=3306;user=root;password=Surawee2545;database=Dormitory", Microsoft.EntityFrameworkCore.ServerVersion.Parse("11.8.2-mariadb"));
-//         //nn
-//         // => optionsBuilder.UseMySql("server=100.71.138.33;port=3306;user=nongnut;password=Password123!;database=Dormitory", Microsoft.EntityFrameworkCore.ServerVersion.Parse("11.8.2-mariadb"));
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
@@ -55,11 +38,8 @@ public partial class DormitoryDbContext : DbContext
         modelBuilder.Entity<Admin>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
-
             entity.ToTable(tb => tb.HasComment("Stores administrator account information for managing and maintaining the system."));
-
             entity.HasIndex(e => e.Email, "Email").IsUnique();
-
             entity.HasIndex(e => e.Phone, "Phone").IsUnique();
 
             entity.Property(e => e.Id).HasColumnType("int(10) unsigned");
@@ -82,13 +62,9 @@ public partial class DormitoryDbContext : DbContext
         modelBuilder.Entity<Apartment>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
-
             entity.ToTable(tb => tb.HasComment("Collect general information about the dormitory."));
-
             entity.HasIndex(e => e.Email, "Email").IsUnique();
-
             entity.HasIndex(e => e.LineId, "LineID").IsUnique();
-
             entity.HasIndex(e => e.Phone, "Phone").IsUnique();
 
             entity.Property(e => e.Id)
@@ -123,9 +99,7 @@ public partial class DormitoryDbContext : DbContext
         modelBuilder.Entity<Contract>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
-
             entity.HasIndex(e => e.RoomId, "RoomIdTContract");
-
             entity.HasIndex(e => e.TenantId, "TenantIdTContract");
 
             entity.Property(e => e.Id).HasColumnType("int(10) unsigned");
@@ -133,8 +107,13 @@ public partial class DormitoryDbContext : DbContext
                 .HasMaxLength(500)
                 .HasComment("save a name of file");
             entity.Property(e => e.Deposit).HasColumnType("decimal(20,3) unsigned");
+            
             entity.Property(e => e.InitialElectricUnit).HasColumnType("int(10) unsigned");
             entity.Property(e => e.InitialWaterUnit).HasColumnType("int(10) unsigned");
+            
+            entity.Property(e => e.FinalElectricUnit).HasColumnType("int(10) unsigned");
+            entity.Property(e => e.FinalWaterUnit).HasColumnType("int(10) unsigned");
+
             entity.Property(e => e.MonthlyRent).HasColumnType("decimal(20,3) unsigned");
             entity.Property(e => e.RoomId).HasColumnType("int(10) unsigned");
             entity.Property(e => e.Status)
@@ -154,9 +133,7 @@ public partial class DormitoryDbContext : DbContext
         modelBuilder.Entity<Document>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
-
             entity.ToTable(tb => tb.HasComment("Stores dormitory-related documents such as rental contracts, invoices, and payment records.\r\n"));
-
             entity.HasIndex(e => e.AdminId, "AdminIdTDocument");
 
             entity.Property(e => e.Id).HasColumnType("int(10) unsigned");
@@ -173,7 +150,6 @@ public partial class DormitoryDbContext : DbContext
         modelBuilder.Entity<Parcel>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
-
             entity.HasIndex(e => e.RoomId, "RoomIdTParcel");
 
             entity.Property(e => e.Id).HasColumnType("int(10) unsigned");
@@ -192,9 +168,7 @@ public partial class DormitoryDbContext : DbContext
         modelBuilder.Entity<Payment>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
-
             entity.HasIndex(e => e.AdminId, "AdminIdTPayment");
-
             entity.HasIndex(e => e.ContractId, "ContractIdTPayment");
 
             entity.Property(e => e.Id).HasColumnType("int(10) unsigned");
@@ -231,11 +205,8 @@ public partial class DormitoryDbContext : DbContext
         modelBuilder.Entity<Permission>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
-
             entity.ToTable(tb => tb.HasComment("Stores permission data that defines access rights (in the future : actions allowed for each role or user) in the system."));
-
             entity.HasIndex(e => e.AdminId, "AdminIdTPermission");
-
             entity.HasIndex(e => e.ApartmentId, "ApartmentIdTPermission");
 
             entity.Property(e => e.Id).HasColumnType("int(10) unsigned");
@@ -256,7 +227,6 @@ public partial class DormitoryDbContext : DbContext
         modelBuilder.Entity<Request>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
-
             entity.HasIndex(e => e.RoomId, "RoomIdTRequest");
 
             entity.Property(e => e.Id).HasColumnType("int(10) unsigned");
@@ -279,7 +249,6 @@ public partial class DormitoryDbContext : DbContext
         modelBuilder.Entity<Room>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
-
             entity.ToTable(tb => tb.HasComment("Stores apartment room information including room number, floor, room type, and current room status."));
 
             entity.Property(e => e.Id).HasColumnType("int(10) unsigned");
@@ -295,11 +264,8 @@ public partial class DormitoryDbContext : DbContext
         modelBuilder.Entity<Tenant>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
-
             entity.HasIndex(e => e.AltPhone, "AltPhone").IsUnique();
-
             entity.HasIndex(e => e.Nin, "Nin").IsUnique();
-
             entity.HasIndex(e => e.Phone, "Phone").IsUnique();
 
             entity.Property(e => e.Id).HasColumnType("int(10) unsigned");
@@ -335,7 +301,6 @@ public partial class DormitoryDbContext : DbContext
         modelBuilder.Entity<UtilityMeter>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
-
             entity.HasIndex(e => e.RoomId, "RoomIdTUtilityMeter");
 
             entity.Property(e => e.Id).HasColumnType("int(10) unsigned");

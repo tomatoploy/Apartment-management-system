@@ -159,7 +159,27 @@ public class UtilityMetersController : ControllerBase
                 Previous = _db.UtilityMeter
                     .Where(m => m.RoomId == r.Id && m.RecordDate < firstDay)
                     .OrderByDescending(m => m.RecordDate)
+                    .FirstOrDefault(),
+                // 🌟 ดึงสัญญาเช่าล่าสุดที่ "เริ่มในเดือนนี้"
+                NewContract = _db.Contract
+                    .Where(c => c.RoomId == r.Id && c.StartDate >= firstDay && c.StartDate <= lastDay && (c.Status == "Active" || c.Status == "Terminated"))
+                    .OrderByDescending(c => c.Id)
                     .FirstOrDefault()
+            })
+            // 🌟 เตรียมค่า Previous ให้ถูกต้อง (ถ้ามีย้ายเข้าเดือนนี้ ใช้ Initial จากสัญญา)
+            .Select(x => new 
+            {
+                x.Id,
+                x.Number,
+                x.Floor,
+                x.Current,
+                x.Previous,
+                ResolvedPrevElec = x.NewContract != null && x.NewContract.InitialElectricUnit.HasValue 
+                    ? x.NewContract.InitialElectricUnit 
+                    : (x.Previous != null ? x.Previous.ElectricityUnit : null),
+                ResolvedPrevWater = x.NewContract != null && x.NewContract.InitialWaterUnit.HasValue 
+                    ? x.NewContract.InitialWaterUnit 
+                    : (x.Previous != null ? x.Previous.WaterUnit : null)
             })
             .Select(x => new UtilityMeterMonthlyDto
             {
@@ -171,26 +191,25 @@ public class UtilityMetersController : ControllerBase
                 ElectricityUnit = x.Current != null && x.Current.RecordDate >= firstDay ? x.Current.ElectricityUnit : null,
                 WaterUnit = x.Current != null && x.Current.RecordDate >= firstDay ? x.Current.WaterUnit : null,
 
-                // ข้อมูลเดือนก่อน
-                PrevElectricityUnit = x.Previous != null ? x.Previous.ElectricityUnit : null,
-                PrevWaterUnit = x.Previous != null ? x.Previous.WaterUnit : null,
+                // 🌟 ข้อมูลเดือนก่อน (ใช้ Resolved ที่คำนวณไว้)
+                PrevElectricityUnit = x.ResolvedPrevElec,
+                PrevWaterUnit = x.ResolvedPrevWater,
 
-                // ✅ เพิ่มส่วนนี้: ส่งค่าเปลี่ยนมิเตอร์กลับไปด้วย
                 ChangeElectricityMeterStart = x.Current != null ? x.Current.ChangeElectricityMeterStart : null,
                 ChangeElectricityMeterEnd = x.Current != null ? x.Current.ChangeElectricityMeterEnd : null,
                 ChangeWaterMeterStart = x.Current != null ? x.Current.ChangeWaterMeterStart : null,
                 ChangeWaterMeterEnd = x.Current != null ? x.Current.ChangeWaterMeterEnd : null,
 
-                // คำนวณหน่วยที่ใช้
+                // 🌟 คำนวณหน่วยที่ใช้โดยดึง Resolved ไปใช้
                 ElectricityUsed = CalculateUsedWithMeterChange(
-                    x.Previous != null ? x.Previous.ElectricityUnit : null,
+                    x.ResolvedPrevElec, 
                     x.Current != null ? x.Current.ChangeElectricityMeterEnd : null,
                     x.Current != null ? x.Current.ChangeElectricityMeterStart : null,
                     x.Current != null && x.Current.RecordDate >= firstDay ? x.Current.ElectricityUnit : null
                 ),
 
                 WaterUsed = CalculateUsedWithMeterChange(
-                    x.Previous != null ? x.Previous.WaterUnit : null,
+                    x.ResolvedPrevWater,
                     x.Current != null ? x.Current.ChangeWaterMeterEnd : null,
                     x.Current != null ? x.Current.ChangeWaterMeterStart : null,
                     x.Current != null && x.Current.RecordDate >= firstDay ? x.Current.WaterUnit : null
@@ -249,14 +268,13 @@ public class UtilityMetersController : ControllerBase
         return Ok();
     }
 
-    [HttpPost("bulk-upsert")]
+[HttpPost("bulk-upsert")]
     public async Task<IActionResult> BulkUpsert(
         [FromBody] List<UtilityMeterBulkDto> dtos)
     {
         if (dtos == null || !dtos.Any())
             return BadRequest("Empty payload");
 
-        // ✅ เอาการกรอง Where(HasAnyInput) ออก เพื่อยอมรับ object ที่ส่งมาเป็น null ล้วนๆ (กรณีเคลียร์ค่า)
         var validDtos = dtos; 
 
         if (!validDtos.Any())
@@ -266,6 +284,7 @@ public class UtilityMetersController : ControllerBase
         {
             var recordDate = dto.RecordDate ?? DateOnly.FromDateTime(DateTime.Today);
 
+            // 🌟 หา Record ของเดือนนี้
             var existing = await _db.UtilityMeter
                 .Where(m =>
                     m.RoomId == dto.RoomId &&
@@ -275,11 +294,9 @@ public class UtilityMetersController : ControllerBase
                 .OrderByDescending(m => m.Id)
                 .FirstOrDefaultAsync();
 
-            bool isLocked = existing != null && !string.IsNullOrEmpty(existing.Note) && existing.Note.Trim().StartsWith("*");
-
-            if (existing == null || isLocked)
+            if (existing == null)
             {
-                // โค้ดส่วน INSERT ใช้ของเดิมได้เลย
+                // INSERT (ห้องที่ยังไม่เคยจดมิเตอร์เดือนนี้)
                 var newMeter = new UtilityMeter
                 {
                     RoomId = dto.RoomId,
@@ -296,8 +313,7 @@ public class UtilityMetersController : ControllerBase
             }
             else
             {
-                // 🟡 UPDATE
-                // ✅ ลบ if (dto.xxx.HasValue) ออกให้หมด เพื่อให้ค่า null เซฟทับค่าเก่าได้
+                // 🌟 UPDATE เซฟทับบรรทัดเดิมของเดือนนี้ไปเลย (ลบลอจิก isLocked ที่เช็ค * ทิ้ง)
                 existing.ElectricityUnit = dto.ElectricityUnit;
                 existing.WaterUnit = dto.WaterUnit;
                 
