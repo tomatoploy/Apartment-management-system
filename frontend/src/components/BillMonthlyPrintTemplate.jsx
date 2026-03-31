@@ -41,15 +41,16 @@ const parseMeterInfo = (detailStr) => {
   return null;
 };
 
-// 💡 แก้ไขให้ใช้ h-full 100% เพื่อให้พอดีกับกรอบครึ่งหน้า
+// Component สำหรับครึ่งหน้ากระดาษ
 const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, total, billTitle }) => {
   const printDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
   return (
-    <div className="w-full h-full flex flex-col box-border bg-transparent text-black px-10 py-5">
+    <div className="w-full h-full flex flex-col box-border bg-white text-black px-10 py-6">
       
-      <div className="flex justify-between items-start mb-2 border-b border-gray-200 pb-1">
-        <div className="flex items-center gap-3 w-[50%]">
+      {/* --- หัวบิล --- */}
+      <div className="flex justify-between items-start mb-2 border-b border-gray-200 pb-2 shrink-0">
+        <div className="flex items-center gap-3 w-[55%]">
           <img 
             src={logoImg} 
             alt="Logo" 
@@ -58,15 +59,15 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
           />
           <div className="leading-tight">
             <h1 className="text-[16px] font-black">{apt.name}</h1>
-            <p className="text-[9px] text-gray-700">{apt.address}</p>
-            <p className="text-[9px] text-gray-700">โทร. {apt.phone} | อีเมล. {apt.email || "-"}</p>
+            <p className="text-[10px] text-gray-700">{apt.address}</p>
+            <p className="text-[10px] text-gray-700">โทร. {apt.phone} | อีเมล. {apt.email || "-"}</p>
           </div>
         </div>
 
-        <div className="w-[50%] flex items-center justify-end gap-2 leading-tight">
+        <div className="w-[45%] flex items-center justify-end gap-3 leading-tight">
           <div className="text-right">
             <h2 className="text-[16px] font-black">{isCopy ? `${billTitle} (สำเนา)` : billTitle}</h2>
-            <div className="flex flex-col items-end text-[9px] text-gray-800 space-y-0.5">
+            <div className="flex flex-col items-end text-[10px] text-gray-800 space-y-0.5">
               <span><b className="font-bold">รอบบิล:</b> {ctc.cycleStart} - {ctc.cycleEnd}</span>
               <span><b className="font-bold">วันที่พิมพ์:</b> {printDate}</span>
             </div>
@@ -78,7 +79,8 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
         </div>
       </div>
 
-      <div className="text-[11px] text-gray-800 border-b border-gray-300 pb-1 mb-2">
+      {/* --- ข้อมูลลูกค้า --- */}
+      <div className="text-[11px] text-gray-800 border-b border-gray-300 pb-2 mb-3 shrink-0">
         <div className="flex justify-between">
           <div>
             <span className="font-bold">ลูกค้า:</span> {cst.title || ""}{cst.firstName || "-"} {cst.lastName || ""} 
@@ -88,8 +90,8 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
         <div className="mt-0.5"><span className="font-bold">ที่อยู่:</span> {cst.address || "-"}</div>
       </div>
 
-      {/* 💡 เปลี่ยน mb-auto เป็น flex-1 เพื่อดันยอดเงินสุทธิไปชิดขอบล่างพอดี */}
-      <div className="w-full flex-1 overflow-hidden">
+      {/* --- ตารางรายการ (flex-1 จะดันให้ส่วนนี้ขยายเต็มพื้นที่ที่เหลือ เพื่อดัน Footer ลงล่างสุด) --- */}
+      <div className="w-full flex-1 min-h-[50px]">
         <table className="w-full border-collapse text-[11px]">
           <thead>
             <tr className="border-b-2 border-black">
@@ -136,7 +138,8 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
         </table>
       </div>
 
-      <div className="mt-2 shrink-0">
+      {/* --- Footer (ยอดรวม & ข้อมูลโอนเงิน) --- */}
+      <div className="shrink-0 mt-2">
         <div className="flex border-2 border-black text-[12px] rounded-sm overflow-hidden h-[30px]">
           <div className="flex-1 px-4 flex items-center bg-gray-50 font-bold italic text-gray-700 border-r-2 border-black">
             ยอดเงินสุทธิ {bahtText(total)}
@@ -146,18 +149,18 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
           </div>
         </div>
 
-        <div className="flex justify-between items-end mt-2 text-[9px]">
-          <div className="w-[65%] border border-gray-200 rounded px-3 py-1.5 bg-gray-50 leading-tight">
+        <div className="flex justify-between items-end mt-3 text-[10px]">
+          <div className="w-[65%] border border-gray-200 rounded px-3 py-2 bg-gray-50 leading-tight">
             <p className="font-bold text-black mb-1">ชำระเงินผ่านบัญชีธนาคาร</p>
             <p>{apt.bankName || "ธนาคารกสิกรไทย สาขาถนนสวรรค์วิถี"}</p>
-            <p className="font-black text-[13px] tracking-wider text-black">{apt.bankAccNo || "XXX-X-XXXXX-X"}</p>
-            <p>ชื่อบัญชี: {apt.name} | Line: {apt.lineId || "-"}</p>
+            <p className="font-black text-[13px] tracking-wider text-black mt-0.5">{apt.bankAccNo || "XXX-X-XXXXX-X"}</p>
+            <p className="mt-0.5">ชื่อบัญชี: {apt.name} | Line: {apt.lineId || "-"}</p>
           </div>
 
           <div className="w-[30%] text-center pb-1">
             <div className="border-b border-black border-dashed mb-1 w-full mx-auto"></div>
             <p className="font-bold text-black text-[11px]">( {adminName} )</p>
-            <p className="text-[9px] text-gray-500">ผู้รับเงิน / ผู้ออกบิล</p>
+            <p className="text-[9px] text-gray-500 mt-0.5">ผู้รับเงิน / ผู้ออกบิล</p>
           </div>
         </div>
       </div>
@@ -195,50 +198,42 @@ const BillMonthlyPrintTemplate = ({
             padding: 0 !important; 
             background: white !important; 
           }
-          /* ซ่อน scrollbar เวลากด print ป้องกันจอขยับ */
-          ::-webkit-scrollbar {
-              display: none;
-          }
         }
       `}</style>
 
-      {/* 💡 กำหนดพยายามให้หน้าจอปกติอยู่ตรงกลาง และเวลาปรินต์ให้ลบ margin/padding ออก */}
-      <div className="w-full min-h-screen bg-gray-100 print:bg-white py-8 print:py-0 flex justify-center items-start">
+      {/* 💡 เปลี่ยนเป็น hidden สำหรับจอปกติ และ block สำหรับตอนพิมพ์ */}
+      <div className="hidden print:block w-[210mm] h-[297mm] mx-auto bg-white box-border text-black">
         
-        {/* 💡 Fix ขนาดตรงนี้เป็น A4 เป๊ะๆ (210x297mm) */}
-        <div className="receipt-paper w-[210mm] h-[297mm] bg-white flex flex-col relative box-border border border-gray-300 shadow-xl print:border-0 print:shadow-none print:overflow-hidden">
-          
-          {/* ครึ่งบน: ต้นฉบับ */}
-          <div className="flex-1 border-b border-dashed border-gray-300 print:border-gray-300">
-            <ReceiptHalf 
-              isCopy={false} 
-              items={items} 
-              roomNumber={roomNumber} 
-              apt={apt} 
-              cst={cst} 
-              ctc={ctc} 
-              adminName={adminName} 
-              total={total} 
-              billTitle={billTitle} 
-            />
-          </div>
-
-          {/* ครึ่งล่าง: สำเนา */}
-          <div className="flex-1">
-            <ReceiptHalf 
-              isCopy={true} 
-              items={items} 
-              roomNumber={roomNumber} 
-              apt={apt} 
-              cst={cst} 
-              ctc={ctc} 
-              adminName={adminName} 
-              total={total} 
-              billTitle={billTitle} 
-            />
-          </div>
-
+        {/* ครึ่งบน: ต้นฉบับ (ล็อกความสูงครึ่ง A4 พอดี) */}
+        <div className="w-full h-[148.5mm] border-b border-dashed border-gray-400 overflow-hidden box-border">
+          <ReceiptHalf 
+            isCopy={false} 
+            items={items} 
+            roomNumber={roomNumber} 
+            apt={apt} 
+            cst={cst} 
+            ctc={ctc} 
+            adminName={adminName} 
+            total={total} 
+            billTitle={billTitle} 
+          />
         </div>
+
+        {/* ครึ่งล่าง: สำเนา (ล็อกความสูงครึ่ง A4 พอดี) */}
+        <div className="w-full h-[148.5mm] overflow-hidden box-border">
+          <ReceiptHalf 
+            isCopy={true} 
+            items={items} 
+            roomNumber={roomNumber} 
+            apt={apt} 
+            cst={cst} 
+            ctc={ctc} 
+            adminName={adminName} 
+            total={total} 
+            billTitle={billTitle} 
+          />
+        </div>
+
       </div>
     </>
   );
