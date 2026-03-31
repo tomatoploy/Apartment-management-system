@@ -208,16 +208,7 @@ const BillMonthlyPrintTemplate = ({
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
-          /* ซ่อนทุกอย่างในหน้าก่อน แล้วแสดงเฉพาะ print-area */
-          body > * {
-            display: none !important;
-          }
-          #bill-print-area {
-            display: flex !important;
-          }
         }
-
-        /* ซ่อน print-area บนหน้าจอปกติ */
         @media screen {
           #bill-print-area {
             display: none;
