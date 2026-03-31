@@ -45,10 +45,11 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
   const printDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
   return (
-    <div className="w-full h-full flex flex-col box-border bg-white text-black px-8 py-2 overflow-hidden">
+    <div className="w-full h-full grid box-border bg-white text-black px-8 py-2 overflow-hidden"
+     style={{ gridTemplateRows: 'auto auto 1fr auto' }}>
       
       {/* --- หัวบิล --- */}
-      <div className="flex justify-between items-start mb-2 border-b border-gray-200 pb-2 shrink-0">
+      <div className="flex justify-between items-start mb-2 border-b border-gray-200 pb-2">
         <div className="flex items-center gap-3 w-[55%]">
           <img 
             src={logoImg} 
@@ -79,7 +80,7 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
       </div>
 
       {/* --- ข้อมูลลูกค้า --- */}
-      <div className="text-[11px] text-gray-800 border-b border-gray-300 pb-2 mb-2 shrink-0">
+      <div className="text-[11px] text-gray-800 border-b border-gray-300 pb-2 mb-2">
         <div className="flex justify-between">
           <div>
             <span className="font-bold">ลูกค้า:</span> {cst.title || ""}{cst.firstName || "-"} {cst.lastName || ""} 
@@ -90,7 +91,7 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
       </div>
 
       {/* --- ตารางรายการ --- */}
-      <div className="w-full min-h-0 flex-1 overflow-hidden">
+      <div className="w-full overflow-hidden">
         <table className="w-full border-collapse text-[11px]">
           <thead>
             <tr className="border-b-2 border-black">
@@ -138,7 +139,7 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
       </div>
 
       {/* --- Footer (ยอดรวม & ข้อมูลโอนเงิน) --- */}
-      <div className="shrink-0 mt-auto">
+      <div className="self-end w-full">
         <div className="flex border-2 border-black text-[12px] rounded-sm overflow-hidden h-[30px]">
           <div className="flex-1 px-4 flex items-center bg-gray-50 font-bold italic text-gray-700 border-r-2 border-black">
             ยอดเงินสุทธิ {bahtText(total)}
