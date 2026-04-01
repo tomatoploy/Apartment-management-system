@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { Loader2, Download, Lock, Phone } from "lucide-react";
 
@@ -7,6 +7,8 @@ import { contractService } from "../api/ContractApi";
 import { apartmentService } from "../api/ApartmentApi";
 import { tenantService } from "../api/TenantApi";
 import { adminService } from "../api/AdminApi";
+import { roomService } from "../api/RoomApi";
+import { constantService } from "../api/ConstantApi"; // ✨ เพิ่มเพื่อดึงเรทค่าน้ำค่าไฟมาคำนวณ
 import logoImg from '../assets/logo.png';
 
 // ─────────────────────────────────────────────────────────────
@@ -52,6 +54,22 @@ const parseMeterInfo = (detailStr) => {
   return null;
 };
 
+const parseDetailString = (detail, totalAmount, defaultLabel, type, isNegative = false) => {
+  if (!detail) return [{ id: Math.random(), type, label: defaultLabel, amount: totalAmount * (isNegative ? -1 : 1), detail: "" }];
+  const items = [];
+  const itemRegex = /([^(]+)\(\s*([\d,]+)\s*฿\s*\)/g;
+  let match, sum = 0;
+  while ((match = itemRegex.exec(detail)) !== null) {
+    const amt = Number(match[2].replace(/,/g, ''));
+    sum += amt;
+    items.push({ id: Math.random(), type, label: match[1].replace(/^[,\s]+/, '').trim(), amount: amt * (isNegative ? -1 : 1), detail: "" });
+  }
+  if (items.length === 0 || sum !== totalAmount) {
+    return [{ id: Math.random(), type, label: detail, amount: totalAmount * (isNegative ? -1 : 1), detail: "" }];
+  }
+  return items;
+};
+
 // ─────────────────────────────────────────────────────────────
 // 🚀 คอมโพเนนต์หลัก ViewBill
 // ─────────────────────────────────────────────────────────────
@@ -61,7 +79,6 @@ const ViewBill = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // 🌟 State สำหรับระบบ Verify ตัวตน
   const [isVerified, setIsVerified] = useState(false);
   const [phoneInput, setPhoneInput] = useState("");
   const [verifyError, setVerifyError] = useState("");
@@ -76,6 +93,22 @@ const ViewBill = () => {
   });
   const [adminName, setAdminName] = useState("เจ้าหน้าที่");
 
+  const toThaiMonth = (dateStr) => {
+    if (!dateStr) return "";
+    const [year, month] = dateStr.split("-");
+    const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+    return `${thaiMonths[parseInt(month, 10) - 1]} ${parseInt(year, 10) + 543}`;
+  };
+
+  const extractArray = (res) => {
+    if (!res) return [];
+    if (Array.isArray(res)) return res;
+    if (res.$values) return res.$values;
+    if (res.data && Array.isArray(res.data)) return res.data;
+    if (res.data?.$values) return res.data.$values;
+    return [];
+  };
+
   useEffect(() => {
     const fetchBillData = async () => {
       try {
@@ -83,57 +116,133 @@ const ViewBill = () => {
         const payment = await paymentService.getPaymentById(id);
         setPaymentData(payment);
 
-        const billItems = [];
-        if (payment.roomRate > 0) billItems.push({ type: "rent", amount: payment.roomRate, label: "ค่าเช่าห้อง" });
-        if (payment.electricalPricePerUnit > 0) billItems.push({ type: "electric", amount: payment.electricalPricePerUnit, label: "ค่าไฟฟ้า", detail: payment.note?.match(/ไฟ:[^|]*/)?.[0]?.trim() || "" });
-        if (payment.waterPricePerUnit > 0) billItems.push({ type: "water", amount: payment.waterPricePerUnit, label: "ค่าน้ำประปา", detail: payment.note?.match(/น้ำ:[^|]*/)?.[0]?.trim() || "" });
-        if (payment.internetCost > 0) billItems.push({ type: "internet", amount: payment.internetCost, label: "ค่าอินเทอร์เน็ต" });
-        if (payment.laundryCost > 0) billItems.push({ type: "laundry", amount: payment.laundryCost, label: "ค่าส่วนกลาง/ซักรีด" });
-        if (payment.furnitureCost > 0) billItems.push({ type: "asset", amount: payment.furnitureCost, label: "ค่าทรัพย์สิน/เฟอร์นิเจอร์" });
-        if (payment.additionalCost > 0) billItems.push({ type: "other", amount: payment.additionalCost, label: payment.additionalDetail || "ค่าใช้จ่ายเพิ่มเติม" });
-        if (payment.discountCost > 0) billItems.push({ type: "discount", amount: payment.discountCost, label: payment.discountDetail || "ส่วนลด" });
-        
-        setItems(billItems);
+        const recordDateRaw = payment.recordDate || payment.RecordDate || new Date().toISOString();
+        const selectedDate = recordDateRaw.substring(0, 7); 
+        const monthLabel = toThaiMonth(selectedDate);
+        const recordDateStr = new Date(recordDateRaw).toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        const pNote = payment.calculationNote || payment.CalculationNote || payment.note || payment.Note || "";
 
-        // 🌟 แก้ไข: ดักจับทั้ง contractId และ ContractId (ตัวพิมพ์ใหญ่-เล็ก)
+        // ✨ 1. ค้นหาห้องจาก Contract ก่อน เพื่อเอา RoomId ไปดึงเรทค่าไฟ/ค่าน้ำ
+        let rId = null;
+        let rNum = "-";
         const cId = payment.contractId || payment.ContractId;
         if (cId) {
           try {
             const contract = await contractService.getContract(cId);
             if (contract) {
-              console.log("Contract Data:", contract);
+              rId = contract.roomId || contract.RoomId;
+              rNum = contract.room?.Number || contract.Room?.Number || contract.room?.number || contract.Room?.number || contract.roomNumber || contract.RoomNumber;
 
-              // 🔍 1. พยายามดึง RoomNumber จากข้อมูลต่างๆ ที่อาจจะมีแนบมาใน Contract ก่อน
-              let roomNum = 
-                contract.room?.Number || 
-                contract.Room?.Number || 
-                contract.room?.number || 
-                contract.Room?.number || 
-                contract.roomNumber || 
-                contract.RoomNumber;
-
-              // 🔍 2. ถ้ายังไม่ได้เลขห้อง ให้ไป Fetch ข้อมูลจากตาราง Room โดยตรง!
-              const roomId = contract.roomId || contract.RoomId;
-              if (!roomNum && roomId) {
+              if (!rNum && rId) {
                 try {
                   const roomsData = extractArray(await roomService.getRoomOverview());
-                  const targetRoom = roomsData.find(r => (r.roomId || r.id) === roomId);
-                  if (targetRoom) {
-                    roomNum = targetRoom.roomNumber || targetRoom.number;
-                  }
-                } catch (roomErr) {
-                  console.warn("Failed to fetch room detail", roomErr);
-                }
+                  const targetRoom = roomsData.find(r => (r.roomId || r.id) === rId);
+                  if (targetRoom) rNum = targetRoom.roomNumber || targetRoom.number;
+                } catch (roomErr) { console.warn("Failed to fetch room detail", roomErr); }
               }
-
-              // ถ้าดึงอะไรไม่ได้เลยจริงๆ ค่อยแสดง "-"
-              setRoomNumber(roomNum || "-");
+              setRoomNumber(rNum || "-");
               
               const tId = contract.tenantId || contract.TenantId;
               if (tId) setTenantInfo(await tenantService.getTenant(tId));
             }
           } catch (e) { console.warn(e); }
         }
+
+        // ✨ 2. ดึงเรทราคามิเตอร์ และ ยอดมิเตอร์เดือนก่อนหน้า เพื่อใช้คำนวณย้อนกลับ
+        let elecRate = 0, waterRate = 0;
+        let prevElec = 0, prevWater = 0;
+        
+        try {
+          const allConstants = await constantService.getConstants().catch(() => []);
+          elecRate = Number(allConstants.find(c => c.category?.toLowerCase() === "utility" && (c.subject?.includes("ไฟ") || c.subject?.includes("ElectricityBill")))?.cost || 0);
+          waterRate = Number(allConstants.find(c => c.category?.toLowerCase() === "utility" && (c.subject?.includes("น้ำ") || c.subject?.includes("WaterBill")))?.cost || 0);
+
+          // ดึงมิเตอร์เก่าผ่าน API พรีวิวบิลของ paymentService (เหมือนหน้า BillDetail)
+          if (cId) {
+            const [year, month] = selectedDate.split("-").map(Number);
+            const previewData = await paymentService.generatePayment(cId, year, month).catch(()=>({}));
+            if (previewData) {
+              prevElec = previewData.previousElectricUnit ?? 0;
+              prevWater = previewData.previousWaterUnit ?? 0;
+            }
+          }
+        } catch(e) {}
+
+        const billItems = [];
+        
+        // 1. ค่าเช่า
+        const rentVal = payment.roomRate || payment.RoomRate || 0;
+        if (rentVal > 0) {
+          billItems.push({ type: "rent", amount: Number(rentVal), label: `ค่าเช่าห้องพัก ประจำเดือน${monthLabel}`, detail: "" });
+        }
+        
+        // 2. ค่าไฟ (ใช้เงื่อนไขคณิตศาสตร์เพื่อแปลงข้อความเหมือนหน้า Detail)
+        const elecVal = payment.electricalCost || payment.ElectricalCost || payment.electricalPricePerUnit || 0;
+        if (elecVal > 0) {
+          const elecDetail = pNote.match(/ไฟ:[^|]*/)?.[0]?.trim() || "";
+          const unitMatch = elecDetail.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)/);
+          const rateMatch = elecDetail.match(/\*\s*([\d.]+)/);
+          
+          let elecLabel = `ค่ากระแสไฟฟ้า (วันที่จดมิเตอร์: ${recordDateStr})`;
+          
+          if (unitMatch && rateMatch) {
+            elecLabel = `ค่ากระแสไฟฟ้า (วันที่จดมิเตอร์: ${recordDateStr}) (${unitMatch[2]} - ${unitMatch[1]}) * ${rateMatch[1]} บาท/หน่วย`;
+          } else if (elecRate > 0) {
+            // ✨ คำนวณย้อนกลับ
+            const used = elecVal / elecRate;
+            const newU = Number((prevElec + used).toFixed(2));
+            elecLabel = `ค่ากระแสไฟฟ้า (วันที่จดมิเตอร์: ${recordDateStr}) (${prevElec} - ${newU}) * ${elecRate} บาท/หน่วย`;
+          } else {
+            let cleanDetail = elecDetail.replace(/ไฟ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(").trim();
+            if (cleanDetail) elecLabel += ` ${cleanDetail}`;
+          }
+          
+          billItems.push({ type: "electric", amount: Number(elecVal), label: elecLabel, detail: elecDetail });
+        }
+        
+        // 3. ค่าน้ำ
+        const waterVal = payment.waterCost || payment.WaterCost || payment.waterPricePerUnit || 0;
+        if (waterVal > 0) {
+          const waterDetail = pNote.match(/น้ำ:[^|]*/)?.[0]?.trim() || "";
+          const unitMatch = waterDetail.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)/);
+          const rateMatch = waterDetail.match(/\*\s*([\d.]+)/);
+          
+          let waterLabel = `ค่าน้ำประปา (วันที่จดมิเตอร์: ${recordDateStr})`;
+          
+          if (unitMatch && rateMatch) {
+            waterLabel = `ค่าน้ำประปา (วันที่จดมิเตอร์: ${recordDateStr}) (${unitMatch[2]} - ${unitMatch[1]}) * ${rateMatch[1]} บาท/หน่วย`;
+          } else if (waterRate > 0) {
+             // ✨ คำนวณย้อนกลับ
+             const used = waterVal / waterRate;
+             const newU = Number((prevWater + used).toFixed(2));
+             waterLabel = `ค่าน้ำประปา (วันที่จดมิเตอร์: ${recordDateStr}) (${prevWater} - ${newU}) * ${waterRate} บาท/หน่วย`;
+          } else {
+            let cleanDetail = waterDetail.replace(/น้ำ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(").trim();
+            if (cleanDetail) waterLabel += ` ${cleanDetail}`;
+          }
+          
+          billItems.push({ type: "water", amount: Number(waterVal), label: waterLabel, detail: waterDetail });
+        }
+        
+        // 4. อื่นๆ
+        const internetVal = payment.internetCost || payment.InternetCost || 0;
+        if (internetVal > 0) billItems.push({ type: "internet", amount: Number(internetVal), label: "ค่าอินเทอร์เน็ต", detail: "" });
+        
+        const laundryVal = payment.laundryCost || payment.LaundryCost || 0;
+        if (laundryVal > 0) billItems.push({ type: "laundry", amount: Number(laundryVal), label: "ค่าซักรีด", detail: "" });
+        
+        const assetVal = payment.furnitureCost || payment.FurnitureCost || 0;
+        if (assetVal > 0) billItems.push({ type: "asset", amount: Number(assetVal), label: "ค่าชำรุดเสียหาย/ทรัพย์สิน", detail: "" });
+        
+        const addVal = payment.additionalCost || payment.AdditionalCost || 0;
+        const addDetail = payment.additionalDetail || payment.AdditionalDetail || "";
+        if (addVal > 0) billItems.push(...parseDetailString(addDetail, Number(addVal), "รายการเพิ่มเติม", "other"));
+        
+        const discVal = payment.discountCost || payment.DiscountCost || 0;
+        const discDetail = payment.discountDetail || payment.DiscountDetail || "";
+        if (discVal > 0) billItems.push(...parseDetailString(discDetail, Number(discVal), "ส่วนลด", "discount", true));
+        
+        setItems(billItems);
 
         try { 
           const apt = await apartmentService.getApartment(1);
@@ -158,18 +267,12 @@ const ViewBill = () => {
     fetchBillData();
   }, [id]);
 
-  // 🌟 ฟังก์ชันตรวจสอบเบอร์โทรศัพท์ (อัปเดตให้ทนทานต่อพิมพ์ใหญ่พิมพ์เล็ก)
   const handleVerify = (e) => {
     e.preventDefault();
-    
-    // ตัดเอาขีด หรือช่องว่างออกก่อนเทียบ (เผื่อลูกค้าพิมพ์ 086-123-4567)
     const cleanInput = phoneInput.replace(/\D/g, "");
-    
-    // ดึงเบอร์จากฐานข้อมูล (รองรับทั้งคำว่า phone และ Phone)
     const actualPhone = tenantInfo?.phone || tenantInfo?.Phone || "";
     const cleanTenantPhone = actualPhone.replace(/\D/g, "");
 
-    // ถ้าไม่มีข้อมูลเบอร์ใน Database (เช่น แอดมินไม่ได้กรอกไว้)
     if (!cleanTenantPhone) {
       setVerifyError("ไม่พบข้อมูลเบอร์โทรในระบบ กรุณาติดต่อแอดมินเพื่ออัปเดตข้อมูลค่ะ");
       return;
@@ -199,7 +302,6 @@ const ViewBill = () => {
     </div>
   );
 
-  // 🌟 ถ้ายังไม่ได้ยืนยันตัวตน ให้แสดงหน้าจอล็อก
   if (!isVerified) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
       <div className="bg-white p-8 rounded-[32px] shadow-lg max-w-sm w-full text-center border border-gray-100">
@@ -207,9 +309,7 @@ const ViewBill = () => {
           <Lock size={32} />
         </div>
         <h2 className="text-xl font-black text-gray-800 mb-2">ยืนยันตัวตน</h2>
-        <p className="text-sm text-gray-500 mb-6 font-bold">
-          กรุณากรอกเบอร์โทรศัพท์ที่ลงทะเบียนไว้กับทางหอพัก
-        </p>
+        <p className="text-sm text-gray-500 mb-6 font-bold">กรุณากรอกเบอร์โทรศัพท์ที่ลงทะเบียนไว้กับทางหอพัก</p>
 
         <form onSubmit={handleVerify} className="flex flex-col gap-4">
           <div className="relative">
@@ -226,25 +326,13 @@ const ViewBill = () => {
               required
             />
           </div>
-          
-          {verifyError && (
-            <p className="text-red-500 text-xs font-bold">{verifyError}</p>
-          )}
-
-          <button 
-            type="submit" 
-            className="w-full py-3 bg-[#f3a638] hover:bg-orange-500 text-white font-black rounded-2xl transition-all shadow-md mt-2"
-          >
-            ดูเอกสาร
-          </button>
+          {verifyError && <p className="text-red-500 text-xs font-bold">{verifyError}</p>}
+          <button type="submit" className="w-full py-3 bg-[#f3a638] hover:bg-orange-500 text-white font-black rounded-2xl transition-all shadow-md mt-2">ดูเอกสาร</button>
         </form>
       </div>
     </div>
   );
 
-  // ─────────────────────────────────────────────────────────────
-  // 🌟 โค้ดส่วนโชว์กระดาษบิล (แสดงเมื่อ isVerified = true แล้วเท่านั้น)
-  // ─────────────────────────────────────────────────────────────
   const isPaid = paymentData.status?.toLowerCase() === "paid";
   const billTitle = isPaid ? "ใบเสร็จรับเงิน" : "ใบแจ้งยอดชำระเงิน";
   const recordDate = new Date(paymentData.recordDate || paymentData.RecordDate);
@@ -252,7 +340,6 @@ const ViewBill = () => {
   const printDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
   const totalAmount = paymentData.totalAmount || paymentData.TotalAmount || 0;
 
-  // ดึงค่าต่างๆ แบบเซฟๆ (รองรับพิมพ์เล็ก/พิมพ์ใหญ่)
   const tenantTitle = tenantInfo?.title || tenantInfo?.Title || "";
   const tenantFirstName = tenantInfo?.firstName || tenantInfo?.FirstName || "-";
   const tenantLastName = tenantInfo?.lastName || tenantInfo?.LastName || "";
@@ -269,39 +356,16 @@ const ViewBill = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 pb-10">
-      
-      {/* สไตล์สำหรับตอนกดเซฟ PDF */}
       <style>{`
         @media print {
           @page { size: A4 portrait; margin: 0 !important; }
-          body, html { 
-            background: white !important; 
-            margin: 0 !important; 
-            padding: 0 !important; 
-            height: 100%; 
-            overflow: hidden !important;
-          }
+          body, html { background: white !important; margin: 0 !important; padding: 0 !important; height: 100%; overflow: hidden !important; }
           .print-hide { display: none !important; }
-          
-          /* ✨ ปิดความสูงหน้าจอและ Padding ด้านล่างตอนสั่งพิมพ์ */
-          .min-h-screen { 
-            min-height: auto !important; 
-            padding-bottom: 0 !important; 
-          }
-          
-          .receipt-paper { 
-            box-shadow: none !important; 
-            border: none !important; 
-            margin: 0 !important; 
-            width: 100% !important; 
-            max-width: 100% !important; 
-            page-break-after: avoid !important;
-            break-after: avoid !important;
-          }
+          .min-h-screen { min-height: auto !important; padding-bottom: 0 !important; }
+          .receipt-paper { box-shadow: none !important; border: none !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; page-break-after: avoid !important; break-after: avoid !important; }
         }
       `}</style>
 
-      {/* แถบเมนูด้านบน */}
       <div className="print-hide sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 px-4 py-3 flex justify-between items-center shadow-sm">
         <div className="flex flex-col">
           <span className="font-black text-gray-800">ห้อง {roomNumber}</span>
@@ -309,21 +373,15 @@ const ViewBill = () => {
             {isPaid ? "✓ ชำระเงินเรียบร้อย" : "รอชำระเงิน"}
           </span>
         </div>
-        
-        <button 
-          onClick={() => window.print()} 
-          className="flex items-center gap-2 bg-[#f3a638] hover:bg-orange-500 text-white px-4 py-2 rounded-xl font-bold shadow-md transition-all text-sm"
-        >
+        <button onClick={() => window.print()} className="flex items-center gap-2 bg-[#f3a638] hover:bg-orange-500 text-white px-4 py-2 rounded-xl font-bold shadow-md transition-all text-sm">
           <Download size={16} />
           <span className="hidden sm:inline">บันทึกเป็น PDF</span>
           <span className="sm:hidden">PDF</span>
         </button>
       </div>
 
-      {/* กระดาษบิล */}
       <div className="w-full overflow-x-auto px-2 py-6 print:py-0">
         <div className="receipt-paper w-[210mm] min-h-[148mm] bg-white mx-auto relative box-border border border-gray-200 shadow-xl text-black px-10 py-6">
-          
           <div className="flex justify-between items-start mb-2 border-b border-gray-200 pb-1">
             <div className="flex items-center gap-3 w-[50%]">
               <img src={logoImg} alt="Logo" className="w-10 h-10 object-contain grayscale opacity-90" onError={(e) => { e.target.style.display = 'none'; }} />
@@ -333,7 +391,6 @@ const ViewBill = () => {
                 <p className="text-[9px] text-gray-700">โทร. {aptPhone} | อีเมล. {aptEmail}</p>
               </div>
             </div>
-
             <div className="w-[50%] flex items-center justify-end gap-2 leading-tight">
               <div className="text-right">
                 <h2 className="text-[16px] font-black">{billTitle}</h2>
@@ -373,31 +430,10 @@ const ViewBill = () => {
               <tbody>
                 {items.map((item, idx) => {
                   const meter = parseMeterInfo(item.detail);
-                  let labelName = item.label || 'รายการทั่วไป';
-                  if (item.type === 'rent') labelName = 'ค่าเช่าห้อง';
-                  if (item.type === 'discount') labelName = 'ส่วนลด';
-
-                  // ✨ รวมข้อความค่าน้ำ-ไฟ ให้อยู่บรรทัดเดียวกัน
-                  if (item.type === 'electric') {
-                     let detail = item.detail || "";
-                     detail = detail.replace(/ไฟ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(");
-                     labelName = detail ? `ค่าไฟฟ้า ${detail}` : `ค่าไฟฟ้า`;
-                  }
-                  if (item.type === 'water') {
-                     let detail = item.detail || "";
-                     detail = detail.replace(/น้ำ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(");
-                     labelName = detail ? `ค่าน้ำประปา ${detail}` : `ค่าน้ำประปา`;
-                  }
-
                   return (
                     <tr key={idx} className="border-b border-gray-100">
                       <td className="py-1 text-center text-gray-500">{idx + 1}</td>
-                      
-                      {/* ✨ แสดงแค่ labelName บรรทัดเดียวตัวหนา ไม่มีตัวเล็กต่อท้ายแล้ว */}
-                      <td className="py-1 px-2">
-                        <span className="font-bold">{labelName}</span>
-                      </td>
-                      
+                      <td className="py-1 px-2"><span className="font-bold">{item.label}</span></td>
                       <td className="py-1 text-center">{meter ? meter.diff : (item.type === 'discount' ? "-" : "1")}</td>
                       <td className="py-1 text-right pr-4">{meter ? Number(meter.rate).toLocaleString() : Math.abs(item.amount || 0).toLocaleString()}</td>
                       <td className="py-1 px-1 text-right font-bold">
@@ -419,7 +455,6 @@ const ViewBill = () => {
                 {totalAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}
               </div>
             </div>
-
             <div className="flex justify-between items-end mt-2 text-[9px]">
               <div className="w-[65%] border border-gray-200 rounded px-3 py-1.5 bg-gray-50 leading-tight">
                 <p className="font-bold text-black mb-1">ชำระเงินผ่านบัญชีธนาคาร</p>
@@ -434,10 +469,8 @@ const ViewBill = () => {
               </div>
             </div>
           </div>
-
         </div>
       </div>
-
     </div>
   );
 };

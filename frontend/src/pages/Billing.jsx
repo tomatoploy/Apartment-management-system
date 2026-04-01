@@ -194,13 +194,6 @@ const LazyFloor = React.memo(({ floor, rooms, isSelectMode, selectedRooms, onTog
                   </span>
                 </div>
 
-                {room.overdueCount >= 2 && (
-                  <div className="absolute -top-3 -left-3 bg-red-600 text-white rounded-full px-2 py-0.5 text-[11px] font-black shadow-lg z-30 flex items-center gap-1 border-2 border-white">
-                    <AlertTriangle size={10} />
-                    {room.overdueCount}
-                  </div>
-                )}
-
                 {isSelected && (
                   <div className="absolute -top-3 -right-3 bg-[#3498DB] text-white rounded-full p-1.5 shadow-lg z-30">
                     <CheckSquare size={20} />
