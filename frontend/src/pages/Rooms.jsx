@@ -299,8 +299,14 @@ const Rooms = () => {
         // ── parcel map ───────────────────────────────────────────
         const parcelMap = {};
         rawParcels.forEach((p) => {
-          if (p.pickupDate === null || p.pickupDate === "") {
-            parcelMap[String(p.roomNumber)] = true;
+          // รองรับชื่อฟิลด์ทั้งแบบ camelCase และ PascalCase (เผื่อ .NET ส่งมาเป็นตัวใหญ่)
+          const roomNum = String(p.roomNumber || p.RoomNumber || "");
+          const pickupDate = p.pickupDate !== undefined ? p.pickupDate : p.PickupDate;
+          const status = p.status || p.Status || "";
+          if (!pickupDate || status === "ค้างนำจ่าย" || status.toLowerCase() === "pending") {
+            if (roomNum) {
+              parcelMap[roomNum] = true;
+            }
           }
         });
 
