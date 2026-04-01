@@ -111,7 +111,7 @@ const RequestModal = ({ isOpen, onClose, onSave }) => {
                   name="subject"
                   value={formData.subject}
                   onChange={handleChange}
-                  className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#f3a638] focus:ring-2 focus:ring-[#f3a638]/20 appearance-none cursor-pointer transition-all font-medium text-gray-700"
+                  className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#f3a638]  focus:ring-[#f3a638]/20 appearance-none cursor-pointer transition-all font-medium text-gray-700"
                 >
                   <option value="fix">แจ้งซ่อม</option>
                   <option value="clean">ทำความสะอาด</option>
@@ -131,7 +131,7 @@ const RequestModal = ({ isOpen, onClose, onSave }) => {
                   name="status"
                   value={formData.status}
                   onChange={handleChange}
-                  className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#f3a638] focus:ring-2 focus:ring-[#f3a638]/20 appearance-none cursor-pointer transition-all font-medium text-gray-700"
+                  className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#f3a638] focus:ring-[#f3a638]/20 appearance-none cursor-pointer transition-all font-medium text-gray-700"
                 >
                   <option value="pending">รอดำเนินการ</option>
                   <option value="finish">เสร็จสิ้น</option>

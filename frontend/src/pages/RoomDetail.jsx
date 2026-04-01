@@ -374,7 +374,7 @@ const RoomDetail = () => {
                   />
                   <InfoItem
                     label="วันหมดสัญญา"
-                    value={tenant.contractEndDate}
+                    value={toThaiDate(tenant.contractEndDate)}
                     icon={<ShieldCheck size={18} />}
                   />
                 </div>
