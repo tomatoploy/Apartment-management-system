@@ -152,7 +152,7 @@ export const DateInput = ({
         className="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-between font-bold text-gray-700 cursor-pointer hover:border-[#f3a638] transition-all min-h-11"
       >
         <span className={value ? "" : "text-gray-400 font-normal"}>
-          {value ? toThaiDate(value) : ""}
+          {value ? toThaiDate(value) : "\u00A0"}
         </span>
         <div className="flex items-center gap-2">
           {value && (
@@ -184,8 +184,7 @@ export const DateInput = ({
 
             <div className="flex flex-1 gap-1 items-center justify-center">
               {/* Dropdown เลือกเดือน */}
-              <div className="relative flex items-center bg-white px-2 py-1 rounded-lg shadow-sm border border-orange-50 flex-1">
-                <select
+<div className="relative flex items-center bg-white px-2 py-1 rounded-lg shadow-sm border border-orange-50 w-1/2">                <select
                   value={viewDate.getMonth()}
                   onChange={handleMonthChange}
                   className="w-full bg-transparent border-none focus:outline-none cursor-pointer text-[#f3a638] font-black text-xs appearance-none text-center"
@@ -203,8 +202,7 @@ export const DateInput = ({
               </div>
 
               {/* ช่องพิมพ์ปี พ.ศ. */}
-              <div className="relative flex items-center bg-white px-1 py-1 rounded-lg shadow-sm border border-orange-100 w-16">
-                <input
+<div className="relative flex items-center bg-white px-1 py-1 rounded-lg shadow-sm border border-orange-100 w-1/2">                <input
                   type="number"
                   value={yearInput}
                   onChange={handleYearChange}
@@ -264,7 +262,6 @@ export const DateInput = ({
 };
 
 // --- 3. CustomMonthPicker: สำหรับเลือกเดือนรอบบิล (Dropdown) ---
-
 export const CustomMonthPicker = ({ value, onChange, className = "" }) => {
   const [show, setShow] = useState(false);
   const containerRef = useRef(null);
@@ -328,9 +325,8 @@ export const CustomMonthPicker = ({ value, onChange, className = "" }) => {
     <div className={`relative ${className}`} ref={containerRef}>
       <div
         onClick={() => setShow(!show)}
-        className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-between font-bold text-gray-700 cursor-pointer hover:border-[#f3a638] transition-all min-h-11"
-      >
-        <Calendar size={18} className="absolute left-4 text-[#f3a638]" />
+className="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-between font-bold text-gray-700 cursor-pointer hover:border-[#f3a638] transition-all h-12"      >
+        <Calendar size={18} className="absolute right-8 text-[#f3a638]" />
         <span className="truncate">
           {value ? `${monthsFull[vMonth - 1]} ${vYear + 543}` : "เลือกรอบบิล"}
         </span>

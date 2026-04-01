@@ -643,9 +643,8 @@ const ContractTemplate = () => {
   return (
     <>
       <div className="flex h-screen overflow-hidden bg-gray-100 font-sarabun">
-        <aside className="w-[280px] shrink-0 flex flex-col bg-white border-r border-gray-200 z-20 shadow-sm">
-          <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
-            <ExitButton onClick={() => navigate("/settings")} />
+  
+<aside className="hidden md:flex w-[280px] shrink-0 flex-col bg-white border-r border-gray-200 z-20 shadow-sm">          <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
             <div className="text-right">
               <h1 className="font-black text-gray-800 text-sm">เทมเพลตเอกสาร</h1>
               <p className="text-[10px] font-bold text-gray-400 mt-0.5">{docs.length + SPECIAL_DOCS.length} รายการ</p>
@@ -709,12 +708,18 @@ const ContractTemplate = () => {
 
         <main className="flex-1 flex flex-col h-screen overflow-hidden relative z-10 bg-gray-100">
           {!selDoc ? (
+            <>
+            <ExitButton 
+            onClick={() => navigate("/settings")} 
+            className="absolute top-4 right-4 z-50" 
+            />
             <div className="flex-1 flex flex-col items-center justify-center gap-4 text-gray-400">
               <FileText size={64} className="text-gray-300" />
               <p className="font-black text-xl text-gray-500">เลือก Template จากเมนูซ้ายมือ</p>
             </div>
+              </>
           ) : (
-            <>
+            <>           
               <div className="bg-white px-6 py-4 flex items-center justify-between border-b border-gray-200 shrink-0 z-30 shadow-sm">
                 <div className="flex items-center gap-3">
                   <h2 className="text-xl font-black text-gray-800">{selDoc.name}</h2>
@@ -728,7 +733,7 @@ const ContractTemplate = () => {
                        <span className="text-xs font-bold text-gray-600">แบบฟอร์มระบบ (ดูตัวอย่างเท่านั้น)</span>
                     </div>
                   ) : (
-                    <>
+                    <>                 
                       {!isPreview && (
                         <label className="flex items-center gap-2 cursor-pointer mr-2">
                           <span className="text-xs font-bold text-gray-500">Auto save</span>
@@ -751,12 +756,13 @@ const ContractTemplate = () => {
                       )}
                       
                       {isPreview && (
-                        <button onClick={handlePrintAndSavePDF} className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 text-white font-black text-sm hover:bg-blue-700 transition-all shadow-md active:scale-95">
+                        <button onClick={handlePrintAndSavePDF} className=" flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 text-white font-black text-sm hover:bg-blue-700 transition-all shadow-md active:scale-95">
                           <Printer size={16} /> พิมพ์ / ดาวน์โหลด PDF
                         </button>
                       )}
                     </>
                   )}
+                  <ExitButton onClick={() => navigate("/settings")} className="shrink-0" />
                 </div>
               </div>
 

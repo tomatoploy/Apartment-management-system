@@ -466,9 +466,9 @@ const Dashboard = () => {
         </div>
         
         {/* แถวที่ 2: งานที่ต้องจัดการ (พัสดุ, สัญญา, แจ้งซ่อม, ทำความสะอาด) */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-          <MiniStat label="พัสดุรอรับ" value={`${waitingParcelsCount} ชิ้น`} icon={Package} colorClass="text-purple-600" bgClass="bg-purple-50" />
-          <MiniStat label="สัญญาใกล้หมด" value={`${expiringContractsCount} ราย`} icon={Clock} colorClass="text-amber-600" bgClass="bg-amber-50" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 ">
+          <MiniStat label="พัสดุรอรับ" value={`${waitingParcelsCount} รายการ`} icon={Package} colorClass="text-purple-600" bgClass="bg-purple-50" />
+          <MiniStat label="สัญญาใกล้หมด" value={`${expiringContractsCount} รายการ`} icon={Clock} colorClass="text-amber-600" bgClass="bg-amber-50" />
           <MiniStat label="แจ้งซ่อม" value={`${reqCounts.fix} รายการ`} icon={Wrench} colorClass="text-indigo-600" bgClass="bg-indigo-50" />
           <MiniStat label="แจ้งทำความสะอาด" value={`${reqCounts.clean} รายการ`} icon={Sparkles} colorClass="text-sky-600" bgClass="bg-sky-50" />
         </div>

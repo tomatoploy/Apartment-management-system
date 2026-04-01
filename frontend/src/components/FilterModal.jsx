@@ -33,7 +33,7 @@ const FilterModal = ({
         </div>
 
         {/* Footer Actions: ปุ่มล้างทั้งหมด และปุ่มตกลง */}
-        <div className="flex gap-4 pt-4 border-t">
+        <div className="flex gap-4 pt-4 border-t border-orange-300">
           <button
             onClick={onClear}
             className="flex-1 py-4 text-gray-400 font-bold hover:bg-gray-50 rounded-2xl transition-all"

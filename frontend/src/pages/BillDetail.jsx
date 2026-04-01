@@ -823,10 +823,10 @@ const handleSave = async (currentItems, totalAmt) => {
               {(showAddBtn || showDiscountBtn || showSaveBtn) && (
                 <div className="flex flex-col md:flex-row justify-center items-center gap-3 w-full">
                   {showAddBtn && (
-                    <WhiteButton label="เพิ่มรายการ" icon={Plus} onClick={() => { loadConstants(); setShowConstantModal(true); }} className="w-full md:w-auto px-6 font-bold !bg-blue-50 !text-blue-600" />
+                    <WhiteButton label="เพิ่มรายการ" icon={Plus} onClick={() => { loadConstants(); setShowConstantModal(true); }} className="w-full md:w-auto px-6 font-bold !bg-blue-50 !text-blue-600 hover:border-blue-400 hover:brightness-96" />
                   )}
                   {showDiscountBtn && (
-                    <WhiteButton label="เพิ่มส่วนลด" icon={Minus} onClick={() => addItem("discount")} className="w-full md:w-auto px-6 font-bold !bg-green-50 !text-green-600" />
+                    <WhiteButton label="เพิ่มส่วนลด" icon={Minus} onClick={() => addItem("discount")} className="w-full md:w-auto px-6 font-bold !bg-red-50 !text-red-600 hover:border-red-400 hover:brightness-96"/>
                   )}
                   {showSaveBtn && paymentStatus !== "paid" && (
                     <SaveButton label={isSaving ? "กำลังบันทึก..." : "บันทึก"} className="w-full md:w-auto px-10" onClick={() => handleSave(items, total)} disabled={isSaving} />
@@ -873,7 +873,7 @@ const handleSave = async (currentItems, totalAmt) => {
             <div className="bg-white rounded-[40px] w-full max-w-2xl p-8 shadow-2xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-black text-gray-800">เลือกรายการเพิ่มในบิล</h3>
-                <button onClick={() => setShowConstantModal(false)} className="p-2 hover:bg-gray-100 rounded-full"><X size={24} strokeWidth={3} /></button>
+                <ExitButton onClick={() => setShowConstantModal(false)} />
               </div>
               <div className="overflow-y-auto flex-1 space-y-5 pr-1">
 {showMeterSection && (
@@ -1007,7 +1007,7 @@ const handleSave = async (currentItems, totalAmt) => {
             <div className="bg-white rounded-[32px] w-full max-w-sm p-8 shadow-2xl flex flex-col gap-5" onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-center">
                 <h3 className="text-xl font-black text-gray-800">ยืนยันรับชำระเงิน</h3>
-                <button onClick={() => setShowPaymentModal(false)} className="p-2 hover:bg-gray-100 rounded-full"><X size={20} strokeWidth={3} /></button>
+                <ExitButton onClick={() => setShowPaymentModal(false)} />
               </div>
               
               <div className="bg-gray-50 rounded-2xl px-5 py-4 flex flex-col gap-3">
@@ -1023,7 +1023,7 @@ const handleSave = async (currentItems, totalAmt) => {
                       type="number"
                       value={paidAmountInput}
                       onChange={(e) => setPaidAmountInput(e.target.value)}
-                      className="w-28 text-right text-lg font-black text-emerald-600 bg-white border-2 border-gray-200 rounded-xl px-2 py-1 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all"
+                      className="w-28 text-right text-lg font-black text-emerald-600 bg-white border-1 border-gray-200 rounded-xl px-2 py-1 focus:outline-none focus:border-emerald-400 transition-all"
                     />
                     <span className="text-sm font-medium text-gray-400">บาท</span>
                   </div>

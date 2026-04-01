@@ -67,12 +67,12 @@ const BillTable = ({
                     <span
                       className={`font-bold text-sm md:text-base ${
                         item.type === "discount"
-                          ? "text-green-600"
+                          ? "text-red-500"
                           : item.type === "other" ||
                             item.type === "penalty" ||
                             item.type === "damage" ||
                             item.type === "asset"
-                          ? "text-red-500"
+                          ? "text-blue-500"
                           : "text-gray-800"
                       }`}
                     >
@@ -118,7 +118,7 @@ const BillTable = ({
                 รวมยอดสุทธิ
               </td>
               <td className="p-4 text-right whitespace-nowrap">
-                <span className="text-[18px] font-black text-blue-500">
+                <span className="text-[18px] font-black text-green-600">
                   {total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
                 <span className="ml-2 font-bold text-gray-600">
