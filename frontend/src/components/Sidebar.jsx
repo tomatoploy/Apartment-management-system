@@ -7,7 +7,7 @@ import Profile from "../assets/userImage.jpg";
 const MenuItem = ({ icon: Icon, text, to, collapsed, onClick }) => (
   <NavLink
     to={to}
-    onClick={onClick}
+    onClick={onClick} // เพิ่ม onClick เพื่อปิด Sidebar บนมือถือเมื่อกดเลือกเมนู
     className={({ isActive }) => `
       flex items-center gap-3 p-3 cursor-pointer transition-all duration-200
       ${isActive 
@@ -17,9 +17,9 @@ const MenuItem = ({ icon: Icon, text, to, collapsed, onClick }) => (
     `}
   >
     <Icon size={20} className="text-black" />
-    <span className={`text-[18px] text-black font-medium ${collapsed ? 'lg:hidden' : 'block'}`}>
-      {text}
-    </span>
+    {!collapsed && (
+      <span className="text-[18px] text-black font-medium">{text}</span>
+    )}
   </NavLink>
 );
 
@@ -27,8 +27,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
   const navigate = useNavigate();
   const [profileImage, setProfileImage] = useState(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const dropdownRef = useRef(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false); // State สำหรับเปิด Dropdown
+  const dropdownRef = useRef(null); // Ref สำหรับตรวจจับการคลิกด้านนอก
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -50,6 +50,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  //logout
   useEffect(() => {
   const token = localStorage.getItem("token");
   if (!token) {
@@ -61,11 +62,17 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
     <>
     <aside
       className={`
+        /* ส่วนที่แก้ไขเพื่อให้ซ่อนบนมือถือ */
         flex flex-col justify-between border-r border-orange-100 transition-all duration-300 bg-[#FFF7ED]
-        h-[calc(100vh-64px)] 
-        ${isCollapsed ? 'w-64 lg:w-20' : 'w-64'}
-       relative `}
+        
+        /* บนมือถือ: ความกว้างคงที่เพื่อให้แสดงเมนูครบ และความสูงเต็มจอ */
+        h-[calc(100vh-64px)] w-64
+        
+        /* บนคอมพิวเตอร์ (lg:): ปรับความกว้างตามสถานะ isCollapsed */
+        lg:w-${isCollapsed ? "20" : "64"}
+       relative`}
     >
+      {/* ปุ่มลูกศรย่อขยาย: ซ่อนไว้บนมือถือ (hidden) และแสดงเฉพาะบนคอม (lg:block) */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
         className="hidden lg:block absolute top-4 right-4 p-1 z-50 rounded hover:bg-orange-200 transition"
@@ -78,34 +85,28 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
 
       <div>
         {/* Profile Section */}
-        <div className={`flex justify-center pt-12 py-8 transition-all duration-300 relative`} ref={dropdownRef}>
+        <div className={`flex justify-center pt-12 py-8 transition-all relative ${isCollapsed ? "lg:scale-60" : ""}`} ref={dropdownRef}>
           <div 
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className={`
-              bg-[#cbd5e1] rounded-full flex items-center justify-center overflow-hidden border-4 border-white shadow-md relative cursor-pointer transition-all duration-300
-              ${isCollapsed ? 'lg:w-12 lg:h-12 w-24 h-24' : 'w-24 h-24'}
-            `}
-          >
+            onClick={() => setIsMenuOpen(!isMenuOpen)} // กดเพื่อสลับเปิด-ปิด
+          className="w-24 h-24 bg-[#cbd5e1] rounded-full flex items-center justify-center overflow-hidden border-4 border-white shadow-md relative cursor-pointer">
             {profileImage ? (
               <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
             ) : (
-              <User size={isCollapsed ? 24 : 48} className="text-gray-500 transition-all duration-300" />
+              <User size={48} className="text-gray-500" />
             )}
           </div>
         {/* Dropdown Menu */}
           {isMenuOpen && (
-            <div className={`
-              absolute mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden animate-in fade-in zoom-in duration-200
-              p-20 left-[60%] w-46'}
-            `}>
+            <div className="absolute top-10 left-2/3  mt-2 w-46  bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden  animate-in fade-in zoom-in duration-200">
+              
               
               <button
                 onClick={() => {
                   setIsMenuOpen(false);
-                  if (onItemClick) onItemClick(); 
+                  if (onItemClick) onItemClick(); // ปิด Sidebar บนมือถือ
                   navigate("/settings/admin"); 
                 }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-[15px] font-bold text-gray-700 hover:bg-gray-50 cursor-pointer text-left"
+                className="w-full flex items-center gap-3 px-4 py-3 text-[15px] font-bold text-gray-700 hover:bg-gray-50 cursor-pointer"
               >
                 แก้ไขข้อมูลแอดมิน
               </button>
@@ -130,7 +131,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
               text={item.text}
               to={item.to}
               collapsed={isCollapsed}
-              onClick={onItemClick} 
+              onClick={onItemClick} // เรียกฟังก์ชันปิด Sidebar บนมือถือ
             />
           ))}
         </nav>
@@ -140,14 +141,13 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
       <div className="p-4 bg-[#FFF7ED]">
         <button
           onClick={() => setShowLogoutConfirm(true)}
-          className={`
-            flex items-center gap-2 p-3 w-full rounded-lg bg-[#F5A623] hover:bg-[#E2951B] text-white transition-all 
-            ${isCollapsed ? 'lg:justify-center justify-center' : 'justify-center'}
-          `}
+          className="flex items-center gap-2 p-3 w-full text-[18px] rounded-lg bg-[#F5A623] hover:bg-[#E2951B] text-white transition-all justify-center"
         >
-          <LogOut size={18} strokeWidth={3} className="shrink-0" />
-          <span className={`text-[18px] ${isCollapsed ? "lg:hidden block" : "block"}`}>Log out</span>
+          <LogOut size={18} strokeWidth={3} />
+          {/* บนมือถือจะแสดงข้อความเสมอ ส่วนบนคอมจะแสดงตามสถานะ isCollapsed */}
+          <span className={`${isCollapsed ? "lg:hidden" : "block"}`}>Log out</span>
         </button>
+        {/* เรียกใช้ ConfirmModal ที่คุณสร้างไว้ใน ActionButtons.jsx */}
       </div>
     </aside>
       <ConfirmModal
@@ -157,9 +157,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onLogout, onItemClick }) => {
             if (onItemClick) onItemClick(); 
             setShowLogoutConfirm(false);
             
+            // ลบ Token และข้อมูลแอดมินออกจากเครื่อง
             localStorage.removeItem("token");
             localStorage.removeItem("adminId"); 
 
+            // เด้งกลับไปหน้า Login และกันไม่ให้กด Back
             navigate("/login", { replace: true }); 
           }}
           title="ยืนยันการออกจากระบบ"

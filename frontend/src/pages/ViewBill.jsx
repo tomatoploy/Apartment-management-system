@@ -8,7 +8,7 @@ import { apartmentService } from "../api/ApartmentApi";
 import { tenantService } from "../api/TenantApi";
 import { adminService } from "../api/AdminApi";
 import { roomService } from "../api/RoomApi";
-import { constantService } from "../api/ConstantApi"; // ✨ เพิ่มเพื่อดึงเรทค่าน้ำค่าไฟมาคำนวณ
+import { constantService } from "../api/ConstantApi"; 
 import logoImg from '../assets/logo.png';
 
 // ─────────────────────────────────────────────────────────────
@@ -42,16 +42,89 @@ const bahtText = (num) => {
   return `(-${baht}บาท${satang}สตางค์-)`;
 };
 
-const parseMeterInfo = (detailStr) => {
+// 🌟 ปรับปรุงให้ดึงหน่วยและเรทราคาได้อย่างถูกต้อง รองรับสมการที่ซับซ้อน
+const parseMeterInfo = (detailStr, amount) => {
   if (!detailStr || typeof detailStr !== 'string') return null;
   try {
-    const match = detailStr.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*=\s*(\d+(?:\.\d+)?)/);
     const rateMatch = detailStr.match(/\*\s*([\d.]+)/);
-    if (match) {
-      return { prv: match[1], cur: match[2], diff: match[3], rate: rateMatch ? rateMatch[1] : "0" };
+    if (rateMatch) {
+      const rate = Number(rateMatch[1]);
+      // เอาจำนวนเงินหารด้วยเรทราคา เพื่อให้ได้จำนวนหน่วยที่ใช้จริง (ปลอดภัยกว่าการนั่งบวกเลขเอง)
+      const diff = rate > 0 ? (amount / rate) : 0;
+      return { diff: diff, rate: rate };
     }
   } catch (e) { console.error(e); }
   return null;
+};
+
+const toThaiMonth = (dateStr) => {
+  if (!dateStr) return "";
+  const [year, month] = dateStr.split("-");
+  const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+  return `${thaiMonths[parseInt(month, 10) - 1]} ${parseInt(year, 10) + 543}`;
+};
+
+const getItemLabel = (item, selectedDate, type, rates, prevMeters) => {
+  const month = toThaiMonth(selectedDate);
+  if (item.labels?.[selectedDate]) return item.labels[selectedDate];
+  if (item.type === "discount") return "ส่วนลด";
+  if (item.type === "rent")     return `ค่าเช่าห้องพัก เดือน${month}`;
+
+  if (item.type === "electric" || item.type === "water") {
+    const baseName = item.type === "electric" ? "ค่าไฟ" : "ค่าประปา";
+    const recordDateStr = item.meterDate || new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+    const detailStr = item.detail || "";
+
+    const backendChangeMatch = detailStr.match(/\(\s*([\d.]+)\s*-\s*([\d.]+)\s*\)\s*\*\s*([\d.]+)\s*\+\s*\(\s*([\d.]+)\s*-\s*([\d.]+)\s*\)\s*\*\s*([\d.]+)/);
+    if (backendChangeMatch) {
+      const oldEnd = backendChangeMatch[1];
+      const oldStart = backendChangeMatch[2];
+      const rate = backendChangeMatch[3];
+      const newEnd = backendChangeMatch[4];
+      const newStart = backendChangeMatch[5];
+      return `${baseName} (วันที่จดมิเตอร์: ${recordDateStr}) (เปลี่ยนมิเตอร์: (${oldEnd} - ${oldStart}) + (${newEnd} - ${newStart})) * ${rate} บาท/หน่วย`;
+    }
+
+    if (detailStr.includes("เปลี่ยนมิเตอร์")) {
+      const changePart = detailStr.match(/เปลี่ยนมิเตอร์:\s*(.*?)\s*=/);
+      const rateMatch = detailStr.match(/\*\s*([\d.]+)/);
+      if (changePart && rateMatch) {
+        return `${baseName} (วันที่จดมิเตอร์: ${recordDateStr}) (เปลี่ยนมิเตอร์: ${changePart[1].trim()}) * ${rateMatch[1]} บาท/หน่วย`;
+      }
+    }
+
+    const backendStdMatch = detailStr.match(/\(\s*([\d.]+)\s*-\s*([\d.]+)\s*\)\s*\*\s*([\d.]+)/);
+    if (backendStdMatch) {
+      const cur = backendStdMatch[1];
+      const prv = backendStdMatch[2];
+      const rate = backendStdMatch[3];
+      return `${baseName} (วันที่จดมิเตอร์: ${recordDateStr}) (${cur} - ${prv}) * ${rate} บาท/หน่วย`;
+    }
+
+    const rateMatch = detailStr.match(/\*\s*([\d.]+)/);
+    const unitMatch = detailStr.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)/);
+    if (unitMatch && rateMatch) {
+      return `${baseName} (วันที่จดมิเตอร์: ${recordDateStr}) (${unitMatch[1]} - ${unitMatch[2]}) * ${rateMatch[1]} บาท/หน่วย`;
+    }
+
+    if (rates && prevMeters) {
+      const rate = item.type === "electric" ? rates.electric : rates.water;
+      const oldUnit = item.type === "electric" ? prevMeters.electricityUnit : prevMeters.waterUnit;
+      
+      if (rate > 0) {
+        const usedUnits = item.amount / rate;
+        const newUnit = Number((oldUnit + usedUnits).toFixed(2));
+        return `${baseName} (วันที่จดมิเตอร์: ${recordDateStr}) (${newUnit} - ${oldUnit}) * ${rate} บาท/หน่วย`;
+      }
+    }
+
+    return `${baseName} (วันที่จดมิเตอร์: ${recordDateStr})`;
+  }
+
+  if (item.label) return item.label;
+  if (type === "asset" || item.type === "asset" || item.type === "damage") return item.label || "ค่าชำรุดเสียหาย/ทรัพย์สิน";
+  return "รายการอื่น ๆ";
 };
 
 const parseDetailString = (detail, totalAmount, defaultLabel, type, isNegative = false) => {
@@ -93,13 +166,6 @@ const ViewBill = () => {
   });
   const [adminName, setAdminName] = useState("เจ้าหน้าที่");
 
-  const toThaiMonth = (dateStr) => {
-    if (!dateStr) return "";
-    const [year, month] = dateStr.split("-");
-    const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-    return `${thaiMonths[parseInt(month, 10) - 1]} ${parseInt(year, 10) + 543}`;
-  };
-
   const extractArray = (res) => {
     if (!res) return [];
     if (Array.isArray(res)) return res;
@@ -122,7 +188,7 @@ const ViewBill = () => {
         const recordDateStr = new Date(recordDateRaw).toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
         const pNote = payment.calculationNote || payment.CalculationNote || payment.note || payment.Note || "";
 
-        // ✨ 1. ค้นหาห้องจาก Contract ก่อน เพื่อเอา RoomId ไปดึงเรทค่าไฟ/ค่าน้ำ
+        // 1. ค้นหาห้อง
         let rId = null;
         let rNum = "-";
         const cId = payment.contractId || payment.ContractId;
@@ -148,7 +214,7 @@ const ViewBill = () => {
           } catch (e) { console.warn(e); }
         }
 
-        // ✨ 2. ดึงเรทราคามิเตอร์ และ ยอดมิเตอร์เดือนก่อนหน้า เพื่อใช้คำนวณย้อนกลับ
+        // 2. ดึงเรทราคามิเตอร์
         let elecRate = 0, waterRate = 0;
         let prevElec = 0, prevWater = 0;
         
@@ -157,7 +223,6 @@ const ViewBill = () => {
           elecRate = Number(allConstants.find(c => c.category?.toLowerCase() === "utility" && (c.subject?.includes("ไฟ") || c.subject?.includes("ElectricityBill")))?.cost || 0);
           waterRate = Number(allConstants.find(c => c.category?.toLowerCase() === "utility" && (c.subject?.includes("น้ำ") || c.subject?.includes("WaterBill")))?.cost || 0);
 
-          // ดึงมิเตอร์เก่าผ่าน API พรีวิวบิลของ paymentService (เหมือนหน้า BillDetail)
           if (cId) {
             const [year, month] = selectedDate.split("-").map(Number);
             const previewData = await paymentService.generatePayment(cId, year, month).catch(()=>({}));
@@ -176,51 +241,21 @@ const ViewBill = () => {
           billItems.push({ type: "rent", amount: Number(rentVal), label: `ค่าเช่าห้องพัก ประจำเดือน${monthLabel}`, detail: "" });
         }
         
-        // 2. ค่าไฟ (ใช้เงื่อนไขคณิตศาสตร์เพื่อแปลงข้อความเหมือนหน้า Detail)
+        // 🌟 2. ค่าไฟ (เรียกใช้ getItemLabel เพื่อให้ตรรกะเหมือนหน้าบิลเป๊ะๆ)
         const elecVal = payment.electricalCost || payment.ElectricalCost || payment.electricalPricePerUnit || 0;
         if (elecVal > 0) {
           const elecDetail = pNote.match(/ไฟ:[^|]*/)?.[0]?.trim() || "";
-          const unitMatch = elecDetail.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)/);
-          const rateMatch = elecDetail.match(/\*\s*([\d.]+)/);
-          
-          let elecLabel = `ค่ากระแสไฟฟ้า (วันที่จดมิเตอร์: ${recordDateStr})`;
-          
-          if (unitMatch && rateMatch) {
-            elecLabel = `ค่ากระแสไฟฟ้า (วันที่จดมิเตอร์: ${recordDateStr}) (${unitMatch[2]} - ${unitMatch[1]}) * ${rateMatch[1]} บาท/หน่วย`;
-          } else if (elecRate > 0) {
-            // ✨ คำนวณย้อนกลับ
-            const used = elecVal / elecRate;
-            const newU = Number((prevElec + used).toFixed(2));
-            elecLabel = `ค่ากระแสไฟฟ้า (วันที่จดมิเตอร์: ${recordDateStr}) (${prevElec} - ${newU}) * ${elecRate} บาท/หน่วย`;
-          } else {
-            let cleanDetail = elecDetail.replace(/ไฟ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(").trim();
-            if (cleanDetail) elecLabel += ` ${cleanDetail}`;
-          }
-          
+          const fakeItem = { type: "electric", amount: Number(elecVal), detail: elecDetail, meterDate: recordDateStr };
+          const elecLabel = getItemLabel(fakeItem, selectedDate, "electric", { electric: elecRate, water: waterRate }, { electricityUnit: prevElec, waterUnit: prevWater });
           billItems.push({ type: "electric", amount: Number(elecVal), label: elecLabel, detail: elecDetail });
         }
         
-        // 3. ค่าน้ำ
+        // 🌟 3. ค่าน้ำ (เรียกใช้ getItemLabel เช่นกัน)
         const waterVal = payment.waterCost || payment.WaterCost || payment.waterPricePerUnit || 0;
         if (waterVal > 0) {
           const waterDetail = pNote.match(/น้ำ:[^|]*/)?.[0]?.trim() || "";
-          const unitMatch = waterDetail.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)/);
-          const rateMatch = waterDetail.match(/\*\s*([\d.]+)/);
-          
-          let waterLabel = `ค่าน้ำประปา (วันที่จดมิเตอร์: ${recordDateStr})`;
-          
-          if (unitMatch && rateMatch) {
-            waterLabel = `ค่าน้ำประปา (วันที่จดมิเตอร์: ${recordDateStr}) (${unitMatch[2]} - ${unitMatch[1]}) * ${rateMatch[1]} บาท/หน่วย`;
-          } else if (waterRate > 0) {
-             // ✨ คำนวณย้อนกลับ
-             const used = waterVal / waterRate;
-             const newU = Number((prevWater + used).toFixed(2));
-             waterLabel = `ค่าน้ำประปา (วันที่จดมิเตอร์: ${recordDateStr}) (${prevWater} - ${newU}) * ${waterRate} บาท/หน่วย`;
-          } else {
-            let cleanDetail = waterDetail.replace(/น้ำ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(").trim();
-            if (cleanDetail) waterLabel += ` ${cleanDetail}`;
-          }
-          
+          const fakeItem = { type: "water", amount: Number(waterVal), detail: waterDetail, meterDate: recordDateStr };
+          const waterLabel = getItemLabel(fakeItem, selectedDate, "water", { electric: elecRate, water: waterRate }, { electricityUnit: prevElec, waterUnit: prevWater });
           billItems.push({ type: "water", amount: Number(waterVal), label: waterLabel, detail: waterDetail });
         }
         
@@ -429,7 +464,8 @@ const ViewBill = () => {
               </thead>
               <tbody>
                 {items.map((item, idx) => {
-                  const meter = parseMeterInfo(item.detail);
+                  // 🌟 แก้ไขการเรียกใช้ parseMeterInfo ให้ส่ง amount ไปด้วย
+                  const meter = parseMeterInfo(item.detail, Math.abs(item.amount || 0));
                   return (
                     <tr key={idx} className="border-b border-gray-100">
                       <td className="py-1 text-center text-gray-500">{idx + 1}</td>

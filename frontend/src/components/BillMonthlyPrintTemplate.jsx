@@ -29,13 +29,16 @@ const bahtText = (num) => {
   return `(-${baht}บาท${satang}สตางค์-)`;
 };
 
-const parseMeterInfo = (detailStr) => {
+// 🌟 แก้ไขแค่ฟังก์ชันนี้ให้รองรับสมการเปลี่ยนมิเตอร์ โดยไม่กระทบ Layout
+const parseMeterInfo = (detailStr, amount) => {
   if (!detailStr || typeof detailStr !== 'string') return null;
   try {
-    const match = detailStr.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*=\s*(\d+(?:\.\d+)?)/);
     const rateMatch = detailStr.match(/\*\s*([\d.]+)/);
-    if (match) {
-      return { prv: match[1], cur: match[2], diff: match[3], rate: rateMatch ? rateMatch[1] : "0" };
+    if (rateMatch) {
+      const rate = Number(rateMatch[1]);
+      // ป้องกันการหารด้วยศูนย์
+      const diff = rate > 0 ? (Math.abs(amount) / rate) : 0;
+      return { diff: diff, rate: rate };
     }
   } catch (e) { console.error(e); }
   return null;
@@ -100,7 +103,8 @@ const ReceiptHalf = ({ isCopy, items, roomNumber, apt, cst, ctc, adminName, tota
           </thead>
           <tbody>
             {items.map((item, idx) => {
-              const meter = parseMeterInfo(item.detail);
+              // 🌟 ส่ง amount ไปให้ parseMeterInfo ด้วย
+              const meter = parseMeterInfo(item.detail, item.amount);
               // ดึงข้อความจาก label มาแสดงตรงๆ เลย
               const labelName = item.label || 'รายการทั่วไป';
 
