@@ -10,7 +10,7 @@ const MeterTable = ({
  currentMonthLabel
 }) => {
  // กำหนดสีหัวตารางตามประเภท (ฟ้า=น้ำ, ส้ม=ไฟ)
- const headerBg = meterType === "electricity" ? "bg-[#f17721]" : "bg-[#009CDE]";
+ const headerBg = meterType === "electricity" ? "bg-[#f3a638]" : "bg-[#009CDE]";
 
 
  // ✅ ฟังก์ชันตรวจสอบตัวเลข (อนุญาตแค่ 0-9 และจุดทศนิยม 1 จุด)

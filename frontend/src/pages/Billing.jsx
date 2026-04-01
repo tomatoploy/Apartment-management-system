@@ -12,6 +12,7 @@ import SearchBar from "../components/SearchBar";
 import {
   BlueButton, GreenButton, OrangeButton,
   DownloadButton, SelectAllFloorButton, WhiteButton,
+  RefreshButton,
 } from "../components/ActionButtons";
 import { useNavigate } from "react-router-dom";
 import { CustomMonthPicker } from "../components/DateController";
@@ -612,10 +613,8 @@ const Billing = () => {
           <div className="flex flex-wrap sm:flex-nowrap items-center justify-center gap-2 sm:gap-3 w-full px-2">
             <span className="font-bold text-gray-600 shrink-0">รอบบิล</span>
             <CustomMonthPicker value={selectedDate} onChange={setSelectedDate} className="w-full sm:w-64" />
-            <OrangeButton label="สร้างบิลใหม่" icon={Plus} onClick={handleGenerateClick} className="w-full sm:w-auto shadow-md py-2.5 px-5 justify-center" />
-            <button onClick={loadData} className="p-3 rounded-xl border transition-all flex items-center justify-center h-12 w-12 shrink-0 bg-white border-gray-200 text-gray-500 hover:border-[#f3a638] hover:text-[#f3a638] hover:bg-orange-50 group">
-              <RotateCw size={20} className="transition-transform duration-500 group-hover:rotate-180" />
-            </button>
+            <OrangeButton label="สร้างบิลใหม่" icon={Plus} onClick={handleGenerateClick} className="w-full sm:w-auto shadow-md py-3 px-5 justify-center" />
+            <RefreshButton/>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 w-full px-4">
@@ -644,9 +643,10 @@ const Billing = () => {
             <WhiteButton label="พิมพ์ใบสรุปบิล" icon={FileText} className="w-full justify-center" onClick={handlePrintSummary} />
             
             <div className="relative group w-full">
-              <button disabled={isDownloading} className="w-full h-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl font-bold text-sm bg-green-100 text-green-700 hover:bg-green-200 border border-green-200 disabled:opacity-50 transition-all">
+              <button disabled={isDownloading} className="w-full h-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl font-bold text-sm bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50 transition-all">
                 {isDownloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} ดาวน์โหลด
               </button>
+              
               <div className="absolute left-0 top-full pt-1 z-40 w-full min-w-[140px] hidden group-hover:block focus-within:block active:block">
                 <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
                   <button onClick={() => handleDownload("xlsx")} className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 flex items-center gap-2"><FileText size={14} className="text-green-600" /> Excel (.xlsx)</button>

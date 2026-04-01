@@ -4,7 +4,7 @@ import {
   Loader2, X, CheckCircle2, AlertCircle, Plus,
   ShieldCheck, UserCog, Mail, Phone, Search, UserMinus, Lock
 } from "lucide-react";
-import { ExitButton } from "../components/ActionButtons";
+import { ExitButton, RefreshButton, AddButton } from "../components/ActionButtons";
 import SearchBar from "../components/SearchBar";
 
 import { adminService } from "../api/AdminApi";
@@ -80,7 +80,8 @@ const AddPermissionModal = ({ onClose, onSaved }) => {
             <h3 className="text-xl font-black text-gray-800">ให้สิทธิ์เข้าถึง</h3>
             <p className="text-xs font-bold text-gray-400 mt-0.5">ค้นหาด้วยเบอร์โทรศัพท์</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X size={22} strokeWidth={3} /></button>
+          <ExitButton onClick={onClose} />
+          {/* <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X size={22} strokeWidth={3} /></button> */}
         </div>
 
         <div className="px-8 py-8 space-y-4">
@@ -239,10 +240,17 @@ const AdminAccessSetting = () => {
         <div className="w-full sm:w-80">
           <SearchBar value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="ค้นชื่อ หรือ เบอร์โทร..." />
         </div>
-        <button onClick={() => setShowAddModal(true)}
+        {/* <button onClick={() => setShowAddModal(true)}
           className="px-6 py-2.5 rounded-2xl bg-[#f3a638] text-white font-black transition-all shadow-lg shadow-orange-100 hover:bg-orange-500 flex items-center gap-2 active:scale-95">
           <Plus size={18} strokeWidth={3} /> เพิ่มสิทธิ์ด้วยเบอร์โทร
-        </button>
+        </button> */}
+        <AddButton 
+        label="เพิ่มสิทธิ์ด้วยเบอร์โทร" 
+        icon={Plus} 
+        onClick={() => setShowAddModal(true)} 
+      />
+      <RefreshButton/>
+        
       </div>
 
       <div className="max-w-4xl mx-auto px-4">
