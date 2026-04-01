@@ -8,7 +8,7 @@ const RoomCard = ({
   building, 
   tenantName, 
   status, 
-  icons = [], 
+  icons = [], // 👈 จุดสำคัญ: ต้องแน่ใจว่าหน้าหลักส่ง Array ไอคอนเข้ามาให้
   overdueCount = 0,
   isContractExpired = false,
   isContractUrgent = false,
@@ -49,7 +49,7 @@ const RoomCard = ({
 
         {/* 🔴 badge ซ้ายบน: จำนวนเดือนค้างชำระ */}
         {overdueCount > 0 && (
-          <div className="absolute -top-2 -left-2 bg-red-600 text-white rounded-full min-w-[24px] h-[24px] px-1.5 flex items-center justify-center text-[11px] font-black shadow-lg z-10 border-2 border-white">
+          <div className="absolute -top-2 -left-2 bg-red-600 text-white rounded-full min-w-[24px] h-[24px] px-1.5 flex items-center justify-center text-[11px] font-black shadow-lg z-20 border-2 border-white">
             {overdueCount}
           </div>
         )}
@@ -57,7 +57,7 @@ const RoomCard = ({
         {/* 🟠/🔴 badge ขวาบน: ใกล้หมด/หมดสัญญา */}
         {(isContractExpired || isContractUrgent) && (
           <div
-            className={`absolute -top-2 -right-2 rounded-full w-7 h-7 flex items-center justify-center shadow-lg z-10 border-2 border-white
+            className={`absolute -top-2 -right-2 rounded-full w-7 h-7 flex items-center justify-center shadow-lg z-20 border-2 border-white
               ${isContractExpired ? "bg-red-600" : "bg-orange-400"}`}
             title={isContractExpired ? "สัญญาหมดอายุแล้ว" : "สัญญาใกล้ครบกำหนด (≤ 30 วัน)"}
           >
@@ -67,31 +67,32 @@ const RoomCard = ({
 
         <div className={`w-20 h-20 sm:w-28 sm:h-28 rounded-xl shadow-sm relative flex items-center justify-center transition-transform cursor-pointer ${statusColors[normalizedStatus] || statusColors.available}`}>
 
-          {/* Zone 1: บนซ้าย */}
+          {/* Zone 1: บนซ้าย (แสดงทุกสี ทุกสถานะ) */}
           <div className="absolute top-1.5 left-1.5 flex flex-row gap-1 z-10">
             {moveIcons.map((iconKey, index) => (
               iconMap[iconKey] && (
-                <div key={index} className="bg-white/90 rounded-full p-1.5 shadow-sm flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8">
+                <div key={`move-${index}`} className="bg-white/90 rounded-full p-1.5 shadow-sm flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8">
                   {iconMap[iconKey]}
                 </div>
               )
             ))}
           </div>
 
-          {/* Zone 2: ล่างซ้าย */}
+          {/* Zone 2: ล่างซ้าย (แสดงทุกสี ทุกสถานะ) */}
           <div className="absolute bottom-1.5 left-1.5 flex flex-row gap-1 z-10">
             {activityIcons.map((iconKey, index) => (
               iconMap[iconKey] && (
-                <div key={index} className="bg-white/90 rounded-full p-1.5 shadow-sm flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8">
+                <div key={`act-${index}`} className="bg-white/90 rounded-full p-1.5 shadow-sm flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8">
                   {iconMap[iconKey]}
                 </div>
               )
             ))}
           </div>
 
-          {normalizedStatus === "available" && (
-            <span className="text-xl font-bold text-gray-400">{building}{roomNumber}</span>
-          )}
+          {/* แสดงเลขห้องตรงกลางสำหรับทุกสถานะ */}
+          <span className={`text-xl font-bold ${normalizedStatus === "available" ? "text-gray-400" : "text-white drop-shadow-md"}`}>
+            {building}{roomNumber}
+          </span>
         </div>
 
         <div className="mt-1 flex flex-col items-center leading-tight">

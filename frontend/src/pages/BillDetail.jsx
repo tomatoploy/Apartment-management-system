@@ -329,6 +329,12 @@ const BillDetail = ({
   const [showAutoAddModal, setShowAutoAddModal] = useState(false);
   const [cycleDates, setCycleDates] = useState({ start: "", end: "" });
 
+  const [isMeterChanged, setIsMeterChanged] = useState({ electric: false, water: false });
+  const [changeMeters, setChangeMeters] = useState({
+    electricEnd: "", electricStart: "",
+    waterEnd: "", waterStart: ""
+  });
+
   const [apartmentInfo, setApartmentInfo] = useState(null);
   const [tenantInfo, setTenantInfo] = useState(null);
   const [adminInfo, setAdminInfo] = useState(null);
@@ -521,30 +527,56 @@ const BillDetail = ({
     const hasWater = newMeters.water !== "";
     if (!hasElec && !hasWater) return alert("กรุณากรอกยอดมิเตอร์ไฟหรือน้ำอย่างน้อย 1 รายการ");
 
-    const calcUnit = (oldUnit, newUnitStr) => {
+    // 👇 ปรับฟังก์ชัน calcUnit ให้รองรับกรณีเปลี่ยนมิเตอร์
+    const calcUnit = (oldUnit, newUnitStr, type) => {
       const newUnit = Number(newUnitStr);
-      return { newUnit, diff: calcUsedUnit(oldUnit, newUnit) };
-    };
-    const elec = hasElec ? calcUnit(latestMeter.electricityUnit, newMeters.electric) : null;
-    const water = hasWater ? calcUnit(latestMeter.waterUnit, newMeters.water) : null;
+      
+      if (isMeterChanged[type]) {
+        const changeEnd = Number(changeMeters[`${type}End`]);
+        const changeStart = Number(changeMeters[`${type}Start`]);
+        
+        const diff1 = calcUsedUnit(oldUnit, changeEnd);
+        const diff2 = calcUsedUnit(changeStart, newUnit);
+        const totalDiff = diff1 + diff2;
+        
+        const detailMsg = `(เปลี่ยนมิเตอร์: [${changeEnd}-${oldUnit}] + [${newUnit}-${changeStart}] = ${totalDiff} หน่วย)`;
+        
+        return { 
+          newUnit, 
+          diff: totalDiff, 
+          isChanged: true, 
+          changeEnd, 
+          changeStart,
+          detailMsg 
+        };
+      }
 
-    // ✨ จัดการวันที่แบบไทย
+      const diff = calcUsedUnit(oldUnit, newUnit);
+      return { 
+        newUnit, 
+        diff, 
+        isChanged: false,
+        detailMsg: `(มิเตอร์: ${newUnit} - ${oldUnit} = ${diff} หน่วย)` 
+      };
+    };
+
+    const elec = hasElec ? calcUnit(latestMeter.electricityUnit, newMeters.electric, 'electric') : null;
+    const water = hasWater ? calcUnit(latestMeter.waterUnit, newMeters.water, 'water') : null;
+
     const todayTH = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
     setItems(prev => {
       let next = [...prev];
       if (elec) {
         next = next.filter(i => i.type !== "electric");
-        next.push({ id: Date.now(), type: "electric", amount: elec.diff * effectiveRates.electric, detail: `(มิเตอร์: ${elec.newUnit} - ${latestMeter.electricityUnit} = ${elec.diff} หน่วย) * ${effectiveRates.electric} ฿`, meterDate: todayTH, labels: {} });
+        next.push({ id: Date.now(), type: "electric", amount: elec.diff * effectiveRates.electric, detail: `${elec.detailMsg} * ${effectiveRates.electric} ฿`, meterDate: todayTH, labels: {} });
       }
       if (water) {
         next = next.filter(i => i.type !== "water");
-        next.push({ id: Date.now() + 1, type: "water", amount: water.diff * effectiveRates.water, detail: `(มิเตอร์: ${water.newUnit} - ${latestMeter.waterUnit} = ${water.diff} หน่วย) * ${effectiveRates.water} ฿`, meterDate: todayTH, labels: {} });
+        next.push({ id: Date.now() + 1, type: "water", amount: water.diff * effectiveRates.water, detail: `${water.detailMsg} * ${effectiveRates.water} ฿`, meterDate: todayTH, labels: {} });
       }
       return next;
     });
-
-    // ... (โค้ดดึง try-catch ส่ง API ปล่อยไว้เหมือนเดิมครับ)
 
     try {
       const today = new Date().toLocaleDateString('en-CA');
@@ -556,7 +588,11 @@ const BillDetail = ({
         RoomId: roomId, 
         RecordDate: today, 
         ElectricityUnit: elec ? elec.newUnit : null,
+        ChangeElectricityMeterEnd: elec?.isChanged ? elec.changeEnd : null,
+        ChangeElectricityMeterStart: elec?.isChanged ? elec.changeStart : null,
         WaterUnit: water ? water.newUnit : null,
+        ChangeWaterMeterEnd: water?.isChanged ? water.changeEnd : null,
+        ChangeWaterMeterStart: water?.isChanged ? water.changeStart : null,
         Note: meterNote 
       }];
       
@@ -567,6 +603,8 @@ const BillDetail = ({
         waterUnit: water ? water.newUnit : prev.waterUnit 
       }));
       setNewMeters({ electric: "", water: "" });
+      setIsMeterChanged({ electric: false, water: false }); // Reset state
+      setChangeMeters({ electricEnd: "", electricStart: "", waterEnd: "", waterStart: "" }); // Reset state
       alert(`คำนวณและบันทึกมิเตอร์${parts.join(" และ ")} เรียบร้อยแล้ว`);
     } catch (err) { alert("เพิ่มลงบิลแล้ว แต่ไม่สามารถอัปเดตประวัติมิเตอร์ในฐานข้อมูลได้"); }
   };
@@ -820,34 +858,104 @@ const handleSave = async (currentItems, totalAmt) => {
                 <button onClick={() => setShowConstantModal(false)} className="p-2 hover:bg-gray-100 rounded-full"><X size={24} strokeWidth={3} /></button>
               </div>
               <div className="overflow-y-auto flex-1 space-y-5 pr-1">
-                {showMeterSection && (
-                  <div className="space-y-3 mb-2">
-                    <div className="flex items-center gap-2 mb-2 px-1"><span className="text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-100 text-blue-600 flex items-center gap-1"><Zap size={14}/> คำนวณค่าน้ำ-ไฟจากมิเตอร์</span></div>
-                    <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-                      <div className="bg-orange-50 px-5 pt-5 pb-4 border-b border-orange-100">
-                        <p className="text-sm font-black text-orange-700 mb-3">⚡ ค่าไฟฟ้า เดือน {toThaiMonth(selectedDate)}</p>
-                        <div className="flex items-center gap-2 flex-wrap font-bold text-sm text-gray-600">
-                          <span className="shrink-0">ยอดเก่า: <span className="text-gray-800">{latestMeter.electricityUnit || 0}</span></span>
-                          <span className="text-gray-300 shrink-0">→</span>
-                          <input type="number" value={newMeters.electric} onChange={e => setNewMeters(prev => ({ ...prev, electric: e.target.value }))} className="w-28 px-3 py-1.5 rounded-xl border border-gray-200 font-black focus:outline-none focus:border-orange-400 bg-white" placeholder="เลขใหม่"/>
-                          <span className="text-orange-500 shrink-0">× {effectiveRates.electric} ฿</span>
-                        </div>
-                      </div>
-                      <div className="bg-blue-50 px-5 pt-4 pb-4">
-                        <p className="text-sm font-black text-blue-700 mb-3">💧 ค่าน้ำประปา เดือน {toThaiMonth(selectedDate)}</p>
-                        <div className="flex items-center gap-2 flex-wrap font-bold text-sm text-gray-600">
-                          <span className="shrink-0">ยอดเก่า: <span className="text-gray-800">{latestMeter.waterUnit || 0}</span></span>
-                          <span className="text-gray-300 shrink-0">→</span>
-                          <input type="number" value={newMeters.water} onChange={e => setNewMeters(prev => ({ ...prev, water: e.target.value }))} className="w-28 px-3 py-1.5 rounded-xl border border-gray-200 font-black focus:outline-none focus:border-blue-400 bg-white" placeholder="เลขใหม่"/>
-                          <span className="text-blue-500 shrink-0">× {effectiveRates.water} ฿</span>
-                        </div>
-                      </div>
-                      <div className="px-5 py-4 bg-white border-t border-gray-100 flex items-center justify-between gap-4">
-                        <button onClick={handleAddBothUtilities} disabled={!newMeters.electric && !newMeters.water} className="shrink-0 px-6 py-2.5 bg-[#f3a638] text-white rounded-xl font-black shadow-md hover:bg-orange-500 transition-all text-sm disabled:opacity-40 flex items-center gap-2 ml-auto"><Plus size={16} /> เพิ่มลงบิล</button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+{showMeterSection && (
+  <div className="space-y-3 mb-2">
+    <div className="flex items-center gap-2 mb-2 px-1">
+      <span className="text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-100 text-blue-600 flex items-center gap-1">
+        <Zap size={14}/> คำนวณค่าน้ำ-ไฟจากมิเตอร์
+      </span>
+    </div>
+    <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+      
+      {/* ⚡ ส่วนของมิเตอร์ไฟฟ้า */}
+      <div className="bg-orange-50 px-5 pt-5 pb-4 border-b border-orange-100">
+        <div className="flex justify-between items-center mb-3">
+          <p className="text-sm font-black text-orange-700">⚡ ค่าไฟฟ้า เดือน {toThaiMonth(selectedDate)}</p>
+          <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-orange-600 bg-white px-2 py-1 rounded-lg border border-orange-200 shadow-sm">
+            <input 
+              type="checkbox" 
+              className="accent-orange-500 w-3.5 h-3.5"
+              checked={isMeterChanged?.electric || false} 
+              onChange={(e) => setIsMeterChanged(prev => ({...prev, electric: e.target.checked}))} 
+            />
+            มีการเปลี่ยนมิเตอร์
+          </label>
+        </div>
+
+        {!isMeterChanged?.electric ? (
+          <div className="flex items-center gap-2 flex-wrap font-bold text-sm text-gray-600">
+            <span className="shrink-0">ยอดเก่า: <span className="text-gray-800">{latestMeter.electricityUnit || 0}</span></span>
+            <span className="text-gray-300 shrink-0">→</span>
+            <input type="number" value={newMeters.electric} onChange={e => setNewMeters(prev => ({ ...prev, electric: e.target.value }))} className="w-28 px-3 py-1.5 rounded-xl border border-gray-200 font-black focus:outline-none focus:border-orange-400 bg-white" placeholder="เลขใหม่"/>
+            <span className="text-orange-500 shrink-0">× {effectiveRates.electric} ฿</span>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2.5 font-bold text-sm text-gray-600 bg-white p-3 rounded-xl border border-orange-200 shadow-inner">
+            <div className="flex items-center gap-2">
+              <span className="w-20 shrink-0 text-xs text-gray-500">มิเตอร์เก่า:</span>
+              <span className="text-gray-800 shrink-0">{latestMeter.electricityUnit || 0}</span>
+              <span className="text-gray-300 shrink-0">→</span>
+              <input type="number" value={changeMeters?.electricEnd || ""} onChange={e => setChangeMeters(prev => ({...prev, electricEnd: e.target.value}))} className="w-24 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs focus:border-orange-400 focus:outline-none" placeholder="เลขก่อนถอด"/>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-20 shrink-0 text-xs text-orange-600">มิเตอร์ใหม่:</span>
+              <input type="number" value={changeMeters?.electricStart || ""} onChange={e => setChangeMeters(prev => ({...prev, electricStart: e.target.value}))} className="w-20 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs focus:border-orange-400 focus:outline-none" placeholder="เลขเริ่ม"/>
+              <span className="text-gray-300 shrink-0">→</span>
+              <input type="number" value={newMeters.electric} onChange={e => setNewMeters(prev => ({...prev, electric: e.target.value}))} className="w-24 px-2.5 py-1.5 rounded-lg border border-orange-400 text-xs focus:border-orange-500 bg-orange-50 focus:outline-none" placeholder="เลขปัจจุบัน"/>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 💧 ส่วนของมิเตอร์น้ำประปา */}
+      <div className="bg-blue-50 px-5 pt-4 pb-4">
+        <div className="flex justify-between items-center mb-3">
+          <p className="text-sm font-black text-blue-700">💧 ค่าน้ำประปา เดือน {toThaiMonth(selectedDate)}</p>
+          <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-blue-600 bg-white px-2 py-1 rounded-lg border border-blue-200 shadow-sm">
+            <input 
+              type="checkbox" 
+              className="accent-blue-500 w-3.5 h-3.5"
+              checked={isMeterChanged?.water || false} 
+              onChange={(e) => setIsMeterChanged(prev => ({...prev, water: e.target.checked}))} 
+            />
+            มีการเปลี่ยนมิเตอร์
+          </label>
+        </div>
+
+        {!isMeterChanged?.water ? (
+          <div className="flex items-center gap-2 flex-wrap font-bold text-sm text-gray-600">
+            <span className="shrink-0">ยอดเก่า: <span className="text-gray-800">{latestMeter.waterUnit || 0}</span></span>
+            <span className="text-gray-300 shrink-0">→</span>
+            <input type="number" value={newMeters.water} onChange={e => setNewMeters(prev => ({ ...prev, water: e.target.value }))} className="w-28 px-3 py-1.5 rounded-xl border border-gray-200 font-black focus:outline-none focus:border-blue-400 bg-white" placeholder="เลขใหม่"/>
+            <span className="text-blue-500 shrink-0">× {effectiveRates.water} ฿</span>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2.5 font-bold text-sm text-gray-600 bg-white p-3 rounded-xl border border-blue-200 shadow-inner">
+            <div className="flex items-center gap-2">
+              <span className="w-20 shrink-0 text-xs text-gray-500">มิเตอร์เก่า:</span>
+              <span className="text-gray-800 shrink-0">{latestMeter.waterUnit || 0}</span>
+              <span className="text-gray-300 shrink-0">→</span>
+              <input type="number" value={changeMeters?.waterEnd || ""} onChange={e => setChangeMeters(prev => ({...prev, waterEnd: e.target.value}))} className="w-24 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs focus:border-blue-400 focus:outline-none" placeholder="เลขก่อนถอด"/>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-20 shrink-0 text-xs text-blue-600">มิเตอร์ใหม่:</span>
+              <input type="number" value={changeMeters?.waterStart || ""} onChange={e => setChangeMeters(prev => ({...prev, waterStart: e.target.value}))} className="w-20 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs focus:border-blue-400 focus:outline-none" placeholder="เลขเริ่ม"/>
+              <span className="text-gray-300 shrink-0">→</span>
+              <input type="number" value={newMeters.water} onChange={e => setNewMeters(prev => ({...prev, water: e.target.value}))} className="w-24 px-2.5 py-1.5 rounded-lg border border-blue-400 text-xs focus:border-blue-500 bg-blue-50 focus:outline-none" placeholder="เลขปัจจุบัน"/>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="px-5 py-4 bg-white border-t border-gray-100 flex items-center justify-between gap-4">
+        <button onClick={handleAddBothUtilities} disabled={!newMeters.electric && !newMeters.water} className="shrink-0 px-6 py-2.5 bg-[#f3a638] text-white rounded-xl font-black shadow-md hover:bg-orange-500 transition-all text-sm disabled:opacity-40 flex items-center gap-2 ml-auto">
+          <Plus size={16} /> เพิ่มลงบิล
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
                 {isLoadingConst ? (
                   <div className="py-12 flex items-center justify-center"><Loader2 className="w-8 h-8 text-orange-400 animate-spin" /></div>
                 ) : (
