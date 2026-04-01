@@ -8,7 +8,11 @@ import {
 } from "lucide-react";
 import MeterTable from "../components/MeterTable";
 import ChangeMeterModal from "../components/ChangeMeterModal";
-import { SaveButton, DownloadButton } from "../components/ActionButtons";
+import {
+  SaveButton,
+  DownloadButton,
+  RefreshButton,
+} from "../components/ActionButtons";
 import * as XLSX from "xlsx";
 import { CustomMonthPicker, DateInput } from "../components/DateController";
 
@@ -68,7 +72,7 @@ const Meter = () => {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().slice(0, 7),
   );
-  
+
   const [recordDate, setRecordDate] = useState(() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -76,7 +80,7 @@ const Meter = () => {
     const day = String(now.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`; // จะได้ "2026-03-31" ตามวันที่ปัจจุบัน
   });
-  
+
   const [meterType, setMeterType] = useState("water");
   const [activeFloor, setActiveFloor] = useState("1");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -211,11 +215,14 @@ const Meter = () => {
 
       // --- 🛠️ ส่วนที่เพิ่มใหม่: กรองเอาเฉพาะ ID สูงสุด (ล่าสุด) ของแต่ละห้อง ---
       const latestDataMap = new Map();
-      
+
       data.forEach((item) => {
         const existing = latestDataMap.get(item.roomId);
         // ถ้ายังไม่มีห้องนี้ใน Map หรือ ถ้ามีแล้วแต่ ID ของรอบนี้สูงกว่า (ใหม่กว่า) ให้แทนที่
-        if (!existing || (item.id != null && existing.id != null && item.id > existing.id)) {
+        if (
+          !existing ||
+          (item.id != null && existing.id != null && item.id > existing.id)
+        ) {
           latestDataMap.set(item.roomId, item);
         }
       });
@@ -294,11 +301,23 @@ const Meter = () => {
         electricityUnit: toSafeInt(room.currElec),
         waterUnit: toSafeInt(room.currWater),
 
-        // ค่าใหม่จาก Modal ส่งให้ backend 
-        changeElectricityMeterStart: type === "electricity" ? toSafeInt(data.newMeterStart) : toSafeInt(room.changeElectricityMeterStart),
-        changeElectricityMeterEnd: type === "electricity" ? toSafeInt(data.oldMeterEnd) : toSafeInt(room.changeElectricityMeterEnd),
-        changeWaterMeterStart: type === "water" ? toSafeInt(data.newMeterStart) : toSafeInt(room.changeWaterMeterStart),
-        changeWaterMeterEnd: type === "water" ? toSafeInt(data.oldMeterEnd) : toSafeInt(room.changeWaterMeterEnd),
+        // ค่าใหม่จาก Modal ส่งให้ backend
+        changeElectricityMeterStart:
+          type === "electricity"
+            ? toSafeInt(data.newMeterStart)
+            : toSafeInt(room.changeElectricityMeterStart),
+        changeElectricityMeterEnd:
+          type === "electricity"
+            ? toSafeInt(data.oldMeterEnd)
+            : toSafeInt(room.changeElectricityMeterEnd),
+        changeWaterMeterStart:
+          type === "water"
+            ? toSafeInt(data.newMeterStart)
+            : toSafeInt(room.changeWaterMeterStart),
+        changeWaterMeterEnd:
+          type === "water"
+            ? toSafeInt(data.oldMeterEnd)
+            : toSafeInt(room.changeWaterMeterEnd),
         note: "",
       };
 
@@ -311,10 +330,11 @@ const Meter = () => {
       setRooms((prevRooms) => {
         const updatedRooms = prevRooms.map((r) => {
           if (String(r.roomId) === String(roomId)) {
-            const newData = type === "electricity"
+            const newData =
+              type === "electricity"
                 ? {
                     ...r,
-                    changeElectricityMeterStart: data.newMeterStart, 
+                    changeElectricityMeterStart: data.newMeterStart,
                     changeElectricityMeterEnd: data.oldMeterEnd,
                   }
                 : {
@@ -336,10 +356,9 @@ const Meter = () => {
 
       setIsModalOpen(false);
       alert("บันทึกการเปลี่ยนมิเตอร์เรียบร้อย ✅");
-      
+
       // 🌟 ดึงข้อมูลใหม่จาก Database อีกรอบเพื่อความชัวร์ 100% ว่าเซฟติดแล้ว
       await fetchMeters();
-
     } catch (err) {
       alert("เกิดข้อผิดพลาดในการบันทึกการเปลี่ยนมิเตอร์");
     }
@@ -369,7 +388,9 @@ const Meter = () => {
             recordDate: recordDate,
             electricityUnit: toSafeInt(r.currElec),
             waterUnit: toSafeInt(r.currWater),
-            changeElectricityMeterStart: toSafeInt(r.changeElectricityMeterStart),
+            changeElectricityMeterStart: toSafeInt(
+              r.changeElectricityMeterStart,
+            ),
             changeElectricityMeterEnd: toSafeInt(r.changeElectricityMeterEnd),
             changeWaterMeterStart: toSafeInt(r.changeWaterMeterStart),
             changeWaterMeterEnd: toSafeInt(r.changeWaterMeterEnd),
@@ -386,10 +407,9 @@ const Meter = () => {
       await utilityMeterService.bulkUpsertUtilityMeters(payload);
 
       alert("บันทึกข้อมูลเลขมิเตอร์เรียบร้อย ✅");
-      
+
       // 🌟 ดึงข้อมูลใหม่จาก Database เพื่ออัปเดตช่อง ยูนิตที่ใช้ (diff) ให้คำนวณใหม่
       await fetchMeters();
-
     } catch (err) {
       console.error(err);
       alert("บันทึกข้อมูลไม่สำเร็จ");
@@ -435,32 +455,36 @@ const Meter = () => {
 
           {/* 3. Download Button */}
           <div className="flex-none w-full md:w-auto self-end">
-            <div className="flex flex-col h-full">
-              {/* เว้นที่ว่างด้านบนให้เท่ากับ Label ของตัวอื่น */}
+            <div className="flex flex-col h-full w-full">
               <div className="hidden md:block h-5 mb-2"></div>
-              <DownloadButton
-                className="h-[48px] px-8 rounded-2xl shadow-lg shadow-orange-50 font-black"
-                onClick={() => handleDownload()}
-                disabled={!rooms || rooms.length === 0}
-              />
+              <div className="flex items-center gap-2 w-full">
+                <div className="flex-1">
+                  <DownloadButton
+                    className="w-full md:w-auto h-[48px] px-8 rounded-2xl shadow-lg shadow-orange-50 font-black"
+                    onClick={() => handleDownload()}
+                    disabled={!rooms || rooms.length === 0}
+                  />
+                </div>
+                <RefreshButton />
+              </div>
             </div>
           </div>
         </div>
 
         {/* Row 2: Meter Type Tabs */}
-        <div className="flex bg-gray-100 p-1 rounded-2xl w-full max-w-2xl">
+        <div className="flex bg-gray-100 p-1 rounded-2xl w-full max-w-2xl -mb-4">
           {[
-            { id: "water", label: "น้ำประปา", icon: Droplets },
             { id: "electricity", label: "ไฟฟ้า", icon: Zap },
+            { id: "water", label: "น้ำประปา", icon: Droplets },
           ].map((type) => (
             <button
               key={type.id}
               onClick={() => setMeterType(type.id)}
               className={`flex-1 flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all ${
                 meterType === type.id
-                  ? type.id === "water"
-                    ? "bg-[#009CDE] text-white shadow-md"
-                    : "bg-[#f3a638] text-white shadow-md"
+                  ? type.id === "electricity"
+                    ? "bg-[#f3a638] text-white shadow-md"
+                    : "bg-[#009CDE] text-white shadow-md"
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
@@ -472,7 +496,7 @@ const Meter = () => {
       </div>
 
       {/* --- Floor Selection --- */}
-      <div className="flex justify-center mb-6">
+      <div className="flex justify-center mb-3">
         <div className="flex flex-col sm:flex-row items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
           <span className="font-bold text-gray-700 whitespace-nowrap">
             กำลังจดชั้น :
@@ -496,12 +520,12 @@ const Meter = () => {
       </div>
 
       {/* --- Content Area --- */}
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-5xl mx-auto mb-12">
         <div className="mb-2 flex items-center justify-end gap-2 text-xs text-gray-400 font-medium px-2">
-          <span>ข้อมูลของ:</span>
-          <span className="text-gray-600 font-bold">{prevMonthLabel}</span>
+          <span>ข้อมูล :</span>
+          <span className="text-gray-400 font-bold">{prevMonthLabel}</span>
           <span>➜</span>
-          <span className="text-[#f3a638] font-bold">{currentMonthLabel}</span>
+          <span className="text-gray-700 font-bold">{currentMonthLabel}</span>
         </div>
 
         <MeterTable
@@ -515,12 +539,12 @@ const Meter = () => {
       </div>
 
       {/* sticky footer */}
-      <div className="sticky bottom-0 left-0 right-0 bg-white/50 backdrop-blur-sm py-4 z-20 ">
-        <div className="flex justify-end px-2">
+      <div className="fixed bottom-0 left-0 lg:left-64 right-0 bg-white/90 backdrop-blur-md border-t border-gray-200 px-4 py-3 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+        <div className="flex justify-center sm:justify-end max-w-7xl mx-auto px-2">
           <SaveButton
             disabled={isSaving}
             onClick={handleMainSave}
-            className="w-full sm:w-auto px-10"
+            className="w-full sm:w-auto min-w-[200px] px-10"
           />
         </div>
       </div>

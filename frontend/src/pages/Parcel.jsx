@@ -7,6 +7,7 @@ import AddParcelModal from "../components/AddParcelModal";
 import ParcelItem from "../components/ParcelItem";
 import EditParcelModal from "../components/EditParcelModal";
 import { useSearchParams } from "react-router-dom";
+import { RefreshButton } from "../components/ActionButtons";
 
 const SORT_OPTIONS = {
   latest: { label: "เรียงตามวันที่ล่าสุด", value: "latest" },
@@ -241,6 +242,7 @@ const Parcel = () => {
                 >
                     <Plus size={20} /> <span className="hidden sm:inline">เพิ่มพัสดุ</span>
                 </button>
+                <RefreshButton />
             </div>
 
             {/* Status Tabs */}

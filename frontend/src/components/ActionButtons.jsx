@@ -1,6 +1,6 @@
-import React from "react";
-import { Download, Printer, FileText, Send, Plus, X, AlertCircle } from "lucide-react";
-import ReactDOM from 'react-dom';
+import React, { useState } from 'react';
+import { Download, Printer, FileText, Send, Plus, X, AlertCircle, RotateCw , } from "lucide-react";
+import ReactDOM from 'react-dom'; 
 
 // --- Base Component สำหรับคุมความยืดหยุ่น (Responsive) ---
 const BaseButton = ({ onClick, children, className = "", disabled = false }) => (
@@ -12,7 +12,7 @@ const BaseButton = ({ onClick, children, className = "", disabled = false }) => 
       flex-1 md:flex-none w-full md:w-auto 
       flex items-center justify-center gap-2 
       py-2.5 px-6 rounded-xl font-bold transition-all 
-      active:scale-95 shadow-md disabled:opacity-50 disabled:cursor-not-allowed
+      active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
       ${className}
     `}
   >
@@ -122,6 +122,38 @@ export const WhiteButton = ({ label, icon: Icon, onClick, className = "" }) => (
     {label} {Icon && <Icon size={20} />} {/* ใช้ label และ Icon จาก props */}
   </button>
 );
+
+export const RefreshButton = () => {
+  // (ข้อ 2) สร้าง State เพื่อตรวจสอบการกดรัว
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = () => {
+    if (isRefreshing) return; // ถ้ากำลังโหลดอยู่ ให้บล็อกการกดซ้ำ
+    setIsRefreshing(true);
+    window.location.reload();
+  };
+
+  return (
+    <button
+      onClick={handleRefresh}
+      disabled={isRefreshing}
+      title="รีเฟรชหน้า"
+      className={`
+        p-3 rounded-xl border transition-all flex items-center justify-center shrink-0 group
+        
+        ${isRefreshing 
+          ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' /* สไตล์ตอนถูกระงับการกด */
+          : 'bg-white border-gray-200 text-gray-500 hover:border-[#f3a638] hover:text-[#f3a638] hover:bg-orange-50'
+        }
+      `}
+    >
+      <RotateCw
+        size={20}
+        className={`transition-transform duration-500 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'}`}
+      />
+    </button>
+  );
+};
 
 export const ConfirmModal = ({ 
   isOpen, 

@@ -7,7 +7,7 @@ import {
   UserPlus 
 } from "lucide-react";
 
-import { OrangeButton, ExitButton } from "../components/ActionButtons";
+import { OrangeButton} from "../components/ActionButtons";
 import RoomHeader from "../components/RoomHeader";
 import TenantInfoModal from "../components/TenantInfoModal";
 import { toThaiDate } from "../components/DateController";

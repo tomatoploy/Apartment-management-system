@@ -11,7 +11,7 @@ import RequestModal from "../components/AddRequestModal";
 import RequestItem from "../components/RequestItem";
 import EditRequestModal from "../components/EditRequestModal";
 import RequestCalendar from "../components/RequestCalendar";
-import { ExitButton } from "../components/ActionButtons";
+import { RefreshButton } from "../components/ActionButtons";
 
 const SUBJECT_CONFIG = {
   fix: { label: "แจ้งซ่อม", icon: <Wrench size={40} />, color: "bg-[#E6D1F2] text-[#6B21A8]" },
@@ -270,6 +270,7 @@ const Request = () => {
                 >
                     <Plus size={20} /> <span className="hidden sm:inline">เพิ่มการแจ้ง</span>
                 </button>
+                <RefreshButton />
             </div>
 
             {viewMode === "list" && (
