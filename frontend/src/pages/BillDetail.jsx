@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { createPortal } from "react-dom";
 import { CustomMonthPicker, toThaiMonth } from "../components/DateController";
 import BillTable from "../components/BillTable";
 import RoomHeader from "../components/RoomHeader";
@@ -15,6 +16,30 @@ import { constantService }  from "../api/ConstantApi";
 import { apartmentService } from "../api/ApartmentApi";
 import { tenantService }    from "../api/TenantApi"; 
 import { adminService }     from "../api/AdminApi";   
+
+const printStyles = `
+  @media screen {
+    #printable-area-detail { display: none !important; }
+  }
+  @media print {
+    #root { display: none !important; }
+    
+    html, body {
+      display: block !important;
+      height: auto !important;
+      min-height: 100% !important;
+      overflow: visible !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background-color: white !important;
+    }
+
+    #printable-area-detail {
+      display: block !important;
+      width: 100% !important;
+    }
+  }
+`;
 
 const extractArray = (res) => {
   if (!res) return [];
@@ -41,26 +66,44 @@ const STATUS_CONFIG = {
   longoverdue: { label:"ค้างชำระนาน", icon:AlertCircle, bg:"bg-red-200", text:"text-red-700", border:"border-red-300" },
 };
 
-const getItemLabel = (item, selectedDate, type) => {
+const getItemLabel = (item, selectedDate, type, rates, prevMeters) => {
   const month = toThaiMonth(selectedDate);
   if (item.labels?.[selectedDate]) return item.labels[selectedDate];
   if (item.type === "discount") return "ส่วนลด";
-  if (item.type === "rent")     return `ค่าเช่าห้อง เดือน${month}`;
-  
-  // ✨ อัปเดตค่าน้ำ-ไฟให้อยู่บรรทัดเดียวกัน และตัดคำว่า "มิเตอร์" ออก
-  if (item.type === "electric") {
-    let detail = item.detail || "";
-    detail = detail.replace(/ไฟ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(");
-    return detail ? `ค่าไฟฟ้า ${detail}` : `ค่าไฟฟ้า เดือน${month}`;
+  if (item.type === "rent")     return `ค่าเช่าห้องพัก เดือน${month}`;
+
+  if (item.type === "electric" || item.type === "water") {
+    const baseName = item.type === "electric" ? "ค่าไฟ" : "ค่าประปา";
+    const recordDateStr = item.meterDate || new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+    // 1. ตรวจสอบข้อมูลจาก Detail ก่อน (สำหรับการเพิ่มรายการใหม่ที่ยังไม่ได้บันทึก)
+    const detailStr = item.detail || "";
+    const unitMatch = detailStr.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)/);
+    const rateMatch = detailStr.match(/\*\s*([\d.]+)/);
+
+    if (unitMatch && rateMatch) {
+      return `${baseName} (วันที่จดมิเตอร์: ${recordDateStr}) (${unitMatch[1]} - ${unitMatch[2]}) * ${rateMatch[1]} บาท/หน่วย`;
+    }
+
+    // 2. หากไม่มี Detail (กรณีโหลดจากฐานข้อมูล) ให้ทำการคำนวณย้อนกลับจากจำนวนเงิน
+    if (rates && prevMeters) {
+      const rate = item.type === "electric" ? rates.electric : rates.water;
+      const oldUnit = item.type === "electric" ? prevMeters.electricityUnit : prevMeters.waterUnit;
+      
+      if (rate > 0) {
+        const usedUnits = item.amount / rate;
+        const newUnit = Number((oldUnit + usedUnits).toFixed(2)); // คำนวณหายอดปัจจุบัน และป้องกันจุดทศนิยมเกิน
+        
+        // คืนค่ารูปแบบที่สมบูรณ์ โดยไม่ต้องพึ่งพาข้อมูลจาก Note
+        return `${baseName} (วันที่จดมิเตอร์: ${recordDateStr}) (${oldUnit} - ${newUnit}) * ${rate} บาท/หน่วย`;
+      }
+    }
+
+    return `${baseName} (วันที่จดมิเตอร์: ${recordDateStr})`;
   }
-  if (item.type === "water") {
-    let detail = item.detail || "";
-    detail = detail.replace(/น้ำ:\s*/, "").replace(/\(มิเตอร์:\s*/, "(");
-    return detail ? `ค่าน้ำประปา ${detail}` : `ค่าน้ำประปา เดือน${month}`;
-  }
-  
-  if (item.label)               return item.label;
-  if (type === "asset" || item.type === "asset" || item.type === "damage") return item.label || "ค่าเสียหาย/ทรัพย์สิน";
+
+  if (item.label) return item.label;
+  if (type === "asset" || item.type === "asset" || item.type === "damage") return item.label || "ค่าชำรุดเสียหาย/ทรัพย์สิน";
   return "รายการอื่น ๆ";
 };
 
@@ -110,45 +153,107 @@ const parseNoteToItems = (rawNote, tagType, itemType, isNegative = false) => {
 const paymentToItems = (payment, selectedDate) => {
   const items = [];
   const month = toThaiMonth(selectedDate);
-  if (payment.roomRate) items.push({ id: 1, type: "rent", amount: Number(payment.roomRate), labels: { [selectedDate]: `ค่าเช่าห้อง เดือน${month}` } });
-  if (payment.electricalCost) items.push({ id: 2, type: "electric", amount: Number(payment.electricalCost), detail: payment.note?.match(/ไฟ:[^|]*/)?.[0]?.trim() ?? "", labels: {} });
-  if (payment.waterCost) items.push({ id: 3, type: "water", amount: Number(payment.waterCost), detail: payment.note?.match(/น้ำ:[^|]*/)?.[0]?.trim() ?? "", labels: {} });
-  if (payment.internetCost) items.push({ id: 4, type: "internet", label: "ค่าอินเทอร์เน็ต", amount: Number(payment.internetCost), labels: {} });
-  if (payment.laundryCost) items.push({ id: 5, type: "laundry", label: "ค่าซักรีด", amount: Number(payment.laundryCost), labels: {} });
-  if (payment.furnitureCost) items.push({ id: 6, type: "asset", label: "ค่าทรัพย์สิน/เฟอร์นิเจอร์", amount: Number(payment.furnitureCost), labels: {} });
-  if (Number(payment.additionalCost) > 0) items.push(...parseDetailString(payment.additionalDetail, Number(payment.additionalCost), "รายการเพิ่มเติม", "other"));
-  if (Number(payment.discountCost) > 0) items.push(...parseDetailString(payment.discountDetail, Number(payment.discountCost), "ส่วนลด", "discount", true));
+  
+  // แปลงวันที่แบบไทย
+  const rDate = payment.recordDate || payment.RecordDate
+    ? new Date(payment.recordDate || payment.RecordDate).toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' }) 
+    : new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+  // ✨ ดักจับ Note ทุกชื่อที่ Backend อาจจะส่งมา (กันพลาด)
+  const pNote = payment.calculationNote || payment.CalculationNote || payment.note || payment.Note || "";
+
+  // ดึงตัวเลขและเพิ่มเข้าตาราง
+  const rentVal = payment.roomRate || payment.RoomRate || 0;
+  if (rentVal) items.push({ id: 1, type: "rent", amount: Number(rentVal), labels: { [selectedDate]: `ค่าเช่าห้องพัก เดือน${month}` } });
+  
+  const elecVal = payment.electricalCost || payment.ElectricalCost || 0;
+  if (elecVal) items.push({ id: 2, type: "electric", amount: Number(elecVal), detail: pNote.match(/ไฟ:[^|]*/)?.[0]?.trim() ?? "", meterDate: rDate, labels: {} });
+  
+  const waterVal = payment.waterCost || payment.WaterCost || 0;
+  if (waterVal) items.push({ id: 3, type: "water", amount: Number(waterVal), detail: pNote.match(/น้ำ:[^|]*/)?.[0]?.trim() ?? "", meterDate: rDate, labels: {} });
+  
+  const internetVal = payment.internetCost || payment.InternetCost || 0;
+  if (internetVal) items.push({ id: 4, type: "internet", label: "ค่าอินเทอร์เน็ต", amount: Number(internetVal), labels: {} });
+  
+  const laundryVal = payment.laundryCost || payment.LaundryCost || 0;
+  if (laundryVal) items.push({ id: 5, type: "laundry", label: "ค่าซักรีด", amount: Number(laundryVal), labels: {} });
+  
+  const assetVal = payment.furnitureCost || payment.FurnitureCost || 0;
+  if (assetVal) items.push({ id: 6, type: "asset", label: "ค่าทรัพย์สิน/เฟอร์นิเจอร์", amount: Number(assetVal), labels: {} });
+  
+  const addVal = payment.additionalCost || payment.AdditionalCost || 0;
+  const addDetail = payment.additionalDetail || payment.AdditionalDetail || "";
+  if (Number(addVal) > 0) items.push(...parseDetailString(addDetail, Number(addVal), "รายการเพิ่มเติม", "other"));
+  
+  const discVal = payment.discountCost || payment.DiscountCost || 0;
+  const discDetail = payment.discountDetail || payment.DiscountDetail || "";
+  if (Number(discVal) > 0) items.push(...parseDetailString(discDetail, Number(discVal), "ส่วนลด", "discount", true));
+  
   return items;
 };
 
 const generateResultToItems = (result, selectedDate) => {
   const items = [];
   const month = toThaiMonth(selectedDate);
-  if (result.roomRate) items.push({ id: 1, type: "rent", amount: Number(result.roomRate), labels: { [selectedDate]: `ค่าเช่าห้อง เดือน${month}` } });
+  const rDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+  // ✨ ดักจับ Note ตอนพรีวิวบิลใหม่ด้วยเช่นกัน
+  const rNote = result.calculationNote || result.CalculationNote || result.note || result.Note || "";
+
+  if (result.roomRate) items.push({ id: 1, type: "rent", amount: Number(result.roomRate), labels: { [selectedDate]: `ค่าเช่าห้องพัก เดือน${month}` } });
   if (result.electricalCost) {
-    const detail = result.calculationNote?.match(/ไฟ:[^|]*/)?.[0]?.trim() ?? "";
-    items.push({ id: 2, type: "electric", amount: Number(result.electricalCost), detail, labels: {} });
+    const detail = rNote.match(/ไฟ:[^|]*/)?.[0]?.trim() ?? "";
+    items.push({ id: 2, type: "electric", amount: Number(result.electricalCost), detail, meterDate: rDate, labels: {} });
   }
   if (result.waterCost) {
-    const detail = result.calculationNote?.match(/น้ำ:[^|]*/)?.[0]?.trim() ?? "";
-    items.push({ id: 3, type: "water", amount: Number(result.waterCost), detail, labels: {} });
+    const detail = rNote.match(/น้ำ:[^|]*/)?.[0]?.trim() ?? "";
+    items.push({ id: 3, type: "water", amount: Number(result.waterCost), detail, meterDate: rDate, labels: {} });
   }
   if (result.internetCost) items.push({ id: 4, type: "internet", label: "ค่าอินเทอร์เน็ต", amount: Number(result.internetCost), labels: {} });
   if (result.laundryCost) items.push({ id: 5, type: "laundry", label: "ค่าซักรีด", amount: Number(result.laundryCost), labels: {} });
   return items;
 };
 
-const itemsToPayload = (items) => {
-  const payload = { roomRate: 0, electricalCost: 0, waterCost: 0, internetCost: 0, laundryCost: 0, furnitureCost: 0, discountCost: 0, discountDetail: null, additionalCost: 0, additionalDetail: null };
+const itemsToPayload = (items, effectiveRates, latestMeter) => {
+  const payload = { roomRate: 0, electricalCost: 0, waterCost: 0, internetCost: 0, laundryCost: 0, furnitureCost: 0, discountCost: 0, discountDetail: null, additionalCost: 0, additionalDetail: null, calculationNote: "", note: "" };
   const additionalItems = [], discountItems = [];
   let additionalTotal = 0, furnitureTotal = 0; 
+  let calcNotes = [];
   
   items.forEach((item) => {
     const amountNum = Math.abs(Number(item.amount) || 0); 
     switch (item.type) {
       case "rent": payload.roomRate += amountNum; break;
-      case "electric": payload.electricalCost += amountNum; break;
-      case "water": payload.waterCost += amountNum; break;
+      case "electric": 
+        payload.electricalCost += amountNum; 
+        let eDetail = item.detail;
+        // ✨ สร้างข้อความมิเตอร์ยัดลง DB หากมันว่างอยู่
+        if (!eDetail && effectiveRates && latestMeter) {
+            const oldU = latestMeter.electricityUnit || 0;
+            const rate = effectiveRates.electric || 1;
+            if (rate > 0) {
+                const used = amountNum / rate;
+                const newU = Number((oldU + used).toFixed(2));
+                eDetail = `(มิเตอร์: ${newU} - ${oldU} = ${used} หน่วย) * ${rate} ฿`;
+            }
+        }
+        if (eDetail) calcNotes.push(eDetail.startsWith("ไฟ") ? eDetail : `ไฟ: ${eDetail}`);
+        break;
+      case "water": 
+        payload.waterCost += amountNum; 
+        let wDetail = item.detail;
+        // ✨ สร้างข้อความมิเตอร์ยัดลง DB หากมันว่างอยู่
+        if (!wDetail && effectiveRates && latestMeter) {
+            const oldU = latestMeter.waterUnit || 0;
+            const rate = effectiveRates.water || 1;
+            if (rate > 0) {
+                const used = amountNum / rate;
+                const newU = Number((oldU + used).toFixed(2));
+                wDetail = `(มิเตอร์: ${newU} - ${oldU} = ${used} หน่วย) * ${rate} ฿`;
+            }
+        }
+        if (wDetail) calcNotes.push(wDetail.startsWith("น้ำ") ? wDetail : `น้ำ: ${wDetail}`);
+        break;
       case "internet": payload.internetCost += amountNum; break;
       case "laundry": payload.laundryCost += amountNum; break;
       case "asset": case "damage": furnitureTotal += amountNum; break;
@@ -161,6 +266,7 @@ const itemsToPayload = (items) => {
         if (item.label) additionalItems.push(`${item.label} (${amountNum.toLocaleString()}฿)`);
     }
   });
+  
   payload.furnitureCost = furnitureTotal;
   if (additionalTotal > 0) {
     payload.additionalCost = additionalTotal;
@@ -171,6 +277,10 @@ const itemsToPayload = (items) => {
     let detailString = discountItems.join(", ");
     payload.discountDetail = detailString.length > 200 ? detailString.substring(0, 197) + "..." : detailString;
   }
+
+  const finalNote = calcNotes.join(" | ");
+  payload.calculationNote = finalNote;
+  payload.note = finalNote;
   return payload;
 };
 
@@ -195,7 +305,7 @@ const BillDetail = ({
   const [form, setForm] = useState({ label: "", amount: 0 });
   const [isLoading, setIsLoading] = useState(mode !== "checkout" && !initialData?.length);
   const [isSaving, setIsSaving] = useState(false);
-  const [isSendingLine, setIsSendingLine] = useState(false); // ✨ State สำหรับโหลดตอนส่ง LINE
+  const [isSendingLine, setIsSendingLine] = useState(false); 
   const [isConfirmPay, setIsConfirmPay] = useState(false);
   const [roomId, setRoomId] = useState(externalRoomId ?? null); 
   const [contractId, setContractId] = useState(null);
@@ -242,9 +352,7 @@ const BillDetail = ({
     } catch (err) { console.error(err); } finally { setIsLoadingConst(false); }
   }, []);
 
-const loadBillData = useCallback(async () => {
-    // 🛑 1. ลบ if (mode === "checkout"...) บรรทัดนี้ทิ้งไป เพื่อให้โหลดมิเตอร์เสมอ
-
+  const loadBillData = useCallback(async () => {
     if (mode !== "checkout") setIsLoading(true);
     setLoadError("");
     try {
@@ -293,7 +401,6 @@ const loadBillData = useCallback(async () => {
       const rId = targetRoom.roomId || targetRoom.id;
       setRoomId(rId);
 
-      // 🌟 2. อนุโลมให้ดึงสัญญาที่ Expired/Terminated มาใช้คำนวณมิเตอร์ได้ในกรณีหน้า Checkout
       const contractStatusList = mode === "checkout" 
         ? ["active", "reserved", "expired", "terminated"] 
         : ["active", "reserved"];
@@ -322,7 +429,6 @@ const loadBillData = useCallback(async () => {
       const effectiveWater = (priorityMode === "contract" && customWater !== null) ? customWater : Number(waterRateConst);
       setEffectiveRates({ electric: effectiveElec, water: effectiveWater });
 
-      // 🌟 3. ดึงข้อมูลแบบ Real-time จาก Backend เสมอ เพื่ออัปเดต LatestMeter
       const result = await paymentService.generatePayment(contract.id || contract.Id, year, month).catch(()=>({}));
       
       if (result) {
@@ -332,7 +438,6 @@ const loadBillData = useCallback(async () => {
         });
       }
 
-      // 🛑 4. ถ้าอยู่ในโหมดปกติ (ไม่ใช่ checkout) ถึงจะไปทับข้อมูลตารางบิล
       if (mode !== "checkout") {
         const payments = extractArray(await paymentService.getPaymentsByContract(contract.id || contract.Id));
         const existing = payments.find((p) => {
@@ -394,7 +499,7 @@ const loadBillData = useCallback(async () => {
              setShowPenaltyBanner(true);
           }
         } else setShowPenaltyBanner(false);
-      } // ปิด if (mode !== "checkout")
+      }
 
     } catch (err) { setLoadError("โหลดข้อมูลไม่สำเร็จ"); } finally { if (mode !== "checkout") setIsLoading(false); }
   }, [roomNumber, selectedDate, mode, initialData, currentAdminId]);
@@ -411,20 +516,6 @@ const loadBillData = useCallback(async () => {
     return (maxMeter - previous) + current + 1;
   }, []);
 
-  const calcPreview = useMemo(() => {
-    const calc = (oldUnit, newUnitStr, rate) => {
-      if (newUnitStr === "" || isNaN(Number(newUnitStr))) return null;
-      const newUnit = Number(newUnitStr);
-      const diff = calcUsedUnit(oldUnit, newUnit);
-      return { diff, amount: diff * rate };
-    };
-    return {
-      electric: calc(latestMeter.electricityUnit, newMeters.electric, effectiveRates.electric),
-      water: calc(latestMeter.waterUnit, newMeters.water, effectiveRates.water),
-    };
-  }, [newMeters, latestMeter, effectiveRates, calcUsedUnit]);
-
-  // 🌟 แก้ไขฟังก์ชัน handleAddBothUtilities ใน BillDetail.jsx
   const handleAddBothUtilities = async () => {
     const hasElec = newMeters.electric !== "";
     const hasWater = newMeters.water !== "";
@@ -437,18 +528,23 @@ const loadBillData = useCallback(async () => {
     const elec = hasElec ? calcUnit(latestMeter.electricityUnit, newMeters.electric) : null;
     const water = hasWater ? calcUnit(latestMeter.waterUnit, newMeters.water) : null;
 
+    // ✨ จัดการวันที่แบบไทย
+    const todayTH = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
     setItems(prev => {
       let next = [...prev];
       if (elec) {
         next = next.filter(i => i.type !== "electric");
-        next.push({ id: Date.now(), type: "electric", label: `ค่าไฟ เดือน ${toThaiMonth(selectedDate)}`, amount: elec.diff * effectiveRates.electric, detail: `(มิเตอร์: ${elec.newUnit} - ${latestMeter.electricityUnit} = ${elec.diff} หน่วย) * ${effectiveRates.electric} ฿`, labels: {} });
+        next.push({ id: Date.now(), type: "electric", amount: elec.diff * effectiveRates.electric, detail: `(มิเตอร์: ${elec.newUnit} - ${latestMeter.electricityUnit} = ${elec.diff} หน่วย) * ${effectiveRates.electric} ฿`, meterDate: todayTH, labels: {} });
       }
       if (water) {
         next = next.filter(i => i.type !== "water");
-        next.push({ id: Date.now() + 1, type: "water", label: `ค่าน้ำ เดือน ${toThaiMonth(selectedDate)}`, amount: water.diff * effectiveRates.water, detail: `(มิเตอร์: ${water.newUnit} - ${latestMeter.waterUnit} = ${water.diff} หน่วย) * ${effectiveRates.water} ฿`, labels: {} });
+        next.push({ id: Date.now() + 1, type: "water", amount: water.diff * effectiveRates.water, detail: `(มิเตอร์: ${water.newUnit} - ${latestMeter.waterUnit} = ${water.diff} หน่วย) * ${effectiveRates.water} ฿`, meterDate: todayTH, labels: {} });
       }
       return next;
     });
+
+    // ... (โค้ดดึง try-catch ส่ง API ปล่อยไว้เหมือนเดิมครับ)
 
     try {
       const today = new Date().toLocaleDateString('en-CA');
@@ -456,8 +552,6 @@ const loadBillData = useCallback(async () => {
       const parts = []; if (elec) parts.push("ไฟ"); if (water) parts.push("น้ำ");
       const meterNote = `* อัปเดตมิเตอร์${parts.join("+")} จากหน้าออกบิล (เดือน ${toThaiMonth(selectedDate)})${checkoutSuffix}`;
 
-      // 🌟 จุดสำคัญ: เปลี่ยนจากล่าสุด (ยอดเก่า) เป็น null หากไม่ได้กรอก
-      // เพื่อให้ Backend รู้ว่าไม่ต้องอัปเดตฟิลด์นั้น
       const meterPayload = [{ 
         RoomId: roomId, 
         RecordDate: today, 
@@ -486,7 +580,7 @@ const loadBillData = useCallback(async () => {
     setShowPenaltyBanner(false);
   };
 
-  const handleSave = async (currentItems, totalAmt) => {
+const handleSave = async (currentItems, totalAmt) => {
     if (mode === "checkout") { if (onSave) onSave(currentItems, totalAmt); return; }
     if (!contractId) return alert("ไม่พบสัญญา");
     
@@ -496,14 +590,11 @@ const loadBillData = useCallback(async () => {
       const recordDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
       
       const payload = { 
-        ...itemsToPayload(currentItems), 
+        ...itemsToPayload(currentItems, effectiveRates, latestMeter), 
         contractId, 
         recordDate, 
         adminId: currentAdminId
       };
-
-      // 🔍 แอบปริ้นท์ข้อมูลก่อนส่ง จะได้รู้ว่าตัวเลขครบไหม
-      console.log("🚀 ข้อมูลที่จะส่งไป Backend:", payload);
 
       if (paymentId) await paymentService.updatePayment(paymentId, payload);
       else await paymentService.createPayment(payload);
@@ -511,10 +602,8 @@ const loadBillData = useCallback(async () => {
       alert("บันทึกสำเร็จ"); 
       loadBillData();
     } catch (err) { 
-      // 🚨 จุดที่เพิ่มเข้ามา: สั่งให้ปริ้นท์ Error ตัวแดงออกมาให้เราเห็น!
+      // ... โค้ดเดิม
       console.error("Save Error:", err.response?.data || err);
-      
-      // ดึงข้อความ Error จาก Backend มาแสดงที่ Alert ด้วย จะได้รู้ทันที
       const errorMsg = err.response?.data?.message || err.response?.data || "ไม่ทราบสาเหตุ (ดูใน Console)";
       alert(`บันทึกไม่สำเร็จ: ${errorMsg}`); 
     } finally { 
@@ -522,7 +611,6 @@ const loadBillData = useCallback(async () => {
     }
   };
 
-  // ✨ ฟังก์ชันสำหรับกดส่ง LINE แบบห้องเดียว
   const handleSendLineNotify = async () => {
     if (!paymentId) {
       alert("กรุณากดบันทึกบิลก่อนส่งแจ้งเตือนให้ลูกบ้านค่ะ");
@@ -594,6 +682,8 @@ const loadBillData = useCallback(async () => {
 
   return (
     <>
+      <style>{printStyles}</style>
+      
       <div className="print:hidden w-full">
         {mode !== "checkout" && (
           <>
@@ -666,7 +756,9 @@ const loadBillData = useCallback(async () => {
             <BillTable
               roomNumber={roomNumber} items={items} editingId={editingId}
               form={form} setForm={setForm} selectedDate={selectedDate}
-              setSelectedDate={setSelectedDate} getItemLabel={getItemLabel}
+              setSelectedDate={setSelectedDate} 
+              // 👇 แก้ไขบรรทัดนี้ ให้ส่งค่า effectiveRates และ latestMeter เข้าไปด้วย
+              getItemLabel={(itm, d) => getItemLabel(itm, d, itm.type, effectiveRates, latestMeter)}
               startEdit={startEdit} saveEdit={saveEdit} deleteItem={deleteItem}
               total={total} addItem={addItem}
             />
@@ -689,7 +781,6 @@ const loadBillData = useCallback(async () => {
               {(showPdfBtn || showSendBtn) && (
                 <div className="flex flex-col md:flex-row justify-center items-center gap-3 w-full">
                   {showPdfBtn && <OrangeButton label="บันทึกเป็น PDF" icon={Download} onClick={() => window.print()} className="w-full md:w-auto px-8" />}
-                  {/* ✨ อัปเดตปุ่ม ส่งบิล ให้เรียกฟังก์ชันส่ง LINE แทน */}
                   {showSendBtn && (
                     <OrangeButton 
                       label={isSendingLine ? "กำลังส่ง..." : "ส่งบิล"} 
@@ -721,7 +812,6 @@ const loadBillData = useCallback(async () => {
           </div>
         )}
 
-        {/* ── ✅ Constant Modal ───────────────────────────────────────────── */}
         {showConstantModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setShowConstantModal(false)}>
             <div className="bg-white rounded-[40px] w-full max-w-2xl p-8 shadow-2xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
@@ -786,7 +876,6 @@ const loadBillData = useCallback(async () => {
           </div>
         )}
 
-        {/* ── ✅ Payment Confirmation Modal ───────────────────────── */}
         {showPaymentModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => !isConfirmPay && setShowPaymentModal(false)}>
             <div className="bg-white rounded-[32px] w-full max-w-sm p-8 shadow-2xl flex flex-col gap-5" onClick={(e) => e.stopPropagation()}>
@@ -801,7 +890,6 @@ const loadBillData = useCallback(async () => {
                   <span className="text-lg font-black text-gray-800">{total.toLocaleString()} <span className="text-sm font-medium text-gray-400">บาท</span></span>
                 </div>
                 
-                {/* เพิ่มช่องกรอก Input ให้แก้ตัวเลขยอดชำระจริงได้ */}
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-bold text-gray-700">ยอดรับชำระจริง</span>
                   <div className="flex items-center gap-2">
@@ -825,20 +913,31 @@ const loadBillData = useCallback(async () => {
         )}
       </div>
 
-      <BillMonthlyPrintTemplate
-        items={items}
-        roomNumber={roomNumber}
-        apartmentInfo={apartmentInfo}
-        customerInfo={tenantInfo}
-        contractInfo={{
-          billId: paymentId ? `INV${paymentId.toString().padStart(6, '0')}` : `PRE${Date.now().toString().slice(-6)}`,
-          cycleStart: cycleDates?.start,
-          cycleEnd: cycleDates?.end,
-        }}
-        adminName={adminInfo ? `${adminInfo.firstName} ${adminInfo.lastName}` : "พนักงาน (Admin)"}
-        total={total}
-        billTitle={paymentStatus === "paid" ? "ใบเสร็จรับเงิน" : "ใบแจ้งหนี้"}
-      />
+      {createPortal(
+        <div id="printable-area-detail">
+          <BillMonthlyPrintTemplate
+            items={items.map(item => ({
+              ...item,
+              // 👇 แก้ไขบรรทัดนี้ ให้ส่งค่า effectiveRates และ latestMeter เข้าไปด้วยเช่นกัน
+              label: getItemLabel(item, selectedDate, item.type, effectiveRates, latestMeter),
+              detail: "" 
+            }))}
+            roomNumber={roomNumber}
+            apartmentInfo={apartmentInfo}
+            // ... (โค้ดส่วนอื่นคงไว้ตามเดิม)
+            customerInfo={tenantInfo}
+            contractInfo={{
+              billId: paymentId ? `INV${paymentId.toString().padStart(6, '0')}` : `PRE${Date.now().toString().slice(-6)}`,
+              cycleStart: cycleDates?.start,
+              cycleEnd: cycleDates?.end,
+            }}
+            adminName={adminInfo ? `${adminInfo.firstName} ${adminInfo.lastName}` : "พนักงาน (Admin)"}
+            total={total}
+            billTitle={paymentStatus === "paid" ? "ใบเสร็จรับเงิน" : "ใบแจ้งหนี้"}
+          />
+        </div>,
+        document.body
+      )}
     </>
   );
 };
