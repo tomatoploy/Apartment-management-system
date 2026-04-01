@@ -6,7 +6,7 @@ import BillTable from "../components/BillTable";
 import RoomHeader from "../components/RoomHeader";
 import { OrangeButton, ExitButton, WhiteButton, SaveButton } from "../components/ActionButtons";
 import BillMonthlyPrintTemplate from "../components/BillMonthlyPrintTemplate";
-import { Inbox, Download, Plus, Send, Minus, Loader2, X, CheckCircle2, AlertCircle, Clock, Zap } from "lucide-react";
+import { Inbox, Download, Plus, Send, Minus, Loader2, X, CheckCircle2, AlertCircle, Clock, Zap, Trash2 } from "lucide-react";
 import axios from "axios"; 
 
 import { roomService }      from "../api/RoomApi";
@@ -76,27 +76,46 @@ const getItemLabel = (item, selectedDate, type, rates, prevMeters) => {
     const baseName = item.type === "electric" ? "ค่าไฟ" : "ค่าประปา";
     const recordDateStr = item.meterDate || new Date().toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
-    // 1. ตรวจสอบข้อมูลจาก Detail ก่อน
     const detailStr = item.detail || "";
-    const rateMatch = detailStr.match(/\*\s*([\d.]+)/);
 
-    // เช็คกรณีมีการเปลี่ยนมิเตอร์ (ปรับ Regex ให้ดึงข้อมูลมาครบทั้ง 2 วงเล็บ)
+    // 1. ตรวจสอบกรณี C# Backend ส่งมาแบบมีการเปลี่ยนมิเตอร์ เช่น "(60-50)*4 + (15-0)*4"
+    const backendChangeMatch = detailStr.match(/\(\s*([\d.]+)\s*-\s*([\d.]+)\s*\)\s*\*\s*([\d.]+)\s*\+\s*\(\s*([\d.]+)\s*-\s*([\d.]+)\s*\)\s*\*\s*([\d.]+)/);
+    if (backendChangeMatch) {
+      const oldEnd = backendChangeMatch[1];
+      const oldStart = backendChangeMatch[2];
+      const rate = backendChangeMatch[3];
+      const newEnd = backendChangeMatch[4];
+      const newStart = backendChangeMatch[5];
+      // รูปแบบที่ต้องการ: ((เลขก่อนถอด - เลขเดิม) + (เลขปัจจุบัน - เลขเริ่ม)) * บาท/หน่วย
+      return `${baseName} (วันที่จดมิเตอร์: ${recordDateStr}) (เปลี่ยนมิเตอร์: (${oldEnd} - ${oldStart}) + (${newEnd} - ${newStart})) * ${rate} บาท/หน่วย`;
+    }
+
+    // 2. ตรวจสอบกรณี Frontend เพิ่มเอง (จากปุ่มเปลี่ยนมิเตอร์ในหน้าบิล)
     if (detailStr.includes("เปลี่ยนมิเตอร์")) {
-      // ดึงส่วนสมการที่อยู่ระหว่าง "เปลี่ยนมิเตอร์:" กับ "="
       const changePart = detailStr.match(/เปลี่ยนมิเตอร์:\s*(.*?)\s*=/);
+      const rateMatch = detailStr.match(/\*\s*([\d.]+)/);
       if (changePart && rateMatch) {
-        // changePart[1] จะได้ "(50 - 45) + (10 - 0)"
-        return `${baseName} (วันที่จดมิเตอร์: ${recordDateStr}) (${changePart[1].trim()}) * ${rateMatch[1]} บาท/หน่วย`;
+        return `${baseName} (วันที่จดมิเตอร์: ${recordDateStr}) (เปลี่ยนมิเตอร์: ${changePart[1].trim()}) * ${rateMatch[1]} บาท/หน่วย`;
       }
     }
 
-    // กรณีมิเตอร์ปกติ
+    // 3. ตรวจสอบกรณี C# Backend ส่งมาแบบปกติ เช่น "(60-50)*4"
+    const backendStdMatch = detailStr.match(/\(\s*([\d.]+)\s*-\s*([\d.]+)\s*\)\s*\*\s*([\d.]+)/);
+    if (backendStdMatch) {
+      const cur = backendStdMatch[1];
+      const prv = backendStdMatch[2];
+      const rate = backendStdMatch[3];
+      return `${baseName} (วันที่จดมิเตอร์: ${recordDateStr}) (${cur} - ${prv}) * ${rate} บาท/หน่วย`;
+    }
+
+    // 4. Fallback เผื่อไว้สำหรับกรณีอื่นๆ
+    const rateMatch = detailStr.match(/\*\s*([\d.]+)/);
     const unitMatch = detailStr.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)/);
     if (unitMatch && rateMatch) {
       return `${baseName} (วันที่จดมิเตอร์: ${recordDateStr}) (${unitMatch[1]} - ${unitMatch[2]}) * ${rateMatch[1]} บาท/หน่วย`;
     }
 
-    // 2. หากไม่มี Detail ให้คำนวณย้อนกลับ
+    // 5. หากไม่มี Detail ให้คำนวณย้อนกลับจากยอดเงิน
     if (rates && prevMeters) {
       const rate = item.type === "electric" ? rates.electric : rates.water;
       const oldUnit = item.type === "electric" ? prevMeters.electricityUnit : prevMeters.waterUnit;
@@ -205,17 +224,27 @@ const generateResultToItems = (result, selectedDate) => {
 
   const rNote = result.calculationNote || result.CalculationNote || result.note || result.Note || "";
 
-  if (result.roomRate) items.push({ id: 1, type: "rent", amount: Number(result.roomRate), labels: { [selectedDate]: `ค่าเช่าห้องพัก เดือน${month}` } });
-  if (result.electricalCost) {
+  const rentVal = result.roomRate || result.RoomRate || 0;
+  if (rentVal) items.push({ id: 1, type: "rent", amount: Number(rentVal), labels: { [selectedDate]: `ค่าเช่าห้องพัก เดือน${month}` } });
+  
+  const elecCost = result.electricalCost || result.ElectricalCost || 0;
+  if (elecCost) {
     const detail = rNote.match(/ไฟ:[^|]*/)?.[0]?.trim() ?? "";
-    items.push({ id: 2, type: "electric", amount: Number(result.electricalCost), detail, meterDate: rDate, labels: {} });
+    items.push({ id: 2, type: "electric", amount: Number(elecCost), detail, meterDate: rDate, labels: {} });
   }
-  if (result.waterCost) {
+  
+  const waterCost = result.waterCost || result.WaterCost || 0;
+  if (waterCost) {
     const detail = rNote.match(/น้ำ:[^|]*/)?.[0]?.trim() ?? "";
-    items.push({ id: 3, type: "water", amount: Number(result.waterCost), detail, meterDate: rDate, labels: {} });
+    items.push({ id: 3, type: "water", amount: Number(waterCost), detail, meterDate: rDate, labels: {} });
   }
-  if (result.internetCost) items.push({ id: 4, type: "internet", label: "ค่าอินเทอร์เน็ต", amount: Number(result.internetCost), labels: {} });
-  if (result.laundryCost) items.push({ id: 5, type: "laundry", label: "ค่าซักรีด", amount: Number(result.laundryCost), labels: {} });
+  
+  const internetCost = result.internetCost || result.InternetCost || 0;
+  if (internetCost) items.push({ id: 4, type: "internet", label: "ค่าอินเทอร์เน็ต", amount: Number(internetCost), labels: {} });
+  
+  const laundryCost = result.laundryCost || result.LaundryCost || 0;
+  if (laundryCost) items.push({ id: 5, type: "laundry", label: "ค่าซักรีด", amount: Number(laundryCost), labels: {} });
+  
   return items;
 };
 
@@ -442,8 +471,8 @@ const BillDetail = ({
       
       if (result) {
         setLatestMeter({
-          electricityUnit: result.previousElectricUnit ?? 0,
-          waterUnit: result.previousWaterUnit ?? 0
+          electricityUnit: result.previousElectricUnit ?? result.PreviousElectricUnit ?? 0,
+          waterUnit: result.previousWaterUnit ?? result.PreviousWaterUnit ?? 0
         });
       }
 
@@ -468,24 +497,8 @@ const BillDetail = ({
             return;
           }
 
-          if (result.calculationNote) {
-            const eMatch = result.calculationNote.match(/ไฟ:\s*\(([\d.]+)-([\d.]+)\)\*([\d.]+)/);
-            if (eMatch) {
-              const cur = Number(eMatch[1]), prv = Number(eMatch[2]);
-              const diff = cur >= prv ? cur - prv : (Number("9".repeat(String(prv).length)) - prv) + cur + 1;
-              result.electricalCost = diff * effectiveElec;
-              result.calculationNote = result.calculationNote.replace(/ไฟ:\s*\([\d.]+-[\d.]+\)\*[\d.]+/, `ไฟ: (มิเตอร์: ${cur} - ${prv} = ${diff} หน่วย) * ${effectiveElec} ฿`);
-            }
-            const wMatch = result.calculationNote.match(/น้ำ:\s*\(([\d.]+)-([\d.]+)\)\*([\d.]+)/);
-            if (wMatch) {
-              const cur = Number(wMatch[1]), prv = Number(wMatch[2]);
-              const diff = cur >= prv ? cur - prv : (Number("9".repeat(String(prv).length)) - prv) + cur + 1;
-              result.waterCost = diff * effectiveWater;
-              result.calculationNote = result.calculationNote.replace(/น้ำ:\s*\([\d.]+-[\d.]+\)\*[\d.]+/, `น้ำ: (มิเตอร์: ${cur} - ${prv} = ${diff} หน่วย) * ${effectiveWater} ฿`);
-            }
-          }
-
           let newItems = generateResultToItems(result, selectedDate);
+          
           if (!newItems.some(i => i.type === "rent")) {
             let rentAmt = Number(contract.monthlyRent || contract.MonthlyRent || 0);
             if (rentAmt <= 0) {
@@ -541,7 +554,6 @@ const BillDetail = ({
         const diff2 = calcUsedUnit(changeStart, newUnit);
         const totalDiff = diff1 + diff2;
         
-        // รูปแบบข้อความ ((มิเตอร์เก่าก่อนถอด - มิเตอร์เดิม) + (มิเตอร์ปัจจุบัน - มิเตอร์ใหม่ตอนเริ่ม))
         const detailMsg = `(เปลี่ยนมิเตอร์: (${changeEnd} - ${oldUnit}) + (${newUnit} - ${changeStart}) = ${totalDiff} หน่วย)`;
         
         return { 
@@ -587,7 +599,6 @@ const BillDetail = ({
       const parts = []; if (elec) parts.push("ไฟ"); if (water) parts.push("น้ำ");
       const meterNote = `* อัปเดตมิเตอร์${parts.join("+")} จากหน้าออกบิล (เดือน ${toThaiMonth(selectedDate)})${checkoutSuffix}`;
 
-      // ปรับปรุงการส่ง Payload เพื่อไม่ให้ส่ง null ไปทับของเดิม หากบันทึกแค่อย่างใดอย่างหนึ่ง
       const payloadData = {
         RoomId: roomId,
         RecordDate: today,
@@ -601,7 +612,7 @@ const BillDetail = ({
           payloadData.ChangeElectricityMeterStart = elec.changeStart;
         }
       } else {
-        payloadData.ElectricityUnit = latestMeter.electricityUnit; // ใช้ค่าเดิมกัน null ไปทับ
+        payloadData.ElectricityUnit = latestMeter.electricityUnit; 
       }
 
       if (water) {
@@ -611,7 +622,7 @@ const BillDetail = ({
           payloadData.ChangeWaterMeterStart = water.changeStart;
         }
       } else {
-        payloadData.WaterUnit = latestMeter.waterUnit; // ใช้ค่าเดิมกัน null ไปทับ
+        payloadData.WaterUnit = latestMeter.waterUnit; 
       }
 
       const meterPayload = [payloadData];
@@ -638,7 +649,22 @@ const BillDetail = ({
     setShowPenaltyBanner(false);
   };
 
-const handleSave = async (currentItems, totalAmt) => {
+  // 🌟 เพิ่มปุ่มฟังก์ชัน "ลบบิล" ให้กดตรงนี้ได้เลย ไม่ต้องไปงมหา
+  const handleDeleteBill = async () => {
+    if (!paymentId) return;
+    if (!window.confirm("คุณต้องการลบบิลใบนี้ทิ้ง เพื่อให้ระบบดึงข้อมูลมิเตอร์ล่าสุดมาคำนวณใหม่ ใช่หรือไม่?")) return;
+
+    try {
+      await axios.delete(`https://apartment-management-system-zllm.onrender.com/payments/${paymentId}`);
+      alert("ลบบิลสำเร็จ! ระบบกำลังดึงยอดใหม่ให้ค่ะ");
+      // รีโหลดหน้าเพื่อให้ดึงข้อมูลใหม่ทั้งหมด
+      window.location.reload();
+    } catch (err) {
+      alert("ไม่สามารถลบบิลได้: " + (err.response?.data?.message || "โปรดลองอีกครั้ง"));
+    }
+  };
+
+  const handleSave = async (currentItems, totalAmt) => {
     if (mode === "checkout") { if (onSave) onSave(currentItems, totalAmt); return; }
     if (!contractId) return alert("ไม่พบสัญญา");
     
@@ -661,8 +687,28 @@ const handleSave = async (currentItems, totalAmt) => {
       loadBillData();
     } catch (err) { 
       console.error("Save Error:", err.response?.data || err);
-      const errorMsg = err.response?.data?.message || err.response?.data || "ไม่ทราบสาเหตุ (ดูใน Console)";
-      alert(`บันทึกไม่สำเร็จ: ${errorMsg}`); 
+      
+      // 🌟 ดักจับ Format 400 Model Validation ของ ASP.NET Core และแปลงให้อ่านง่าย
+      let errorMsg = "โปรดลองใหม่อีกครั้ง หรือดู Error ใน Console";
+      
+      if (err.response?.data) {
+        const data = err.response.data;
+        if (data.errors) {
+          // กรณี ASP.NET Model Invalid
+          const validationErrors = Object.entries(data.errors)
+            .map(([field, msgs]) => `- ${field}: ${msgs.join(", ")}`)
+            .join("\n");
+          errorMsg = `ข้อมูลไม่ถูกต้อง:\n${validationErrors}`;
+        } else if (data.message) {
+          errorMsg = data.message;
+        } else if (typeof data === "string") {
+          errorMsg = data;
+        } else {
+          errorMsg = JSON.stringify(data, null, 2);
+        }
+      }
+      
+      alert(`บันทึกไม่สำเร็จ:\n${errorMsg}`); 
     } finally { 
       setIsSaving(false); 
     }
@@ -828,9 +874,21 @@ const handleSave = async (currentItems, totalAmt) => {
                   {showDiscountBtn && (
                     <WhiteButton label="เพิ่มส่วนลด" icon={Minus} onClick={() => addItem("discount")} className="w-full md:w-auto px-6 font-bold !bg-green-50 !text-green-600" />
                   )}
+                  
+                  {/* 🌟 ปรับปรุงส่วนปุ่ม บันทึก และ ลบบิล */}
                   {showSaveBtn && paymentStatus !== "paid" && (
-                    <SaveButton label={isSaving ? "กำลังบันทึก..." : "บันทึก"} className="w-full md:w-auto px-10" onClick={() => handleSave(items, total)} disabled={isSaving} />
+                    <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                      <SaveButton label={isSaving ? "กำลังบันทึก..." : "บันทึก"} className="w-full md:w-auto px-10" onClick={() => handleSave(items, total)} disabled={isSaving} />
+                      
+                      {/* ปุ่มนี้จะโผล่มาเฉพาะบิลที่เคยเซฟไปแล้ว เพื่อให้กดรีเซตได้ง่ายๆ */}
+                      {paymentId && (
+                        <button onClick={handleDeleteBill} className="w-full md:w-auto px-6 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl font-bold hover:bg-red-100 flex items-center justify-center gap-2 transition-all">
+                          <Trash2 size={18} /> ลบบิลเพื่อคำนวณใหม่
+                        </button>
+                      )}
+                    </div>
                   )}
+
                 </div>
               )}
 
