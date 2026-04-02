@@ -35,7 +35,7 @@ const FormInput = ({ label, name, value, onChange, type = "text", required, plac
         onChange={onChange}
         className="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#f3a638] transition-all font-medium text-gray-700 appearance-none"
       >
-        <option value="">เลือก{label}</option>
+        
         {options?.map((opt) => (
           <option key={opt} value={opt}>
             {opt}

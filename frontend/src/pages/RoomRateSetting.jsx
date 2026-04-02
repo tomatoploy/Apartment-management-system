@@ -23,14 +23,18 @@ import {
   Pencil,
   Trash2,
   FileText,
+  Wrench,
 } from "lucide-react";
 import { ExitButton, RefreshButton } from "../components/ActionButtons";
 import SearchBar from "../components/SearchBar";
+import { ConfirmModal as ConfirmModal1 } from "../components/ActionButtons";
 
 import { roomService } from "../api/RoomApi";
 import { contractService } from "../api/ContractApi";
 import { paymentService } from "../api/PaymentApi";
 import { constantService } from "../api/ConstantApi";
+
+
 
 /* ── helpers ──────────────────────────────────────────────────── */
 const extractArray = (res) => {
@@ -200,12 +204,7 @@ const ItemListModal = ({ type, onClose, onNext, recentItems }) => {
               ระบุรายการและยอดเงินที่ต้องการ
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X size={22} strokeWidth={3} />
-          </button>
+            <ExitButton onClick={onClose} className="right-0" />
         </div>
 
         <div className="overflow-y-auto flex-1 px-8 py-6 space-y-6">
@@ -283,16 +282,19 @@ const ItemListModal = ({ type, onClose, onNext, recentItems }) => {
                       }
                       type="number"
                       min={0}
-                      placeholder="ยอด"
                       className={`w-28 px-4 py-2.5 rounded-2xl border-2 border-gray-200 ${accentClass.border} outline-none text-sm font-bold text-gray-700 transition-colors
                                   [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
                     />
-                    <button
+                    <ExitButton
+                      onClick={() => removeItem(item.id)}
+                      className="shrink-0"
+                    />
+                    {/* <button
                       onClick={() => removeItem(item.id)}
                       className="text-gray-300 hover:text-red-400 p-1 transition-colors shrink-0"
                     >
                       <X size={18} strokeWidth={3} />
-                    </button>
+                    </button> */}
                   </div>
                 ))}
               </div>
@@ -336,7 +338,7 @@ const ItemListModal = ({ type, onClose, onNext, recentItems }) => {
             disabled={!isValid}
             className={`w-full py-3.5 rounded-2xl text-white font-black text-base disabled:opacity-40 transition-all shadow-lg ${accentClass.btn}`}
           >
-            ถัดไป →
+            ถัดไป 
           </button>
         </div>
       </div>
@@ -1035,6 +1037,52 @@ const UtilitySetting = () => {
   const curMonth = now.getMonth() + 1;
   const currentMonthLabel = thaiMonth(curYear, curMonth);
 
+   const handleSetMaintenance = async () => {
+  console.log("ยืนยันแล้ว! รายชื่อห้องที่เลือก:", selectedRoomObjects); 
+
+  if (selectedRoomObjects.length === 0) {
+    alert("ยังไม่ได้เลือกห้อง!");
+    return;
+  }
+
+  setIsSaving(true);
+  let ok = 0, fail = 0;
+  
+  try {
+    for (const room of selectedRoomObjects) {
+      try {
+        console.log(`กำลังอัปเดตห้อง: ${room.roomNumber}`);
+        await roomService.updateRoom(room.roomId, {
+          id: room.roomId,
+          number: String(room.roomNumber),
+          building: room.roomBuilding || "",
+          floor: String(room.roomFloor || "1"),
+          status: "close", // ตรวจสอบคำ
+          note: room.roomNote ?? room.note ?? room.Note ?? ""
+        });
+        ok++;
+      } catch (e) {
+        console.error(`❌ Error อัปเดตห้อง ${room.roomNumber}:`, e);
+        fail++;
+      }
+    }
+    
+    showToast(
+      fail === 0 ? `ตั้งค่าปิดปรับปรุงสำเร็จ ${ok} ห้อง` : `สำเร็จ ${ok} / ล้มเหลว ${fail}`,
+      fail === 0 ? "success" : "error"
+    );
+    
+    setModal(null); 
+    setSelectedIds(new Set()); 
+    await fetchData(); 
+    
+  } catch (error) {
+    console.error("❌ เกิดข้อผิดพลาดหลัก:", error);
+  } finally {
+    setIsSaving(false);
+  }
+};
+
   /* ── fetch ────────────────────────────────────────────────── */
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -1598,20 +1646,43 @@ const UtilitySetting = () => {
       <div className="flex gap-2 max-w-3xl mx-auto mb-6 px-4">
         <button
           onClick={selectAllVisible}
-          className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-600 font-bold text-xs hover:bg-gray-200 transition-all"
+          className="flex-1 py-2.5 rounded-xl bg-orange-100 text-orange-600 font-bold text-xs hover:bg-orange-200 transition-all"
         >
           เลือกทั้งหมด
         </button>
         <button
           onClick={selectOccupied}
-          className="flex-1 py-2.5 rounded-xl bg-emerald-50 text-emerald-600 font-bold text-xs hover:bg-emerald-100 transition-all flex items-center justify-center gap-1.5"
+          className="flex-1 py-2.5 rounded-xl bg-emerald-100 text-emerald-600 font-bold text-xs hover:bg-emerald-200 transition-all flex items-center justify-center gap-1.5"
         >
           <Users size={13} /> มีผู้เช่า
         </button>
+        <button
+          onClick={() => setModal("maintenance")}
+          className="flex-1 py-2.5 rounded-xl bg-gray-300 hover:bg-gray-400 text-black font-black text-xs transition-all flex items-center justify-center gap-1.5"
+        >
+          ห้องปิดปรับปรุง
+        </button>
+
+        <ConfirmModal1
+        isOpen={modal === "maintenance"}
+        onClose={() => setModal(null)}
+        onConfirm={handleSetMaintenance}
+        title="ยืนยันการปิดปรับปรุงห้อง"
+        description={
+          selectedRoomObjects.length > 5 
+            ? `คุณต้องการตั้งค่าห้องพักจำนวน ${selectedRoomObjects.length} ห้อง ให้เป็นสถานะ "ปิดปรับปรุง"?`
+            : `คุณต้องการเปลี่ยนสถานะห้อง ${selectedRoomObjects.map(r => r.roomNumber).join(", ")} เป็น "ปิดปรับปรุง"?`
+        }
+        confirmText={isSaving ? "กำลังดำเนินการ..." : "ยืนยัน"}
+        cancelText="ยกเลิก"
+        variant="warning"
+        icon={Wrench} 
+      />
+
         {selectedIds.size > 0 && (
           <button
             onClick={clearAll}
-            className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-400 font-bold text-xs hover:bg-red-50 hover:text-red-400 transition-all flex items-center gap-1"
+            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-red-50 text-red-400 hover:bg-red-100 cursor-pointer transition-all flex items-center justify-center gap-1"
           >
             <X size={13} /> ล้าง ({selectedIds.size})
           </button>
@@ -1638,7 +1709,7 @@ const UtilitySetting = () => {
           ))
         )}
       </div>
-        {/* footer */}
+      {/* footer */}
       <div
         className="
     fixed bottom-0 right-0 z-40 

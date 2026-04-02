@@ -169,9 +169,9 @@ const ConstantPanel = ({ constants, onClose, onSaved }) => {
 
   return (
     <div
-  className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-  onClick={(e) => e.target === e.currentTarget && onClose()}
->
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
       <div
         className="bg-white rounded-3xl w-full max-w-sm overflow-hidden "
         onClick={(e) => e.stopPropagation()}
@@ -179,7 +179,7 @@ const ConstantPanel = ({ constants, onClose, onSaved }) => {
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-purple-100">
           <div>
             <h3 className="text-lg font-black text-gray-800">
-              ค่าอัตราคงที่น้ำ-ไฟ
+              อัตราคงที่น้ำ-ไฟของส่วนกลาง
             </h3>
           </div>
           <ExitButton onClick={onClose} className="right-0" />
@@ -911,7 +911,10 @@ const LazyFloor = React.memo(
                       title="คลิกเพื่อแก้ไข"
                     >
                       {"อัตรา"}
-                      {[room._elecTag && "ไฟคงที่", room._waterTag && "น้ำคงที่"]
+                      {[
+                        room._elecTag && "ไฟคงที่",
+                        room._waterTag && "น้ำคงที่",
+                      ]
                         .filter(Boolean)
                         .join(" , ")}
                     </div>
@@ -1322,10 +1325,11 @@ const UtilityRateSetting = () => {
                 {isTogglingPriority ? (
                   <Loader2 size={15} className="animate-spin" />
                 ) : (
-                  <ArrowUpDown size={15} />
+                  <ArrowUpDown size={15} className="hidden md:block" />
                 )}
                 <span>
-                  Priority:{" "}
+                  <span className="md:hidden">ใช้ตาม: </span>
+                  <span className="hidden md:inline">Priority: </span>
                   {priorityMeter.note === "constant" ? "อัตราคงที่" : "สัญญา"}
                 </span>
               </button>
@@ -1392,13 +1396,13 @@ const UtilityRateSetting = () => {
         <div className="flex gap-2 max-w-3xl w-full mx-auto mb-2">
           <button
             onClick={selectAllVisible}
-            className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-600 font-bold text-xs hover:bg-gray-200 transition-all"
+            className="flex-1 py-2.5 rounded-xl bg-orange-100 text-orange-600 font-bold text-xs hover:bg-orange-200 transition-all"
           >
             เลือกทั้งหมด
           </button>
           <button
             onClick={selectOccupied}
-            className="flex-1 py-2.5 rounded-xl bg-emerald-50 text-emerald-600 font-bold text-xs hover:bg-emerald-100 transition-all flex items-center justify-center gap-1.5"
+            className="flex-1 py-2.5 rounded-xl bg-emerald-100 text-emerald-600 font-bold text-xs hover:bg-emerald-200 transition-all flex items-center justify-center gap-1.5"
           >
             <Users size={13} /> มีผู้เช่า
           </button>
