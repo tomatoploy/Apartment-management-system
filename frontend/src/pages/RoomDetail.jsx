@@ -434,7 +434,7 @@ const RoomDetail = () => {
                     <div className="flex items-center gap-2 mb-1">
                       <div className="w-1.5 h-1.5 bg-[#f3a638] rounded-full"></div>
                       <p className="text-[10px] font-black text-[#f3a638] uppercase tracking-widest">
-                        หมายเหตุพิเศษ
+                        Line UID
                       </p>
                     </div>
                     <p className="text-sm font-bold text-gray-600 italic pl-3.5">
