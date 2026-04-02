@@ -169,30 +169,27 @@ const ConstantPanel = ({ constants, onClose, onSaved }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
+  className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+  onClick={(e) => e.target === e.currentTarget && onClose()}
+>
       <div
-        className="bg-white rounded-[40px] w-full max-w-sm shadow-2xl overflow-hidden"
+        className="bg-white rounded-3xl w-full max-w-sm overflow-hidden "
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center px-7 py-5 border-b border-gray-100">
+        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-purple-100">
           <div>
             <h3 className="text-lg font-black text-gray-800">
-              ค่า Constant น้ำ-ไฟ
+              ค่าอัตราคงที่น้ำ-ไฟ
             </h3>
-            <p className="text-xs font-bold text-gray-400 mt-0.5">
-              แก้ไขได้ ลบไม่ได้
-            </p>
           </div>
-          <ExitButton onClick={onClose} className="absolute right-0" />
+          <ExitButton onClick={onClose} className="right-0" />
         </div>
 
         <div className="px-7 py-5 space-y-3 max-h-[55vh] overflow-y-auto">
           {items.filter((item) => item.subject !== "priorityMeter").length ===
             0 && (
             <p className="text-center text-sm text-gray-400 font-bold py-6">
-              ไม่พบ Constant
+              ไม่พบอัตราคงที่
               <br />
               <span className="text-xs">
                 (category="utility", subject มี ElectricityBill/WaterBill)
@@ -227,7 +224,7 @@ const ConstantPanel = ({ constants, onClose, onSaved }) => {
                           fill="currentColor"
                         />
                       )}
-                      <span className={`text-xs font-black ${txt}`}>
+                      <span className={`text-md font-black ${txt}`}>
                         {item.subject}
                       </span>
                     </div>
@@ -236,18 +233,22 @@ const ConstantPanel = ({ constants, onClose, onSaved }) => {
                         item._editing ? handleSave(item) : handleEdit(item.id)
                       }
                       disabled={saving === item.id}
-                      className="p-1.5 rounded-lg bg-white/70 hover:bg-white transition-colors"
+                      className={`px-4 py-2 rounded-xl bg-white border-2 transition-all cursor-pointer flex items-center justify-center gap-1.5
+    ${isElec ? "border-orange-200 hover:border-orange-400 text-orange-600" : "border-blue-200 hover:border-blue-400 text-blue-600"}`}
                     >
                       {saving === item.id ? (
                         <Loader2 size={13} className="animate-spin" />
                       ) : item._editing ? (
-                        <CheckCircle2
-                          size={14}
-                          strokeWidth={3}
-                          className={txt}
-                        />
+                        <>
+                          <CheckCircle2
+                            size={14}
+                            strokeWidth={3}
+                            className={txt}
+                          />
+                          <span className="text-sm font-bold">บันทึก</span>
+                        </>
                       ) : (
-                        <Pencil size={12} strokeWidth={2.5} />
+                        <Pencil size={12} strokeWidth={3} className="txt" />
                       )}
                     </button>
                   </div>
@@ -269,30 +270,16 @@ const ConstantPanel = ({ constants, onClose, onSaved }) => {
                       </span>
                     </div>
                   ) : (
-                    <p className={`text-2xl font-black ${txt}`}>
+                    <p className={`px-6 text-2xl font-black ${txt}`}>
                       {Number(item.cost).toLocaleString()}
                       <span className="text-xs font-bold ml-1 opacity-60">
                         ฿/หน่วย
                       </span>
                     </p>
                   )}
-                  {item.note && (
-                    <p className="text-[10px] font-bold text-gray-400 mt-1">
-                      {item.note}
-                    </p>
-                  )}
                 </div>
               );
             })}
-        </div>
-
-        <div className="px-7 pb-6">
-          <button
-            onClick={onClose}
-            className="w-full py-3 rounded-2xl border-2 border-gray-200 font-bold text-gray-500 hover:bg-gray-50 transition-all text-sm"
-          >
-            ปิด
-          </button>
         </div>
       </div>
     </div>
@@ -360,7 +347,7 @@ const ConfirmModal = ({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="ไม่เปลี่ยน"
-          className={`w-full border-2 border-gray-200 ${color === "orange" ? "focus:border-orange-400" : "focus:border-blue-400"} rounded-2xl px-4 py-3 text-xl font-black text-gray-800 pr-20 outline-none transition-colors
+          className={`w-full border-2 border-gray-200 ${color === "orange" ? "focus:border-orange-400" : "focus:border-blue-400"} rounded-2xl px-4 py-2.5 text-md font-black text-gray-800 pr-20 outline-none transition-colors
                       [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
         />
         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-gray-400">
@@ -398,7 +385,7 @@ const ConfirmModal = ({
   }) => (
     <button
       onClick={onToggle}
-      className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left
+      className={`cursor-pointer w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left
         ${linked ? (color === "orange" ? "border-orange-400 bg-orange-50" : "border-blue-400 bg-blue-50") : "border-gray-200 bg-gray-50"}`}
     >
       <div
@@ -416,7 +403,7 @@ const ConfirmModal = ({
         {constItem && (
           <p className="text-xs font-bold text-gray-400 mt-0.5 truncate">
             {constItem.subject}: {Number(constItem.cost).toLocaleString()}{" "}
-            ฿/หน่วย
+            บาท/หน่วย
           </p>
         )}
       </div>
@@ -447,16 +434,9 @@ const ConfirmModal = ({
             <h3 className="text-lg font-black text-gray-800">
               {applyMode === "contract"
                 ? "ตั้งอัตราค่าน้ำ-ไฟ"
-                : "ผูกค่า Constant น้ำ-ไฟ"}
+                : "ผูกค่าอัตราคงที่น้ำ-ไฟ"}
             </h3>
-            {!isSaving && (
-              <button
-                onClick={onClose}
-                className="p-1.5 hover:bg-black/10 rounded-full"
-              >
-                <X size={18} strokeWidth={3} />
-              </button>
-            )}
+            {!isSaving && <ExitButton onClick={onClose} className="right-0" />}
           </div>
           <p className="text-xs font-bold text-gray-500 mt-1">
             {selectedRooms.length} ห้องที่เลือก
@@ -466,6 +446,22 @@ const ConfirmModal = ({
               </span>
             )}
           </p>
+          {/* preview rooms */}
+          <div className="flex flex-wrap mt-2 gap-1.5">
+            {selectedRooms.slice(0, 20).map((r) => (
+              <span
+                key={r.roomId}
+                className="px-2.5 py-1 bg-white rounded-lg text-xs font-black text-purple-700"
+              >
+                {r.roomNumber}
+              </span>
+            ))}
+            {selectedRooms.length > 20 && (
+              <span className="px-2.5 py-1 bg-white rounded-lg text-xs font-bold text-purple-700">
+                +{selectedRooms.length - 20} ห้อง
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="overflow-y-auto flex-1 px-7 py-5 space-y-5">
@@ -504,10 +500,10 @@ const ConfirmModal = ({
           {applyMode === "constant" && (
             <>
               <p className="text-sm font-bold text-gray-600">
-                เลือกว่าจะผูกอะไรกับ Constant:
+                เลือกค่าที่จะผูกกับอัตราคงที่
               </p>
               <ConstToggle
-                label="ใช้ค่าไฟจาก Constant"
+                label="ใช้ค่าไฟจากอัตราคงที่"
                 icon={Zap}
                 color="orange"
                 linked={linkElec}
@@ -515,7 +511,7 @@ const ConfirmModal = ({
                 constItem={elecConst}
               />
               <ConstToggle
-                label="ใช้ค่าน้ำจาก Constant"
+                label="ใช้ค่าน้ำจากอัตราคงที่"
                 icon={Droplets}
                 color="blue"
                 linked={linkWater}
@@ -532,23 +528,6 @@ const ConfirmModal = ({
                   แก้ไข/ลบได้ภายหลัง
                 </p>
               </div>
-
-              {/* preview rooms */}
-              <div className="flex flex-wrap gap-1.5">
-                {selectedRooms.slice(0, 20).map((r) => (
-                  <span
-                    key={r.roomId}
-                    className="px-2.5 py-1 bg-gray-100 rounded-lg text-xs font-black text-gray-600"
-                  >
-                    {r.roomNumber}
-                  </span>
-                ))}
-                {selectedRooms.length > 20 && (
-                  <span className="px-2.5 py-1 bg-gray-100 rounded-lg text-xs font-bold text-gray-400">
-                    +{selectedRooms.length - 20} ห้อง
-                  </span>
-                )}
-              </div>
             </>
           )}
         </div>
@@ -557,9 +536,9 @@ const ConfirmModal = ({
           <button
             onClick={onClose}
             disabled={isSaving}
-            className="flex-1 py-3 rounded-2xl border-2 border-gray-200 font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all text-sm"
+            className="flex-1 py-3 rounded-xl border-1 border-gray-200 font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all text-sm"
           >
-            ← ยกเลิก
+            ยกเลิก
           </button>
           <button
             onClick={() =>
@@ -572,7 +551,7 @@ const ConfirmModal = ({
               })
             }
             disabled={isSaving || !canConfirm}
-            className="flex-1 py-3 rounded-2xl bg-[#f3a638] hover:bg-orange-500 text-white font-black text-sm disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+            className="flex-1 py-3 rounded-xl bg-[#f3a638] hover:bg-[#e6952e]  text-white font-black text-sm disabled:opacity-50 transition-all flex items-center justify-center gap-2"
           >
             {isSaving ? (
               <>
@@ -580,10 +559,7 @@ const ConfirmModal = ({
                 กำลังบันทึก...
               </>
             ) : (
-              <>
-                <CheckCircle2 size={15} />
-                ยืนยัน
-              </>
+              <>ยืนยัน</>
             )}
           </button>
         </div>
@@ -663,7 +639,7 @@ const NoteTagDrawer = ({ room, onClose, onSaved }) => {
           <div className="flex gap-1">
             <button
               onClick={() => setEditing((p) => !p)}
-              className="p-1.5 rounded-lg bg-white/70 hover:bg-white transition-colors"
+              className="p-1.5 rounded-lg hover:bg-orange-100 bg-white transition-colors"
             >
               {editing ? (
                 <CheckCircle2
@@ -679,7 +655,7 @@ const NoteTagDrawer = ({ room, onClose, onSaved }) => {
             </button>
             <button
               onClick={onDelete}
-              className="p-1.5 rounded-lg bg-white/70 hover:bg-red-100 hover:text-red-500 transition-colors"
+              className="p-1.5 rounded-lg bg-white hover:bg-red-100 text-red-500 transition-colors"
             >
               <Trash2 size={12} strokeWidth={2.5} />
             </button>
@@ -688,7 +664,7 @@ const NoteTagDrawer = ({ room, onClose, onSaved }) => {
       </div>
       {val === null ? (
         <p className="text-xs font-bold text-gray-400 italic">
-          ไม่ได้ผูก Constant
+          ไม่ได้ผูกอัตราคงที่
         </p>
       ) : editing ? (
         <input
@@ -717,21 +693,16 @@ const NoteTagDrawer = ({ room, onClose, onSaved }) => {
         className="bg-white rounded-[40px] w-full max-w-md shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center px-7 py-5 border-b border-gray-100">
+        <div className="flex justify-between items-center px-7 py-5 border-b border-gray-100 bg-purple-100">
           <div>
             <h3 className="text-lg font-black text-gray-800">
-              Note ห้อง {room.roomNumber}
+              ห้อง {room.roomNumber}
             </h3>
             <p className="text-xs font-bold text-gray-400 mt-0.5">
-              แก้ไข/ลบการผูก Constant น้ำ-ไฟ
+              แก้ไข/ลบการผูกอัตราค่าน้ำ-ไฟ
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full"
-          >
-            <X size={20} strokeWidth={3} />
-          </button>
+          <ExitButton onClick={onClose} className="right-0" />
         </div>
         <div className="px-7 py-5 space-y-3">
           <TagRow
@@ -765,14 +736,14 @@ const NoteTagDrawer = ({ room, onClose, onSaved }) => {
           <button
             onClick={onClose}
             disabled={saving}
-            className="flex-1 py-3 rounded-2xl border-2 border-gray-200 font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 text-sm"
+            className="flex-1 py-3 rounded-xl border-2 border-gray-200 font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 text-sm"
           >
             ยกเลิก
           </button>
           <button
             onClick={doSave}
             disabled={saving}
-            className="flex-1 py-3 rounded-2xl bg-[#f3a638] hover:bg-orange-500 text-white font-black text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 py-3 rounded-xl bg-[#f3a638] hover:bg-[#e6952b] text-white font-black text-sm disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {saving ? (
               <>
@@ -939,11 +910,10 @@ const LazyFloor = React.memo(
                       className="w-full mt-1.5 text-[10px] font-bold px-2 py-1 rounded-xl text-center bg-purple-50 text-purple-600 border border-purple-200 hover:bg-purple-100 transition-colors truncate cursor-pointer"
                       title="คลิกเพื่อแก้ไข"
                     >
-                      📌{" "}
-                      {[room._elecTag && "⚡Const", room._waterTag && "💧Const"]
+                      {"อัตรา"}
+                      {[room._elecTag && "ไฟคงที่", room._waterTag && "น้ำคงที่"]
                         .filter(Boolean)
-                        .join(" · ")}
-                      <Pencil size={8} className="inline ml-1 opacity-50" />
+                        .join(" , ")}
                     </div>
                   )}
                 </div>
@@ -1356,7 +1326,7 @@ const UtilityRateSetting = () => {
                 )}
                 <span>
                   Priority:{" "}
-                  {priorityMeter.note === "constant" ? "Constant" : "สัญญา"}
+                  {priorityMeter.note === "constant" ? "อัตราคงที่" : "สัญญา"}
                 </span>
               </button>
             )}
@@ -1375,8 +1345,8 @@ const UtilityRateSetting = () => {
         <div className="flex justify-center w-full max-w-3xl">
           <div className="flex bg-gray-100 rounded-2xl p-1 w-full">
             {[
-              { key: "contract", label: "📋 ผูกกับสัญญา" },
-              { key: "constant", label: "📌 ผูกกับ Constant" },
+              { key: "contract", label: "ผูกกับสัญญา" },
+              { key: "constant", label: "ผูกกับอัตราคงที่" },
             ].map(({ key, label }) => (
               <button
                 key={key}
@@ -1385,7 +1355,7 @@ const UtilityRateSetting = () => {
                   setSelectedIds(new Set());
                 }}
                 className={`flex-1 py-2.5 rounded-xl font-black text-sm transition-all
-                  ${applyMode === key ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                  ${applyMode === key ? "bg-[#f3a638] text-white shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
               >
                 {label}
               </button>
@@ -1435,7 +1405,7 @@ const UtilityRateSetting = () => {
           {selectedIds.size > 0 && (
             <button
               onClick={clearAll}
-              className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-400 font-bold text-xs hover:bg-red-50 hover:text-red-400 transition-all flex items-center justify-center gap-1"
+              className="px-4 py-2.5 rounded-xl font-bold text-xs bg-red-50 text-red-400 hover:bg-red-100 cursor-pointer transition-all flex items-center justify-center gap-1"
             >
               <X size={13} /> ล้าง ({selectedIds.size})
             </button>
@@ -1499,15 +1469,15 @@ const UtilityRateSetting = () => {
               <p className="text-[10px] font-bold text-gray-400">
                 {applyMode === "contract"
                   ? "โหมด: ผูกกับสัญญา"
-                  : "โหมด: ผูกกับ Constant"}
+                  : "โหมด: ผูกกับอัตราคงที่"}
               </p>
             </div>
             <button
               onClick={() => setShowConfirm(true)}
-              className="px-6 py-3 rounded-2xl bg-[#f3a638] hover:bg-orange-500 text-white font-black text-sm shadow-lg transition-all flex items-center gap-2 shrink-0"
+              className="px-6 py-3 rounded-xl bg-[#f3a638] hover:bg-[#e6952e] text-white font-black text-sm shadow-lg transition-all flex items-center gap-2 shrink-0"
             >
               <CheckCircle2 size={16} />
-              {applyMode === "contract" ? "ตั้งค่าอัตรา" : "ผูก Constant"}
+              {applyMode === "contract" ? "ตั้งค่าอัตรา" : "ผูกกับอัตราคงที่"}
             </button>
           </div>
         )}

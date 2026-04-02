@@ -34,6 +34,7 @@ import { requestService } from "../api/RequestApi";
 import { parcelService } from "../api/ParcelApi";
 import { paymentService } from "../api/PaymentApi";
 import { contractService } from "../api/ContractApi";
+import { toThaiDate } from "../components/DateController";
 
 // ── Lazy Floor ────────────────────────────────────────────────────
 const LazyFloor = React.memo(({ floor, rooms }) => {
@@ -183,7 +184,7 @@ const ContractWarningBanner = ({ expiredRooms, urgentRooms }) => {
               {urgentRooms.map((r) => (
                 <div
                   key={r.roomId}
-                  className="flex items-center gap-2 bg-white border border-orange-200 rounded-xl px-3 py-1.5 text-sm shadow-sm"
+                  className="flex items-center gap-2 bg-white border border-orange-200 rounded-xl px-3 py-1.5 text-sm "
                 >
                   <span className="font-black text-orange-600">
                     {r.building}
@@ -195,7 +196,7 @@ const ContractWarningBanner = ({ expiredRooms, urgentRooms }) => {
                     </span>
                   )}
                   <span className="text-orange-400 font-bold text-xs">
-                    ครบ {formatDate(r.contractEndDate)}
+                    ครบ {toThaiDate(r.contractEndDate)}
                   </span>
                 </div>
               ))}
