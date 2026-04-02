@@ -629,10 +629,10 @@ const BillDetail = ({
       
       await axios.post("https://apartment-management-system-zllm.onrender.com/UtilityMeters/bulk-upsert", meterPayload);
       
-      setLatestMeter(prev => ({ 
-        electricityUnit: elec ? elec.newUnit : prev.electricityUnit, 
-        waterUnit: water ? water.newUnit : prev.waterUnit 
-      }));
+      // setLatestMeter(prev => ({ 
+      //   electricityUnit: elec ? elec.newUnit : prev.electricityUnit, 
+      //   waterUnit: water ? water.newUnit : prev.waterUnit 
+      // }));
       setNewMeters({ electric: "", water: "" });
       setIsMeterChanged({ electric: false, water: false });
       setChangeMeters({ electricEnd: "", electricStart: "", waterEnd: "", waterStart: "" });
@@ -767,7 +767,14 @@ const BillDetail = ({
   const startEdit = (item) => { setEditingId(item.id); setForm({ label: getItemLabel(item, selectedDate) || "", amount: Math.abs(item.amount) || 0 }); };
   const saveEdit = (id) => { 
     setItems((prev) => prev.map((i) => {
-      if (i.id === id) return { ...i, label: form.label, amount: form.amount * (i.type === "discount" ? -1 : 1) };
+      if (i.id === id) {
+        return { 
+          ...i, 
+          label: form.label, // เก็บไว้เป็น Fallback
+          labels: { ...i.labels, [selectedDate]: form.label }, // ✨ เพิ่มบรรทัดนี้: บังคับให้เดือนปัจจุบันใช้ Text ที่เราเพิ่งพิมพ์
+          amount: form.amount * (i.type === "discount" ? -1 : 1) 
+        };
+      }
       return i;
     })); 
     setEditingId(null); 
