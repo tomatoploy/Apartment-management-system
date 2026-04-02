@@ -18,7 +18,7 @@ const Settings = () => {
       id: 1,
       title: "ข้อมูลหอพัก",
       description: "แก้ไขข้อมูลชื่อ ที่อยู่ และรายละเอียดหอพัก",
-      path: "/settings/building-edit",
+      path: "/buildingRegister/edit",
       icon: <Building2 size={22} />,
     },
     {
