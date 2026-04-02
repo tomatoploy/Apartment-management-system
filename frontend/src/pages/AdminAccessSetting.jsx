@@ -240,10 +240,7 @@ const AdminAccessSetting = () => {
         <div className="w-full sm:w-80">
           <SearchBar value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="ค้นชื่อ หรือ เบอร์โทร..." />
         </div>
-        {/* <button onClick={() => setShowAddModal(true)}
-          className="px-6 py-2.5 rounded-2xl bg-[#f3a638] text-white font-black transition-all shadow-lg shadow-orange-100 hover:bg-orange-500 flex items-center gap-2 active:scale-95">
-          <Plus size={18} strokeWidth={3} /> เพิ่มสิทธิ์ด้วยเบอร์โทร
-        </button> */}
+        
         <AddButton 
         label="เพิ่มสิทธิ์ด้วยเบอร์โทร" 
         icon={Plus} 

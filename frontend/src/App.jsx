@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import AdminRegister from "./pages/AdminRegister";
 import Rooms from "./pages/Rooms";
 import BuildingRegister from "./pages/BuildingRegister";
+import BuildingRegisterEdit from "./pages/BuildingRegisterEdit";
 import Settings from "./pages/Setting";
 import UtilitySetting from "./pages/UtilitySetting";
 import RoomRateSetting from "./pages/RoomRateSetting";
@@ -69,6 +70,15 @@ function App() {
 
       {/* หน้า private (มี Layout) */}
       <Route
+        path="/buildingRegister/edit"
+        element={
+          <Layout>
+            <BuildingRegisterEdit />
+          </Layout>
+        }
+      />
+
+      <Route
         path="/dashboard"
         element={
           <Layout>
@@ -102,14 +112,14 @@ function App() {
           </Layout>
         }
       />
-      <Route
+      {/* <Route
         path="/settings/building-edit"
         element={
           <Layout>
             <BuildingRegister isEditMode={true} />
           </Layout>
         }
-      />
+      /> */}
       <Route
         path="/settings/utility"
         element={
