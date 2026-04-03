@@ -52,6 +52,7 @@ const FieldLabel = ({ children, required }) => (
   </label>
 );
 
+
 const EditInput = ({
   label,
   name,
@@ -73,6 +74,7 @@ const EditInput = ({
       }
     }
   };
+
 
   return (
     <div
@@ -121,6 +123,16 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
       [name]: finalValue,
     }));
   };
+
+  const handleNumberChange = (e, maxLength=null) => {
+    const { name, value } = e.target;
+    const onlyNums = value.replace(/[^0-9]/g, "");
+    if (maxLength && onlyNums.length <= maxLength) {
+      setFormData((prev) => ({ ...prev, [name]: onlyNums }));
+    } else if (!maxLength) {
+      setFormData((prev) => ({ ...prev, [name]: onlyNums }));
+    }
+  }; 
 
   const handleSave = () => {
     onSave(formData);
@@ -310,7 +322,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                   </div>
                   <EditInput label="ชื่อจริง" name="firstName" value={formData.firstName} onChange={handleChange} required />
                   <EditInput label="นามสกุล" name="lastName" value={formData.lastName} onChange={handleChange} required />
-                  <EditInput label="เลขบัตรประชาชน" name="nin" value={formData.nin} onChange={handleChange} />
+                  <EditInput label="เลขบัตรประชาชน" name="nin" value={formData.nin} onChange={(e) => handleNumberChange(e, 13)}/>
                   <DateInput label="วันเกิด" name="birthDate" value={formData.birthDate} onChange={handleChange} />
                 </>
               ) : (
@@ -329,7 +341,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
               <SectionHeader title="การติดต่อ & ที่อยู่" icon={Phone} />
               {isEditMode ? (
                 <>
-                  <EditInput label="เบอร์โทรศัพท์" name="phone" value={formData.phone} onChange={handleChange} />
+                  <EditInput label="เบอร์โทรศัพท์" name="phone" value={formData.phone} onChange={(e) => handleNumberChange(e, 10)}/>
                   <EditInput label="Line ID" name="lineId" value={formData.lineId} onChange={handleChange} />
                   <EditInput label="อีเมล" name="email" value={formData.email} onChange={handleChange} isFullWidth />
                   <div className="col-span-1 md:col-span-2 flex flex-col">
@@ -358,7 +370,7 @@ const TenantInfoModal = ({ isOpen, onClose, tenant, onSave }) => {
                 <>
                   <EditInput label="ผู้ติดต่อสำรอง" name="altName" value={formData.altName} onChange={handleChange} />
                   <EditInput label="ความสัมพันธ์" name="altRelationship" value={formData.altRelationship} onChange={handleChange} />
-                  <EditInput label="เบอร์สำรอง" name="altPhone" value={formData.altPhone} onChange={handleChange} isFullWidth />
+                  <EditInput label="เบอร์สำรอง" name="altPhone" value={formData.altPhone} onChange={(e) => handleNumberChange(e, 10)} isFullWidth />
                   <EditInput label="ทะเบียนรถ 1" name="vehicleNum1" value={formData.vehicleNum1} onChange={handleChange} />
                   <EditInput label="รายละเอียดรถ 1" name="vehicleDetail1" value={formData.vehicleDetail1} onChange={handleChange} />
                   <EditInput label="ทะเบียนรถ 2" name="vehicleNum2" value={formData.vehicleNum2} onChange={handleChange} />

@@ -9,7 +9,7 @@ import {
   GreenButton,
   ExitButton,
 } from "../components/ActionButtons";
-import { DateInput } from "../components/DateController";
+import { DateInput,toThaiDate } from "../components/DateController";
 
 // API Services
 import { tenantService } from "../api/TenantApi";
@@ -392,7 +392,7 @@ useEffect(() => {
                       value={formData.title}
                       onChange={handleInputChange}
                       type="select"
-                      options={["นาย", "นาง", "นางสาว"]}
+                      options={["เลือกคำนำหน้า", "นาย", "นาง", "นางสาว"]}
                       required
                     />
                     <FormInput
@@ -492,7 +492,7 @@ useEffect(() => {
                       <div className="space-y-5">
                         <InfoBox
                           label="วันที่เข้าพัก"
-                          value={reserveData.checkInDate}
+                          value={toThaiDate(reserveData.checkInDate)}
                           icon={<Calendar size={18} />}
                         />
                         <InfoBox

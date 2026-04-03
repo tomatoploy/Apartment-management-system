@@ -1562,16 +1562,7 @@ const RoomContract = () => {
                 >
                   <Download size={16} /> บันทึกเป็น PDF (พิมพ์)
                 </button>
-                <button
-                  onClick={() => setShowPreviewModal(false)}
-                  className="p-2 ml-2 bg-white hover:bg-red-50 rounded-full transition-colors"
-                >
-                  <X
-                    size={20}
-                    strokeWidth={3}
-                    className="text-gray-500 hover:text-red-500"
-                  />
-                </button>
+                <ExitButton onClick={() => setShowPreviewModal(false)} />
               </div>
             </div>
 

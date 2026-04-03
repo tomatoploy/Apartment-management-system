@@ -56,6 +56,19 @@ const STATUS_META = {
   },
 };
 
+const translateName = (name) => {
+  if (!name) return "";
+  
+  const dict = {
+    "Furniture": "เฟอร์นิเจอร์",
+    "Keycard": "คีย์การ์ด",
+    "Parking": "ที่จอดรถ",
+    "Internet" : "อินเทอร์เน็ต",
+  };
+
+  return dict[name] || name; 
+};
+
 /* ── helpers: parse note ─────────────────────────────────────── */
 const parseRentFromRoomNote = (note) => {
   if (!note) return null;
@@ -182,6 +195,7 @@ const ItemListModal = ({ type, onClose, onNext, recentItems }) => {
                 {recentItems.map((r, idx) => {
                   const alreadyAdded = items.some((i) => i.name === r.name);
                   return (
+                    
                     <button
                       key={idx}
                       onClick={() => applyPreset(r)}
@@ -190,7 +204,7 @@ const ItemListModal = ({ type, onClose, onNext, recentItems }) => {
                         ${alreadyAdded ? "opacity-50 cursor-not-allowed border-gray-100 bg-gray-50" : `border-transparent bg-gray-50 ${accentClass.presetHover}`}`}
                     >
                       <p className="font-bold text-sm text-gray-700 truncate mr-2">
-                        {r.name}
+                          {translateName(r.name)}
                       </p>
                       <div className="shrink-0 flex items-center gap-1">
                         <span className="text-sm font-black text-gray-700">
@@ -220,6 +234,7 @@ const ItemListModal = ({ type, onClose, onNext, recentItems }) => {
             <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-3 px-1">
               รายการ
             </p>
+            
             {items.length === 0 ? (
               <p className="text-sm text-gray-400 font-bold text-center py-4">
                 ยังไม่มีรายการ — เลือกด่วนหรือเพิ่มเองด้านล่าง
@@ -250,12 +265,7 @@ const ItemListModal = ({ type, onClose, onNext, recentItems }) => {
                       onClick={() => removeItem(item.id)}
                       className="shrink-0"
                     />
-                    {/* <button
-                      onClick={() => removeItem(item.id)}
-                      className="text-gray-300 hover:text-red-400 p-1 transition-colors shrink-0"
-                    >
-                      <X size={18} strokeWidth={3} />
-                    </button> */}
+                    
                   </div>
                 ))}
               </div>
