@@ -643,11 +643,11 @@ const ContractTemplate = () => {
   return (
     <>
       <div className="flex h-screen overflow-hidden bg-gray-100 font-sarabun">
-  
-<aside className="hidden md:flex w-[280px] shrink-0 flex-col bg-white border-r border-gray-200 z-20 shadow-sm">          <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
-            <div className="text-right">
-              <h1 className="font-black text-gray-800 text-sm">เทมเพลตเอกสาร</h1>
-              <p className="text-[10px] font-bold text-gray-400 mt-0.5">{docs.length + SPECIAL_DOCS.length} รายการ</p>
+        <aside className="hidden md:flex w-[280px] shrink-0 flex-col bg-white border-r border-gray-200 z-20 shadow-sm">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div className="text-left flex flex-col gap-0.5">
+              <h1 className="font-black text-gray-800 text-base">เทมเพลตเอกสาร</h1>
+              <p className="text-xs font-bold text-gray-400">{docs.length + SPECIAL_DOCS.length} รายการ</p>
             </div>
           </div>
           

@@ -523,7 +523,7 @@ const ConfirmModal = ({
                 <p className="text-[11px] font-bold text-purple-700 leading-relaxed">
                   บันทึก tagใน <strong>Note ห้อง</strong> เช่น{" "}
                   <code className="bg-purple-100 rounded px-1">
-                    {"{ใช้ไฟ: constant}"}
+                    {"{ใช้ไฟ: ค่ากำหนดจากส่วนกลาง}"}
                   </code>{" "}
                   แก้ไข/ลบได้ภายหลัง
                 </p>
@@ -573,8 +573,11 @@ const ConfirmModal = ({
 /* ─────────────────────────────────────────────────────────── */
 const NoteTagDrawer = ({ room, onClose, onSaved }) => {
   const rawNote = room.roomNote ?? room.note ?? room.Note ?? "";
-  const [elec, setElec] = useState(parseElecTag(rawNote));
-  const [water, setWater] = useState(parseWaterTag(rawNote));
+  const initialElec = parseElecTag(rawNote);
+  const [elec, setElec] = useState(initialElec === "constant" ? "ค่ากำหนดจากส่วนกลาง" : initialElec);
+  const initialWater = parseWaterTag(rawNote);
+  const [water, setWater] = useState(initialWater === "constant" ? "ค่ากำหนดจากส่วนกลาง" : initialWater);
+  
   const [editE, setEditE] = useState(false);
   const [editW, setEditW] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -831,7 +834,6 @@ const LazyFloor = React.memo(
                 applyMode === "contract" && !room._hasActiveContract;
 
               return (
-                /* แก้ DOM Nesting Error: เปลี่ยน <button> เป็น <div role="button"> */
                 <div
                   key={room.roomId}
                   role="button"
@@ -871,52 +873,73 @@ const LazyFloor = React.memo(
                     </div>
                   </div>
 
-                  {/* room number */}
-                  <p className="text-xl font-black text-gray-800 leading-none mb-2">
-                    {room.roomNumber}
-                  </p>
-
-                  {/* อัตราจาก contract note */}
-                  <div className="w-full space-y-1">
-                    <div
-                      className={`w-full text-[10px] font-black px-2 py-1 rounded-xl text-center flex items-center justify-center gap-1
-                    ${room._contractElecRate ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-400"}`}
-                    >
-                      <Zap size={8} fill="currentColor" />
-                      {room._contractElecRate
-                        ? `${room._contractElecRate} ฿/หน่วย`
-                        : "ไฟ ยังไม่กำหนด"}
-                    </div>
-                    <div
-                      className={`w-full text-[10px] font-black px-2 py-1 rounded-xl text-center flex items-center justify-center gap-1
-                    ${room._contractWaterRate ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-400"}`}
-                    >
-                      <Droplets size={8} fill="currentColor" />
-                      {room._contractWaterRate
-                        ? `${room._contractWaterRate} ฿/หน่วย`
-                        : "น้ำ ยังไม่กำหนด"}
-                    </div>
+                  {/* room number + ปุ่มแก้ไข (เฉพาะโหมดผูกกับห้อง) */}
+                  <div className="flex items-center justify-between w-full mb-3">
+                    <p className="text-2xl font-black text-gray-800 leading-none">
+                      {room.roomNumber}
+                    </p>
+                    
+                    {/* ✨ ปุ่มดินสอย้ายมาอยู่ตรงนี้ (ข้างๆ เลขห้อง) */}
+                    {applyMode !== "contract" && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenNoteDrawer(room);
+                        }}
+                        className="p-1.5 rounded-full bg-white border border-gray-200 text-gray-400 hover:text-purple-600 hover:bg-purple-50 hover:border-purple-300 transition-all shadow-sm"
+                        title="แก้ไขการผูกค่าห้อง"
+                      >
+                        <Pencil size={10} strokeWidth={2.5} />
+                      </button>
+                    )}
                   </div>
 
-                  {/* constant tag badge — คลิกเพื่อแก้ไข */}
-                  {(room._elecTag || room._waterTag) && (
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenNoteDrawer(room);
-                      }}
-                      className="w-full mt-1.5 text-[10px] font-bold px-2 py-1 rounded-xl text-center bg-purple-50 text-purple-600 border border-purple-200 hover:bg-purple-100 transition-colors truncate cursor-pointer"
-                      title="คลิกเพื่อแก้ไข"
-                    >
-                      {"อัตรา"}
-                      {[
-                        room._elecTag && "ไฟคงที่",
-                        room._waterTag && "น้ำคงที่",
-                      ]
-                        .filter(Boolean)
-                        .join(" , ")}
+                  {/* แสดงข้อมูลแยกตามโหมด */}
+                  {applyMode === "contract" ? (
+                    /* ----- โชว์ข้อมูลสำหรับโหมด "ผูกกับสัญญา" ----- */
+                    <div className="w-full space-y-1.5">
+                      <div
+                        className={`w-full text-[10px] font-black px-2 py-1.5 rounded-xl text-center flex items-center justify-center gap-1.5
+                      ${room._contractElecRate ? "bg-orange-50 text-orange-700 border border-orange-100" : "bg-gray-50 text-gray-400 border border-gray-100"}`}
+                      >
+                        <Zap size={10} fill="currentColor" />
+                        {room._contractElecRate
+                          ? `${room._contractElecRate} ฿/หน่วย`
+                          : "ไฟ ยังไม่กำหนด"}
+                      </div>
+                      <div
+                        className={`w-full text-[10px] font-black px-2 py-1.5 rounded-xl text-center flex items-center justify-center gap-1.5
+                      ${room._contractWaterRate ? "bg-blue-50 text-blue-700 border border-blue-100" : "bg-gray-50 text-gray-400 border border-gray-100"}`}
+                      >
+                        <Droplets size={10} fill="currentColor" />
+                        {room._contractWaterRate
+                          ? `${room._contractWaterRate} ฿/หน่วย`
+                          : "น้ำ ยังไม่กำหนด"}
+                      </div>
+                    </div>
+                  ) : (
+                    /* ----- โชว์ข้อมูลสำหรับโหมด "ผูกกับห้อง" ----- */
+                    <div className="w-full space-y-1.5">
+                      {/* ✨ เอา pr-6 และ absolute ออก เพื่อให้ป้ายกว้างเต็ม 100% */}
+                      <div
+                        className={`w-full text-[10px] font-black px-2 py-1.5 rounded-xl text-center flex items-center justify-center gap-1.5
+                        ${room._elecTag ? "bg-orange-50 text-orange-700 border border-orange-100" : "bg-gray-50 text-gray-400 border border-gray-100"}`}
+                      >
+                        <Zap size={10} fill="currentColor" />
+                        {room._elecTag
+                          ? `ไฟ: ${room._elecTag}`
+                          : "ไฟ ยังไม่ได้ผูก"}
+                      </div>
+                      <div
+                        className={`w-full text-[10px] font-black px-2 py-1.5 rounded-xl text-center flex items-center justify-center gap-1.5
+                        ${room._waterTag ? "bg-blue-50 text-blue-700 border border-blue-100" : "bg-gray-50 text-gray-400 border border-gray-100"}`}
+                      >
+                        <Droplets size={10} fill="currentColor" />
+                        {room._waterTag
+                          ? `น้ำ: ${room._waterTag}`
+                          : "น้ำ ยังไม่ได้ผูก"}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1211,8 +1234,10 @@ const UtilityRateSetting = () => {
           } else {
             // constant mode: บันทึก {ใช้ไฟ} {ใช้น้ำ} ใน room note
             let rNote = room._rawNote || "";
-            if (linkElec) rNote = replaceTag(rNote, "ใช้ไฟ", "constant");
-            if (linkWater) rNote = replaceTag(rNote, "ใช้น้ำ", "constant");
+            // ✨ เปลี่ยนคำที่ใช้ Save เป็น "ค่ากำหนดจากส่วนกลาง"
+            if (linkElec) rNote = replaceTag(rNote, "ใช้ไฟ", "ค่ากำหนดจากส่วนกลาง");
+            if (linkWater) rNote = replaceTag(rNote, "ใช้น้ำ", "ค่ากำหนดจากส่วนกลาง");
+            
             await roomService.updateRoom(room.roomId, {
               id: room.roomId,
               number: String(room.roomNumber),
@@ -1350,7 +1375,7 @@ const UtilityRateSetting = () => {
           <div className="flex bg-gray-100 rounded-2xl p-1 w-full">
             {[
               { key: "contract", label: "ผูกกับสัญญา" },
-              { key: "constant", label: "ผูกกับอัตราคงที่" },
+              { key: "constant", label: "ผูกกับห้อง" },
             ].map(({ key, label }) => (
               <button
                 key={key}
