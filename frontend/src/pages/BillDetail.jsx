@@ -135,9 +135,9 @@ const getItemLabel = (item, selectedDate, type, rates, prevMeters) => {
   return "รายการอื่น ๆ";
 };
 
-const parseUtilityRate = (note, typeStr) => {
+const parseUtilityRate = (note, typeStr, altTypeStr = "") => {
   if (!note) return null;
-  const match = note.match(new RegExp(`\\{${typeStr}:\\s*([\\d.]+)[^}]*\\}`));
+  const match = note.match(new RegExp(`\\{(?:${typeStr}|${altTypeStr}):\\s*([\\d.]+)[^}]*\\}`));
   return match ? Number(match[1]) : null;
 };
 
@@ -461,10 +461,10 @@ const BillDetail = ({
       const priorityMode = priorityMeter?.note === "contract" ? "contract" : "constant";
       const elecRateConst = allConstants.find(c => c.category?.toLowerCase() === "utility" && (c.subject?.includes("ไฟ") || c.subject?.includes("ElectricityBill")))?.cost || 0;
       const waterRateConst = allConstants.find(c => c.category?.toLowerCase() === "utility" && (c.subject?.includes("น้ำ") || c.subject?.includes("WaterBill")))?.cost || 0;
-      const customElec = parseUtilityRate(contractNote, "ค่าไฟ") ?? parseUtilityRate(roomNote, "ค่าไฟ");
-      const customWater = parseUtilityRate(contractNote, "ค่าน้ำ") ?? parseUtilityRate(roomNote, "ค่าน้ำ");
-      const effectiveElec = (priorityMode === "contract" && customElec !== null) ? customElec : Number(elecRateConst);
-      const effectiveWater = (priorityMode === "contract" && customWater !== null) ? customWater : Number(waterRateConst);
+      const customElec = parseUtilityRate(contractNote, "ค่าไฟ", "ใช้ไฟ") ?? parseUtilityRate(roomNote, "ค่าไฟ", "ใช้ไฟ");
+      const customWater = parseUtilityRate(contractNote, "ค่าน้ำ", "ใช้น้ำ") ?? parseUtilityRate(roomNote, "ค่าน้ำ", "ใช้น้ำ");
+      const effectiveElec = customElec !== null ? customElec : Number(elecRateConst);
+      const effectiveWater = customWater !== null ? customWater : Number(waterRateConst);
       setEffectiveRates({ electric: effectiveElec, water: effectiveWater });
 
       const result = await paymentService.generatePayment(contract.id || contract.Id, year, month).catch(()=>({}));

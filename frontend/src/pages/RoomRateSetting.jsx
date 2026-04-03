@@ -1,30 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import React, {
-  useState,
-  useEffect,
-  useMemo,
-  useCallback,
-  useRef,
-} from "react";
-import {
-  Loader2,
-  Home,
-  Plus,
-  X,
-  CheckCircle2,
-  AlertCircle,
-  Users,
-  Tag,
-  Percent,
-  Lock,
-  Calendar,
-  Building2,
-  Info,
-  Pencil,
-  Trash2,
-  FileText,
-  Wrench,
-} from "lucide-react";
+import React, { useState, useEffect, useMemo, useCallback, useRef,} from "react";
+import { Loader2, Home, Plus, X, CheckCircle2, AlertCircle, Users, Tag, Percent, Lock, Calendar, Building2, Info, Pencil, Trash2, FileText, Wrench,} from "lucide-react";
 import { ExitButton, RefreshButton } from "../components/ActionButtons";
 import SearchBar from "../components/SearchBar";
 import { ConfirmModal as ConfirmModal1 } from "../components/ActionButtons";
@@ -33,8 +9,6 @@ import { roomService } from "../api/RoomApi";
 import { contractService } from "../api/ContractApi";
 import { paymentService } from "../api/PaymentApi";
 import { constantService } from "../api/ConstantApi";
-
-
 
 /* ── helpers ──────────────────────────────────────────────────── */
 const extractArray = (res) => {
@@ -46,20 +20,7 @@ const extractArray = (res) => {
   return [];
 };
 
-const THAI_MONTHS = [
-  "ม.ค.",
-  "ก.พ.",
-  "มี.ค.",
-  "เม.ย.",
-  "พ.ค.",
-  "มิ.ย.",
-  "ก.ค.",
-  "ส.ค.",
-  "ก.ย.",
-  "ต.ค.",
-  "พ.ย.",
-  "ธ.ค.",
-];
+const THAI_MONTHS = [ "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",];
 const thaiMonth = (y, m) => `${THAI_MONTHS[m - 1]} ${y + 543}`;
 
 const STATUS_META = {
@@ -87,11 +48,11 @@ const STATUS_META = {
     dot: "bg-gray-300",
     badge: "bg-gray-50 text-gray-500",
   },
-  maintenance: {
+  close: {
     label: "ปิดปรับปรุง",
-    border: "border-gray-300",
-    dot: "bg-gray-400",
-    badge: "bg-gray-100 text-gray-500",
+    border: "border-gray-800",
+    dot: "bg-gray-800",
+    badge: "bg-gray-100 text-gray-800 font-bold",
   },
 };
 
@@ -614,7 +575,7 @@ const RoomNoteDrawer = ({ target, onClose, onSaved }) => {
       .join(" ")
       .trim();
 
-  const handleDeleteTag = (idx) =>
+const handleDeleteTag = (idx) =>
     setParts((prev) => prev.filter((_, i) => i !== idx));
   const handleStartEdit = (idx) => {
     setEditIdx(idx);
@@ -658,7 +619,11 @@ const RoomNoteDrawer = ({ target, onClose, onSaved }) => {
     }
   };
 
-  const tags = parts.filter((p) => p.type === "tag");
+  // ✨ กรองเอาเฉพาะ tag ที่ไม่ใช่ ค่าน้ำ/ค่าไฟ/ค่าเช่า มาแสดงให้แก้ไข เพื่อไม่ให้กวนตา
+  const editableTags = parts.filter(
+    (p) => p.type === "tag" && !/(ค่าไฟ|ค่าน้ำ|ใช้ไฟ|ใช้น้ำ|ค่าเช่า)/.test(p.key)
+  );
+  
   const text = parts
     .filter((p) => p.type === "text")
     .map((p) => p.value)
@@ -702,22 +667,20 @@ const RoomNoteDrawer = ({ target, onClose, onSaved }) => {
               <p className="text-sm font-bold text-gray-700">{text}</p>
             </div>
           )}
-          {tags.length === 0 && !text && (
+          {editableTags.length === 0 && !text && (
             <p className="text-center text-sm text-gray-400 font-bold py-6">
               ไม่มี Note ใน{isContract ? "สัญญา" : "ห้อง"}นี้
             </p>
           )}
-          {tags.map((tag, rawIdx) => {
+          {editableTags.map((tag, rawIdx) => {
             const partsIdx = parts.findIndex((p, i) => p === tag);
             const isEditing = editIdx === partsIdx;
-            const tagColor =
-              tag.key === "ค่าเช่า"
-                ? "bg-orange-50 border-orange-200 text-orange-700"
-                : tag.key === "ค่าบริการ"
-                  ? "bg-blue-50 border-blue-200 text-blue-700"
-                  : tag.key === "ส่วนลด"
-                    ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                    : "bg-gray-50 border-gray-200 text-gray-700";
+            
+            const tagColor = tag.key === "ค่าบริการ"
+                ? "bg-blue-50 border-blue-200 text-blue-700"
+                : tag.key === "ส่วนลด"
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                  : "bg-gray-50 border-gray-200 text-gray-700";
 
             return (
               <div
@@ -802,15 +765,7 @@ const RoomNoteDrawer = ({ target, onClose, onSaved }) => {
 
 /* ── LazyFloor ────────────────────────────────────────────────── */
 const LazyFloor = React.memo(
-  ({
-    floor,
-    rooms,
-    selectedIds,
-    onToggle,
-    onSelectFloor,
-    applyMode,
-    onOpenNoteDrawer,
-  }) => {
+  ({ floor, rooms, selectedIds, onToggle, onSelectFloor, applyMode, onOpenNoteDrawer }) => {
     const ref = useRef(null);
     const [visible, setVisible] = useState(false);
 
@@ -818,75 +773,69 @@ const LazyFloor = React.memo(
       const el = ref.current;
       if (!el) return;
       const obs = new IntersectionObserver(
-        ([e]) => {
-          if (e.isIntersecting) setVisible(true);
-        },
-        { rootMargin: "200px" },
+        ([e]) => { if (e.isIntersecting) setVisible(true); },
+        { rootMargin: "200px" }
       );
       obs.observe(el);
       return () => obs.disconnect();
     }, []);
 
     return (
-      <div
-        ref={ref}
-        className="bg-gray-50 p-6 rounded-3xl border border-gray-100"
-      >
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-700 flex items-center gap-2">
-            <span className="bg-gray-200 text-gray-600 w-8 h-8 rounded-full flex items-center justify-center text-sm font-black">
+      <div ref={ref} className="bg-gray-50 p-4 sm:p-6 rounded-3xl border border-gray-100">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-700 flex items-center gap-2">
+            <span className="bg-gray-200 text-gray-600 w-8 h-8 rounded-full flex items-center justify-center text-sm font-black shrink-0">
               {floor}
             </span>
             ชั้น {floor}
           </h2>
-          <button
-            onClick={() => onSelectFloor(floor)}
-            className="text-xs font-black text-[#f3a638] px-3 py-1.5 rounded-xl hover:bg-orange-100 transition-all"
-          >
+          <button onClick={() => onSelectFloor(floor)} className="text-xs font-black text-[#f3a638] px-3 py-1.5 rounded-xl hover:bg-orange-100 transition-all">
             เลือกทั้งชั้น
           </button>
         </div>
 
         {!visible ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
             {rooms.map((r) => (
-              <div
-                key={r.roomId}
-                className="h-28 rounded-2xl bg-gray-200 animate-pulse"
-              />
+              <div key={r.roomId} className="h-28 rounded-2xl bg-gray-200 animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
             {rooms.map((room) => {
               const status = (room.roomStatus || "available").toLowerCase();
               const meta = STATUS_META[status] || STATUS_META.available;
               const hasContract = !!room._contractId;
               const isSel = selectedIds.has(room.roomId);
-              const isDisabledByMode =
-                (applyMode === "monthly" || applyMode === "contract") &&
-                !hasContract;
+              const isDisabledByMode = (applyMode === "monthly" || applyMode === "contract") && !hasContract;
 
-              // กรองการแสดงผล Note Tags ตามโหมดที่เลือก
-              const showRoomNote =
-                room._roomNoteTags && applyMode !== "contract";
-              const showContractNote =
-                room._contractNoteTags && applyMode !== "room";
+              // ✨ คำนวณยอดที่แสดงให้ตรงกับโหมดที่เลือก (แยกขาดจากกัน)
+              let displayRent = null;
+              let displayService = 0;
+              let displayDiscount = 0;
+              let hasPinService = false;
+              let hasPinDiscount = false;
 
-              // คำนวณยอดที่แสดงบนป้าย (+ NNN฿) ให้ตรงกับโหมดที่เลือกเท่านั้น
-              const billService = room._additionalCost ?? 0;
-              const noteService =
-                (showRoomNote ? room._rNoteServiceAmt || 0 : 0) +
-                (showContractNote ? room._cNoteServiceAmt || 0 : 0);
-              const showService = billService > 0 || noteService > 0;
+              if (applyMode === "monthly") {
+                displayRent = room._contractRent || room._roomRent;
+                displayService = (room._additionalCost || 0) + (room._cNoteServiceAmt || 0) + (room._rNoteServiceAmt || 0);
+                displayDiscount = (room._discountCost || 0) + (room._cNoteDiscountAmt || 0) + (room._rNoteDiscountAmt || 0);
+                hasPinService = (room._cNoteServiceAmt > 0 || room._rNoteServiceAmt > 0);
+                hasPinDiscount = (room._cNoteDiscountAmt > 0 || room._rNoteDiscountAmt > 0);
+              } else if (applyMode === "contract") {
+                displayRent = room._contractRent;
+                displayService = room._cNoteServiceAmt || 0;
+                displayDiscount = room._cNoteDiscountAmt || 0;
+              } else if (applyMode === "room") {
+                displayRent = room._roomRent;
+                displayService = room._rNoteServiceAmt || 0;
+                displayDiscount = room._rNoteDiscountAmt || 0;
+              }
 
-              const billDiscount = room._discountCost ?? 0;
-              const noteDiscount =
-                (showRoomNote ? room._rNoteDiscountAmt || 0 : 0) +
-                (showContractNote ? room._cNoteDiscountAmt || 0 : 0);
-              const showDiscount = billDiscount > 0 || noteDiscount > 0;
+              const showService = displayService > 0;
+              const showDiscount = displayDiscount > 0;
 
-              return (
+return (
                 <button
                   key={room.roomId}
                   onClick={() => !isDisabledByMode && onToggle(room.roomId)}
@@ -898,7 +847,7 @@ const LazyFloor = React.memo(
                         ? "ห้องนี้ไม่มีสัญญา (จะบันทึกใน Note ห้อง)"
                         : undefined
                   }
-                  className={`relative flex flex-col items-start p-4 rounded-2xl border-2 transition-all duration-200 text-left w-full
+                  className={`relative flex flex-col items-start p-3 sm:p-4 rounded-2xl border-2 transition-all duration-200 text-left w-full
                   ${
                     isDisabledByMode
                       ? "border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed"
@@ -908,96 +857,70 @@ const LazyFloor = React.memo(
                   }`}
                 >
                   <div className="flex items-center justify-between w-full mb-2">
-                    <span
-                      className={`flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full ${meta.badge}`}
-                    >
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full ${meta.dot}`}
-                      />
+                    <span className={`flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full ${meta.badge}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
                       {meta.label}
                     </span>
                     <div className="flex items-center gap-1">
-                      {applyMode === "room" && !hasContract && (
-                        <Building2 size={11} className="text-orange-400" />
-                      )}
+                      {applyMode === "room" && !hasContract && <Building2 size={11} className="text-orange-400" />}
                       {isSel && (
                         <div className="bg-[#f3a638] text-white rounded-full p-0.5 shadow-sm">
                           <CheckCircle2 size={13} strokeWidth={3} />
                         </div>
                       )}
-                      {!isSel && hasContract && applyMode === "monthly" && (
-                        <Lock size={11} className="text-gray-300" />
-                      )}
-                      {!isSel && hasContract && applyMode === "contract" && (
-                        <FileText size={11} className="text-gray-300" />
-                      )}
+                      {!isSel && hasContract && applyMode === "monthly" && <Calendar size={11} className="text-gray-300" />}
+                      {!isSel && hasContract && applyMode === "contract" && <FileText size={11} className="text-gray-300" />}
                     </div>
                   </div>
 
-                  <p className="text-xl font-black text-gray-800 leading-none mb-2">
-                    {room.roomNumber}
-                  </p>
+                  {/* ✨ หมายเลขห้อง และ ปุ่มดินสอ ย้ายมาอยู่ตรงนี้ (มุมขวาของเลขห้อง) */}
+                  <div className="w-full flex items-center justify-between mb-2">
+                    <p className="text-xl font-black text-gray-800 leading-none">
+                      {room.roomNumber}
+                    </p>
+                    {applyMode !== "monthly" && !isDisabledByMode && (
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenNoteDrawer({ room, type: applyMode });
+                        }}
+                        className="p-1.5 rounded-full bg-white border border-gray-200 text-gray-400 hover:text-purple-600 hover:bg-purple-50 hover:border-purple-300 transition-all shadow-sm shrink-0 z-10"
+                        title={`แก้ไขรายการใน ${applyMode === "contract" ? "สัญญา" : "ห้อง"}`}
+                      >
+                        <Pencil size={10} strokeWidth={2.5} />
+                      </div>
+                    )}
+                  </div>
 
-                  <div
-                    className={`w-full text-[11px] font-black px-2 py-1 rounded-xl text-center mb-1
-                  ${room.monthlyRent ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-400"}`}
+                  <div className={`w-full text-[11px] font-black px-2 py-1.5 rounded-xl text-center mb-1.5
+                    ${displayRent ? "bg-orange-50 text-orange-700 border border-orange-100" : "bg-gray-50 text-gray-400 border border-gray-100"}`}
                   >
-                    {room.monthlyRent
-                      ? `${Number(room.monthlyRent).toLocaleString()} ฿/เดือน`
-                      : !hasContract
+                    {displayRent
+                      ? `${Number(displayRent).toLocaleString()} ฿/เดือน`
+                      : (applyMode === "contract" && !hasContract)
                         ? "ไม่มีสัญญา"
                         : "ยังไม่กำหนด"}
                   </div>
 
+                  {/* ✨ Service & Discount Pills (เอาปุ่มดินสอจากตรงนี้ออกแล้ว) */}
                   {(showService || showDiscount) && (
                     <div className="w-full flex gap-1 mt-auto">
                       {showService && (
-                        <div className="flex-1 text-[10px] font-black px-1.5 py-1 rounded-lg text-center bg-blue-100 text-blue-700">
-                          +{(billService + noteService).toLocaleString()}฿
-                          {noteService > 0 && billService === 0 && (
-                            <span className="opacity-60"> 📌</span>
-                          )}
+                        <div className="flex-1 text-[10px] font-black px-1.5 py-1.5 rounded-lg text-center bg-blue-50 text-blue-700 border border-blue-100 truncate">
+                          +{displayService.toLocaleString()}฿
+                          {hasPinService && <span className="opacity-60 ml-0.5">📌</span>}
                         </div>
                       )}
                       {showDiscount && (
-                        <div className="flex-1 text-[10px] font-black px-1.5 py-1 rounded-lg text-center bg-emerald-100 text-emerald-700">
-                          -{(billDiscount + noteDiscount).toLocaleString()}฿
-                          {noteDiscount > 0 && billDiscount === 0 && (
-                            <span className="opacity-60"> 📌</span>
-                          )}
+                        <div className="flex-1 text-[10px] font-black px-1.5 py-1.5 rounded-lg text-center bg-emerald-50 text-emerald-700 border border-emerald-100 truncate">
+                          -{displayDiscount.toLocaleString()}฿
+                          {hasPinDiscount && <span className="opacity-60 ml-0.5">📌</span>}
                         </div>
                       )}
                     </div>
                   )}
-
-                  <div className="w-full mt-1 space-y-1">
-                    {showRoomNote && (
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenNoteDrawer({ room, type: "room" });
-                        }}
-                        className="w-full text-[10px] font-bold px-2 py-1 rounded-xl text-center bg-amber-50 text-amber-600 border border-amber-200 truncate hover:bg-amber-100 transition-colors"
-                        title="แก้ไข Note ห้อง"
-                      >
-                        🏢 {room._roomNoteTags}{" "}
-                        <Pencil size={9} className="inline ml-0.5 opacity-50" />
-                      </div>
-                    )}
-                    {showContractNote && (
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenNoteDrawer({ room, type: "contract" });
-                        }}
-                        className="w-full text-[10px] font-bold px-2 py-1 rounded-xl text-center bg-purple-50 text-purple-600 border border-purple-200 truncate hover:bg-purple-100 transition-colors"
-                        title="แก้ไข Note สัญญา"
-                      >
-                        📝 {room._contractNoteTags}{" "}
-                        <Pencil size={9} className="inline ml-0.5 opacity-50" />
-                      </div>
-                    )}
-                  </div>
                 </button>
               );
             })}
@@ -1005,7 +928,7 @@ const LazyFloor = React.memo(
         )}
       </div>
     );
-  },
+  }
 );
 
 /* ══════════════════════════════════════════════════════════════ */
@@ -1037,53 +960,97 @@ const UtilitySetting = () => {
   const curMonth = now.getMonth() + 1;
   const currentMonthLabel = thaiMonth(curYear, curMonth);
 
-   const handleSetMaintenance = async () => {
-  console.log("ยืนยันแล้ว! รายชื่อห้องที่เลือก:", selectedRoomObjects); 
+  const handleSetMaintenance = async () => {
+    console.log("ยืนยันแล้ว! รายชื่อห้องที่เลือก:", selectedRoomObjects); 
 
-  if (selectedRoomObjects.length === 0) {
-    alert("ยังไม่ได้เลือกห้อง!");
-    return;
-  }
-
-  setIsSaving(true);
-  let ok = 0, fail = 0;
-  
-  try {
-    for (const room of selectedRoomObjects) {
-      try {
-        console.log(`กำลังอัปเดตห้อง: ${room.roomNumber}`);
-        await roomService.updateRoom(room.roomId, {
-          id: room.roomId,
-          number: String(room.roomNumber),
-          building: room.roomBuilding || "",
-          floor: String(room.roomFloor || "1"),
-          status: "close", // ตรวจสอบคำ
-          note: room.roomNote ?? room.note ?? room.Note ?? ""
-        });
-        ok++;
-      } catch (e) {
-        console.error(`❌ Error อัปเดตห้อง ${room.roomNumber}:`, e);
-        fail++;
-      }
+    if (selectedRoomObjects.length === 0) {
+      alert("ยังไม่ได้เลือกห้อง!");
+      return;
     }
-    
-    showToast(
-      fail === 0 ? `ตั้งค่าปิดปรับปรุงสำเร็จ ${ok} ห้อง` : `สำเร็จ ${ok} / ล้มเหลว ${fail}`,
-      fail === 0 ? "success" : "error"
-    );
-    
-    setModal(null); 
-    setSelectedIds(new Set()); 
-    await fetchData(); 
-    
-  } catch (error) {
-    console.error("❌ เกิดข้อผิดพลาดหลัก:", error);
-  } finally {
-    setIsSaving(false);
-  }
-};
 
-  /* ── fetch ────────────────────────────────────────────────── */
+    setIsSaving(true);
+    let ok = 0, fail = 0;
+    
+    try {
+      for (const room of selectedRoomObjects) {
+        try {
+          console.log(`กำลังอัปเดตห้อง: ${room.roomNumber}`);
+          await roomService.updateRoom(room.roomId, {
+            id: room.roomId,
+            number: String(room.roomNumber),
+            building: room.roomBuilding || "",
+            floor: String(room.roomFloor || "1"),
+            status: "close", 
+            note: room.roomNote ?? room.note ?? room.Note ?? ""
+          });
+          ok++;
+        } catch (e) {
+          console.error(`❌ Error อัปเดตห้อง ${room.roomNumber}:`, e);
+          fail++;
+        }
+      }
+      
+      showToast(
+        fail === 0 ? `ตั้งค่าปิดปรับปรุงสำเร็จ ${ok} ห้อง` : `สำเร็จ ${ok} / ล้มเหลว ${fail}`,
+        fail === 0 ? "success" : "error"
+      );
+      
+      setModal(null); 
+      setSelectedIds(new Set()); 
+      await fetchData(); 
+      
+    } catch (error) {
+      console.error("❌ เกิดข้อผิดพลาดหลัก:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // ✨ แยกฟังก์ชัน handleSetAvailable ออกมาไว้ด้านนอกตรงนี้
+  const handleSetAvailable = async () => {
+    if (selectedRoomObjects.length === 0) {
+      alert("ยังไม่ได้เลือกห้อง!");
+      return;
+    }
+
+    setIsSaving(true);
+    let ok = 0, fail = 0;
+    
+    try {
+      for (const room of selectedRoomObjects) {
+        try {
+          await roomService.updateRoom(room.roomId, {
+            id: room.roomId,
+            number: String(room.roomNumber),
+            building: room.roomBuilding || "",
+            floor: String(room.roomFloor || "1"),
+            status: "available", // ✨ เปลี่ยนกลับเป็น available
+            note: room.roomNote ?? room.note ?? room.Note ?? ""
+          });
+          ok++;
+        } catch (e) {
+          console.error(`❌ Error อัปเดตห้อง ${room.roomNumber}:`, e);
+          fail++;
+        }
+      }
+      
+      showToast(
+        fail === 0 ? `เปิดใช้งานห้องสำเร็จ ${ok} ห้อง` : `สำเร็จ ${ok} / ล้มเหลว ${fail}`,
+        fail === 0 ? "success" : "error"
+      );
+      
+      setModal(null); 
+      setSelectedIds(new Set()); 
+      await fetchData(); 
+      
+    } catch (error) {
+      console.error("❌ เกิดข้อผิดพลาดหลัก:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+/* ── fetch ────────────────────────────────────────────────── */
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -1106,8 +1073,7 @@ const UtilitySetting = () => {
         }
       });
 
-      let addByContract = {},
-        discByContract = {};
+      let addByContract = {}, discByContract = {};
       try {
         const monthPay = extractArray(
           await paymentService
@@ -1134,49 +1100,38 @@ const UtilitySetting = () => {
           ? (contract.note ?? contract.Note ?? "")
           : "";
 
-        const rentFromNote =
-          parseRentFromRoomNote(rawRoomNote) ||
-          parseRentFromRoomNote(rawContractNote);
+        // ✨ แยกค่าเช่าห้อง และ ค่าเช่าสัญญา ออกจากกันชัดเจน
+        const rentFromRoom = parseRentFromRoomNote(rawRoomNote);
+        const rentFromContract = contract ? Number(contract.monthlyRent || contract.MonthlyRent) : null;
+
         const rServiceStr = parseServiceFromRoomNote(rawRoomNote);
         const cServiceStr = parseServiceFromRoomNote(rawContractNote);
         const rDiscountStr = parseDiscountFromRoomNote(rawRoomNote);
         const cDiscountStr = parseDiscountFromRoomNote(rawContractNote);
-
-        const roomTagsMatch = rawRoomNote.match(/\{[^}]+\}/g) || [];
-        const contractTagsMatch = rawContractNote.match(/\{[^}]+\}/g) || [];
 
         return {
           ...room,
           roomId: rId,
           _contractId: cId,
           _contract: contract ?? null,
-          monthlyRent: contract
-            ? Number(contract.monthlyRent || contract.MonthlyRent) ||
-              rentFromNote ||
-              null
-            : rentFromNote || null,
+          
+          _roomRent: rentFromRoom,
+          _contractRent: rentFromContract,
+
           _additionalCost: cId ? (addByContract[cId]?.amount ?? 0) : 0,
           _discountCost: cId ? (discByContract[cId]?.amount ?? 0) : 0,
 
-          // แยกตัวแปรคำนวณยอดเงินของ Room และ Contract ออกจากกัน
           _rNoteServiceAmt: sumFromNoteStr(rServiceStr),
           _cNoteServiceAmt: sumFromNoteStr(cServiceStr),
           _rNoteDiscountAmt: sumFromNoteStr(rDiscountStr),
           _cNoteDiscountAmt: sumFromNoteStr(cDiscountStr),
-
-          _roomNoteTags:
-            roomTagsMatch.length > 0 ? roomTagsMatch.join(" ") : null,
-          _contractNoteTags:
-            contractTagsMatch.length > 0 ? contractTagsMatch.join(" ") : null,
         };
       });
 
       setRoomsData(enriched);
 
       const filtered = allConst
-        .filter(
-          (c) => !["utility", "penalty"].includes(c.category?.toLowerCase()),
-        )
+        .filter((c) => !["utility", "penalty"].includes(c.category?.toLowerCase()))
         .sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0))
         .slice(0, 4)
         .map((c) => ({ name: c.subject, amount: Number(c.cost) }));
@@ -1256,52 +1211,54 @@ const UtilitySetting = () => {
     [roomsByFloor, applyMode],
   );
 
-  const clearAll = () => setSelectedIds(new Set());
-
-  const selectOccupied = () =>
+const selectOccupied = () =>
     setSelectedIds(
       new Set(
         filteredRooms
           .filter(
             (r) =>
               (applyMode === "room" || !!r._contractId) &&
-              (r.roomStatus || "").toLowerCase() === "occupied",
+              (r.roomStatus || "").toLowerCase() === "occupied"
           )
-          .map((r) => r.roomId),
-      ),
+          .map((r) => r.roomId)
+      )
     );
+
   const selectAllVisible = () =>
     setSelectedIds(
       new Set(
         filteredRooms
           .filter((r) => applyMode === "room" || !!r._contractId)
-          .map((r) => r.roomId),
-      ),
+          .map((r) => r.roomId)
+      )
     );
+
+  const clearAll = () => setSelectedIds(new Set());
 
   const selectedRoomObjects = useMemo(
     () => roomsData.filter((r) => selectedIds.has(r.roomId)),
-    [roomsData, selectedIds],
+    [roomsData, selectedIds]
   );
+
   const servicePresets = useMemo(
-    () =>
-      [
-        ...usedServiceItems.slice(-4).reverse(),
-        ...recentConstants.filter(
-          (c) => !usedServiceItems.some((u) => u.name === c.name),
-        ),
-      ].slice(0, 4),
-    [usedServiceItems, recentConstants],
+    () => [
+      ...usedServiceItems.slice(-4).reverse(),
+      ...recentConstants.filter(
+        (c) => !usedServiceItems.some((u) => u.name === c.name)
+      ),
+    ].slice(0, 4),
+    [usedServiceItems, recentConstants]
   );
+
   const discountPresets = useMemo(
     () => usedDiscountItems.slice(-4).reverse(),
-    [usedDiscountItems],
+    [usedDiscountItems]
   );
 
   const handleSaveRent = async () => {
     setIsSaving(true);
-    let ok = 0,
-      fail = 0;
+    let ok = 0, fail = 0;
+    
     try {
       for (const room of selectedRoomObjects) {
         try {
@@ -1312,6 +1269,7 @@ const UtilitySetting = () => {
               `${cleaned} {ค่าเช่า: ${Number(rentValue).toLocaleString()}฿}`
                 .trim()
                 .substring(0, 300);
+
             await roomService.updateRoom(room.roomId, {
               id: room.roomId,
               number: String(room.roomNumber),
@@ -1320,6 +1278,7 @@ const UtilitySetting = () => {
               status: room.roomStatus || "available",
               note: newNote,
             });
+
             if (room._contractId && room._contract) {
               const c = room._contract;
               await contractService.putContract(room._contractId, {
@@ -1361,7 +1320,7 @@ const UtilitySetting = () => {
         fail === 0
           ? `อัปเดตค่าเช่า ${ok} ห้อง`
           : `สำเร็จ ${ok} / ล้มเหลว ${fail}`,
-        fail === 0 ? "success" : "error",
+        fail === 0 ? "success" : "error"
       );
       setModal(null);
       setSelectedIds(new Set());
@@ -1658,26 +1617,52 @@ const UtilitySetting = () => {
         </button>
         <button
           onClick={() => setModal("maintenance")}
-          className="flex-1 py-2.5 rounded-xl bg-gray-300 hover:bg-gray-400 text-black font-black text-xs transition-all flex items-center justify-center gap-1.5"
+          className="flex-1 py-2.5 rounded-xl bg-gray-500 hover:bg-gray-600 text-white font-black text-xs transition-all flex items-center justify-center gap-1.5"
         >
-          ห้องปิดปรับปรุง
+          <Wrench size={13} /> ปิดปรับปรุง
         </button>
 
+        {/* ✨ เพิ่มปุ่มยกเลิกสถานะปิดปรับปรุง */}
+        <button
+          onClick={() => setModal("available")}
+          className="flex-1 py-2.5 rounded-xl bg-blue-100 hover:bg-blue-200 text-blue-700 font-black text-xs transition-all flex items-center justify-center gap-1.5"
+        >
+          เปิดใช้งานห้อง
+        </button>
+
+        {/* Modal สำหรับตั้งค่า ปิดปรับปรุง */}
         <ConfirmModal1
-        isOpen={modal === "maintenance"}
-        onClose={() => setModal(null)}
-        onConfirm={handleSetMaintenance}
-        title="ยืนยันการปิดปรับปรุงห้อง"
-        description={
-          selectedRoomObjects.length > 5 
-            ? `คุณต้องการตั้งค่าห้องพักจำนวน ${selectedRoomObjects.length} ห้อง ให้เป็นสถานะ "ปิดปรับปรุง"?`
-            : `คุณต้องการเปลี่ยนสถานะห้อง ${selectedRoomObjects.map(r => r.roomNumber).join(", ")} เป็น "ปิดปรับปรุง"?`
-        }
-        confirmText={isSaving ? "กำลังดำเนินการ..." : "ยืนยัน"}
-        cancelText="ยกเลิก"
-        variant="warning"
-        icon={Wrench} 
-      />
+          isOpen={modal === "maintenance"}
+          onClose={() => setModal(null)}
+          onConfirm={handleSetMaintenance}
+          title="ยืนยันการปิดปรับปรุงห้อง"
+          description={
+            selectedRoomObjects.length > 5 
+              ? `คุณต้องการตั้งค่าห้องพักจำนวน ${selectedRoomObjects.length} ห้อง ให้เป็นสถานะ "ปิดปรับปรุง" (Maintenance)?`
+              : `คุณต้องการเปลี่ยนสถานะห้อง ${selectedRoomObjects.map(r => r.roomNumber).join(", ")} เป็น "ปิดปรับปรุง"?`
+          }
+          confirmText={isSaving ? "กำลังดำเนินการ..." : "ยืนยันการปิด"}
+          cancelText="ยกเลิก"
+          variant="warning"
+          icon={Wrench} 
+        />
+
+        {/* ✨ Modal สำหรับตั้งค่า เปิดใช้งาน (กลับมาเป็นว่าง) */}
+        <ConfirmModal1
+          isOpen={modal === "available"}
+          onClose={() => setModal(null)}
+          onConfirm={handleSetAvailable}
+          title="ยืนยันเปิดใช้งานห้องพัก"
+          description={
+            selectedRoomObjects.length > 5 
+              ? `คุณต้องการเปลี่ยนสถานะห้องจำนวน ${selectedRoomObjects.length} ห้อง กลับมาเป็นสถานะ "ว่าง" (Available)?`
+              : `คุณต้องการเปลี่ยนสถานะห้อง ${selectedRoomObjects.map(r => r.roomNumber).join(", ")} กลับมาเป็นสถานะ "ว่าง" ใช่หรือไม่?`
+          }
+          confirmText={isSaving ? "กำลังดำเนินการ..." : "ยืนยันเปิดห้อง"}
+          cancelText="ยกเลิก"
+          variant="success"
+          icon={CheckCircle2} 
+        />
 
         {selectedIds.size > 0 && (
           <button

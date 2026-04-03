@@ -349,6 +349,12 @@ const Rooms = () => {
             room.status ||
             "available"
           ).toLowerCase();
+
+          // ✨ เพิ่มเงื่อนไขนี้เข้าไป: ถ้าสถานะเป็นยกเลิก หรือ สิ้นสุดสัญญา ให้จับรวบเป็นห้องว่างไปเลย
+          if (["cancle", "cancel", "terminated"].includes(finalStatus)) {
+            finalStatus = "available";
+          }
+
           if (currentMonthPay === "paid") {
             finalStatus = "occupied";
           } else if (currentMonthPay === "unpaid" || overdueCount > 0) {
@@ -379,10 +385,12 @@ const Rooms = () => {
 
           return {
             ...room,
+            // ✨ คลีนชื่อลูกค้าทิ้งถ้าสถานะถูกแปลงเป็นห้องว่างหรือปิดปรับปรุง
+            tenantFirstName: ["available", "maintenance"].includes(finalStatus) ? "" : room.tenantFirstName, 
             floor: String(room.roomFloor || room.floor),
             building: room.roomBuilding || room.building,
-            contractEndDate: rawEndDate || null, // ✅ เก็บไว้ให้ banner ใช้
-            status: finalStatus,
+            contractEndDate: rawEndDate || null,
+            status: finalStatus, // ค่านี้จะเป็น available แล้ว
             overdueCount,
             isContractExpired,
             isContractUrgent,
