@@ -1,13 +1,32 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { 
-  FilePlus, ChevronDown, Bell, Package, User, Phone, MessageSquare, 
-  Calendar, CreditCard, FileText, Plus, Trash2, ExternalLink, UserX, 
-  Edit3, AlertCircle, ShieldCheck, Car, Info, Mail, MapPin, HeartPulse, 
-  UserPlus 
+import {
+  FilePlus,
+  ChevronDown,
+  Bell,
+  Package,
+  User,
+  Phone,
+  MessageSquare,
+  Calendar,
+  CreditCard,
+  FileText,
+  Plus,
+  Trash2,
+  ExternalLink,
+  UserX,
+  Edit3,
+  AlertCircle,
+  ShieldCheck,
+  Car,
+  Info,
+  Mail,
+  MapPin,
+  HeartPulse,
+  UserPlus,
 } from "lucide-react";
 
-import { OrangeButton} from "../components/ActionButtons";
+import { OrangeButton } from "../components/ActionButtons";
 import RoomHeader from "../components/RoomHeader";
 import TenantInfoModal from "../components/TenantInfoModal";
 import { toThaiDate } from "../components/DateController";
@@ -17,10 +36,10 @@ import ContractAlertBanner from "../components/ContractAlertBanner";
 import { roomService } from "../api/RoomApi";
 import { contractService } from "../api/ContractApi";
 import { tenantService } from "../api/TenantApi";
-import { requestService } from "../api/RequestApi"; 
+import { requestService } from "../api/RequestApi";
 import { parcelService } from "../api/ParcelApi";
 
-// Helper function ช่วยสกัด Array จาก API 
+// Helper function ช่วยสกัด Array จาก API
 const extractArray = (res) => {
   if (!res) return [];
   if (Array.isArray(res)) return res;
@@ -28,6 +47,13 @@ const extractArray = (res) => {
   if (res.data && Array.isArray(res.data)) return res.data;
   if (res.data?.$values) return res.data.$values;
   return [];
+};
+
+const requestTypeMap = {
+  fix: "แจ้งซ่อม",
+  clean: "ทำความสะอาด",
+  leave: "แจ้งย้ายออก",
+  other: "อื่นๆ",
 };
 
 const RoomDetail = () => {
@@ -41,89 +67,114 @@ const RoomDetail = () => {
     setIsLoading(true);
     try {
       const allRooms = extractArray(await roomService.getRoomOverview());
-      const targetRoom = allRooms.find(r => String(r.roomNumber) === String(roomNumber));
-      
+      const targetRoom = allRooms.find(
+        (r) => String(r.roomNumber) === String(roomNumber),
+      );
+
       if (!targetRoom) {
         setTenant(null);
         setIsLoading(false);
         return;
       }
-      
+
       const actualRoomId = targetRoom.roomId || targetRoom.id;
 
-      const allContracts = extractArray(await contractService.getAllContracts());
+      const allContracts = extractArray(
+        await contractService.getAllContracts(),
+      );
       const relevantContracts = allContracts.filter(
-        c => c.roomId === actualRoomId && (c.status === "Active" || c.status === "Expired")
+        (c) =>
+          c.roomId === actualRoomId &&
+          (c.status === "Active" || c.status === "Expired"),
       );
 
       if (relevantContracts.length > 0) {
-        let latestContract = relevantContracts.find(c => c.status === "Active");
-        
+        let latestContract = relevantContracts.find(
+          (c) => c.status === "Active",
+        );
+
         if (!latestContract) {
-          const expiredContracts = relevantContracts.filter(c => c.status === "Expired");
-          expiredContracts.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+          const expiredContracts = relevantContracts.filter(
+            (c) => c.status === "Expired",
+          );
+          expiredContracts.sort(
+            (a, b) => new Date(b.startDate) - new Date(a.startDate),
+          );
           latestContract = expiredContracts[0];
         }
 
         const today = new Date();
-        today.setHours(0, 0, 0, 0); 
-        const endDate = latestContract.endDate ? new Date(latestContract.endDate) : null;
-        
+        today.setHours(0, 0, 0, 0);
+        const endDate = latestContract.endDate
+          ? new Date(latestContract.endDate)
+          : null;
+
         let daysLeft = null;
-        let isContractUrgent = false; 
-        let isContractExpired = false; 
+        let isContractUrgent = false;
+        let isContractExpired = false;
 
         if (endDate) {
-            endDate.setHours(0, 0, 0, 0);
-            const diffTime = endDate - today;
-            daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          endDate.setHours(0, 0, 0, 0);
+          const diffTime = endDate - today;
+          daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-            if (daysLeft <= 0) {
-                isContractExpired = true;
-            } else if (daysLeft <= 30) {
-                isContractUrgent = true;
-            }
+          if (daysLeft <= 0) {
+            isContractExpired = true;
+          } else if (daysLeft <= 30) {
+            isContractUrgent = true;
+          }
         }
 
         const t = await tenantService.getTenant(latestContract.tenantId);
-        
+
         const tenantRoomContracts = relevantContracts
-          .filter(c => c.tenantId === latestContract.tenantId)
-          .sort((a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0));
+          .filter((c) => c.tenantId === latestContract.tenantId)
+          .sort(
+            (a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0),
+          );
 
         const mappedDocuments = tenantRoomContracts.map((c, index) => {
-            const startDateStr = c.startDate ? c.startDate.split('T')[0] : "-";
-            return {
-              id: `contract_${c.id || c.Id}`,
-              name: index === 0 ? `สัญญาเช่า (ฉบับปัจจุบัน)` : `สัญญาเช่า (ฉบับเก่า ${toThaiDate(startDateStr)})`,
-              date: startDateStr,
-              type: "contract",
-              refId: c.id || c.Id,
-              isCurrent: index === 0 
-            };
+          const startDateStr = c.startDate ? c.startDate.split("T")[0] : "-";
+          return {
+            id: `contract_${c.id || c.Id}`,
+            name:
+              index === 0
+                ? `สัญญาเช่า (ฉบับปัจจุบัน)`
+                : `สัญญาเช่า (ฉบับเก่า ${toThaiDate(startDateStr)})`,
+            date: startDateStr,
+            type: "contract",
+            refId: c.id || c.Id,
+            isCurrent: index === 0,
+          };
         });
 
         let hasPendingReq = false;
         let pendingReqData = null;
         try {
           const allRequests = extractArray(await requestService.getRequests());
-          const pendingRequests = allRequests.filter(req => 
-            String(req.roomNumber) === String(roomNumber) && req.status === "pending"
+          const pendingRequests = allRequests.filter(
+            (req) =>
+              String(req.roomNumber) === String(roomNumber) &&
+              req.status === "pending",
           );
           if (pendingRequests.length > 0) {
             hasPendingReq = true;
             pendingReqData = pendingRequests[0];
           }
-        } catch (err) { console.error(err); }
+        } catch (err) {
+          console.error(err);
+        }
 
         let pendingParcelsCount = 0;
         try {
-          const allParcels = extractArray(await parcelService.getParcels()); 
-          const uncollected = allParcels.filter(p => 
-            String(p.roomNumber) === String(roomNumber) && !p.pickupDate
+          const allParcels = extractArray(await parcelService.getParcels());
+          const uncollected = allParcels.filter(
+            (p) => String(p.roomNumber) === String(roomNumber) && !p.pickupDate,
           );
           pendingParcelsCount = uncollected.length;
-        } catch (err) { console.error(err); }
+        } catch (err) {
+          console.error(err);
+        }
 
         // ✨ อุดรอยรั่ว Uncontrolled Input โดยบังคับให้ค่าที่ null กลายเป็น "" เสมอ
         setTenant({
@@ -135,7 +186,10 @@ const RoomDetail = () => {
           nickName: t.nickName ?? t.NickName ?? "",
           phone: t.phone ?? t.Phone ?? "",
           address: t.address ?? t.Address ?? "",
-          birthDate: t.birthDate || t.BirthDate ? (t.birthDate || t.BirthDate).split('T')[0] : "",
+          birthDate:
+            t.birthDate || t.BirthDate
+              ? (t.birthDate || t.BirthDate).split("T")[0]
+              : "",
           lineId: t.lineId ?? t.LineId ?? "",
           email: t.email ?? t.Email ?? "",
           note: t.note ?? t.Note ?? "",
@@ -149,23 +203,31 @@ const RoomDetail = () => {
           keyCard1: t.keyCard1 ?? t.KeyCard1 ?? "",
           keyCard2: t.keyCard2 ?? t.KeyCard2 ?? "",
           keyCard3: t.keyCard3 ?? t.KeyCard3 ?? "",
-          isLaundryService: Boolean(t.isLaundryService ?? t.IsLaundryService ?? false),
-          internetDeviceCount: Number(t.internetDeviceCount ?? t.InternetDeviceCount ?? 0),
-          
+          isLaundryService: Boolean(
+            t.isLaundryService ?? t.IsLaundryService ?? false,
+          ),
+          internetDeviceCount: Number(
+            t.internetDeviceCount ?? t.InternetDeviceCount ?? 0,
+          ),
+
           contractStatus: latestContract.status,
-          checkInDate: latestContract.startDate ? latestContract.startDate.split('T')[0] : "-",
-          contractEndDate: latestContract.endDate ? latestContract.endDate.split('T')[0] : "-",
-          outstandingBalance: 0, 
+          checkInDate: latestContract.startDate
+            ? latestContract.startDate.split("T")[0]
+            : "-",
+          contractEndDate: latestContract.endDate
+            ? latestContract.endDate.split("T")[0]
+            : "-",
+          outstandingBalance: 0,
           documents: mappedDocuments,
-          hasPendingNotification: hasPendingReq, 
+          hasPendingNotification: hasPendingReq,
           pendingRequestData: pendingReqData,
-          pendingParcels: pendingParcelsCount, 
+          pendingParcels: pendingParcelsCount,
           isContractUrgent,
           isContractExpired,
           daysLeftUntilExpiry: daysLeft,
         });
       } else {
-        setTenant(null); 
+        setTenant(null);
       }
     } catch (error) {
       console.error("Error fetching room detail:", error);
@@ -185,35 +247,38 @@ const RoomDetail = () => {
       const base = originalTenantRes?.data ?? originalTenantRes;
 
       // แปลงค่าให้ชัวร์ว่าเป็นตัวเลข
-      let deviceCount = parseInt(updatedData.internetDeviceCount ?? updatedData.InternetDeviceCount, 10);
+      let deviceCount = parseInt(
+        updatedData.internetDeviceCount ?? updatedData.InternetDeviceCount,
+        10,
+      );
       if (isNaN(deviceCount)) deviceCount = 0;
 
       // ✨ สร้าง Payload ตรงๆ ไม่ใช้ ...base เพื่อป้องกันปัญหาคีย์ซ้ำตัวเล็ก-ใหญ่ (Case Sensitivity Conflict ใน C#)
       const payload = {
-        nin:                updatedData.nin || null,
-        title:              updatedData.title || null,
-        firstName:          updatedData.firstName || "",
-        lastName:           updatedData.lastName || null,
-        nickName:           updatedData.nickName || null,
-        phone:              updatedData.phone || "",
-        address:            updatedData.address || null,
-        birthDate:          updatedData.birthDate || null,
-        lineId:             updatedData.lineId || null,
-        email:              updatedData.email || null,
-        photo:              base.photo ?? base.Photo ?? null, // ดึง Photo เดิมมาใส่
-        altName:            updatedData.altName || null,
-        altPhone:           updatedData.altPhone || null,
-        altRelationship:    updatedData.altRelationship || null,
-        vehicleNum1:        updatedData.vehicleNum1 || null,
-        vehicleDetail1:     updatedData.vehicleDetail1 || null,
-        vehicleNum2:        updatedData.vehicleNum2 || null,
-        vehicleDetail2:     updatedData.vehicleDetail2 || null,
-        keyCard1:           updatedData.keyCard1 || null,
-        keyCard2:           updatedData.keyCard2 || null,
-        keyCard3:           updatedData.keyCard3 || null,
-        isLaundryService:   Boolean(updatedData.isLaundryService),
+        nin: updatedData.nin || null,
+        title: updatedData.title || null,
+        firstName: updatedData.firstName || "",
+        lastName: updatedData.lastName || null,
+        nickName: updatedData.nickName || null,
+        phone: updatedData.phone || "",
+        address: updatedData.address || null,
+        birthDate: updatedData.birthDate || null,
+        lineId: updatedData.lineId || null,
+        email: updatedData.email || null,
+        photo: base.photo ?? base.Photo ?? null, // ดึง Photo เดิมมาใส่
+        altName: updatedData.altName || null,
+        altPhone: updatedData.altPhone || null,
+        altRelationship: updatedData.altRelationship || null,
+        vehicleNum1: updatedData.vehicleNum1 || null,
+        vehicleDetail1: updatedData.vehicleDetail1 || null,
+        vehicleNum2: updatedData.vehicleNum2 || null,
+        vehicleDetail2: updatedData.vehicleDetail2 || null,
+        keyCard1: updatedData.keyCard1 || null,
+        keyCard2: updatedData.keyCard2 || null,
+        keyCard3: updatedData.keyCard3 || null,
+        isLaundryService: Boolean(updatedData.isLaundryService),
         internetDeviceCount: deviceCount,
-        note:               updatedData.note || null,
+        note: updatedData.note || null,
       };
 
       await tenantService.putTenant(tenant.id, payload);
@@ -242,7 +307,7 @@ const RoomDetail = () => {
           <div className="space-y-6 mt-2">
             <div className="flex flex-col gap-4 max-w-4xl mx-auto">
               {(tenant.isContractUrgent || tenant.isContractExpired) && (
-                <ContractAlertBanner 
+                <ContractAlertBanner
                   isExpired={tenant.isContractExpired}
                   daysLeft={tenant.daysLeftUntilExpiry}
                   onAction={() => navigate(`/rooms/contract/${roomNumber}`)}
@@ -264,28 +329,39 @@ const RoomDetail = () => {
 
                     <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-2xl md:bg-transparent p-3 md:p-0">
                       <div>
-                        <p className="text-[12px] font-black text-red-400">เรื่อง</p>
+                        <p className="text-[12px] font-black text-red-400">
+                          เรื่อง
+                        </p>
                         <p className="text-sm font-bold text-gray-700 truncate">
-                          {tenant.pendingRequestData.subject || "แจ้งซ่อม/บริการ"}
+                          {requestTypeMap[tenant.pendingRequestData.subject] ||
+                            "แจ้งซ่อม/บริการ"}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[12px] font-black text-red-400">วันที่แจ้ง</p>
+                        <p className="text-[12px] font-black text-red-400">
+                          วันที่แจ้ง
+                        </p>
                         <p className="text-sm font-bold text-gray-700">
-                          {toThaiDate(tenant.pendingRequestData.requestDate?.split('T')[0])}
+                          {toThaiDate(
+                            tenant.pendingRequestData.requestDate?.split(
+                              "T",
+                            )[0],
+                          )}
                         </p>
                       </div>
                       <div className="flex flex-col items-start justify-center">
-                        <p className="text-[12px] font-black text-red-400">สถานะ</p>
+                        <p className="text-[12px] font-black text-red-400">
+                          สถานะ
+                        </p>
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-white text-orange-600">
                           รอดำเนินการ
                         </span>
                       </div>
                     </div>
                     <button
-                      type="button" 
+                      type="button"
                       onClick={(e) => {
-                        e.stopPropagation(); 
+                        e.stopPropagation();
                         navigate(`/rooms/request/${roomNumber}`);
                       }}
                       className="w-full md:w-auto text-[#ea3720] font-black text-sm underline underline-offset-4 hover:text-red-700 transition-all shrink-0 cursor-pointer z-10"
@@ -297,22 +373,23 @@ const RoomDetail = () => {
               )}
 
               {tenant.pendingParcels > 0 && (
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-blue-50 border border-blue-100 rounded-[25px] md:rounded-3xl text-blue-600 shadow-sm transition-all">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-6 py-4 bg-blue-50 border border-blue-100 rounded-[25px] md:rounded-3xl text-blue-600 shadow-sm transition-all">
                   <div className="flex items-center gap-3 w-full md:w-auto">
                     <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shrink-0">
                       <Package size={28} />
                     </div>
                     <span className="font-bold text-sm md:text-base leading-tight">
-                      มีพัสดุที่ยังไม่ได้รับ จำนวน {tenant.pendingParcels} รายการ
+                      มีพัสดุที่ยังไม่ได้รับ จำนวน {tenant.pendingParcels}{" "}
+                      รายการ
                     </span>
                   </div>
 
                   <button
-                    type="button" 
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate(`/parcels?search=${roomNumber}`); 
-                    }}                    
+                      navigate(`/parcels?search=${roomNumber}`);
+                    }}
                     className="w-full md:w-auto text-[#485cf7] font-black text-sm underline underline-offset-4 hover:text-blue-700 transition-all shrink-0 cursor-pointer z-10"
                   >
                     แสดงเพิ่มเติม
@@ -412,7 +489,7 @@ const RoomDetail = () => {
                               </p>
                             </div>
                           </div>
-                          
+
                           <div className="text-gray-300 group-hover:text-[#f3a638] transition-colors pr-2">
                             <ExternalLink size={18} />
                           </div>
@@ -450,7 +527,9 @@ const RoomDetail = () => {
             <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-gray-400 mb-3 border border-dashed border-gray-300">
               <UserPlus size={48} />
             </div>
-            <h3 className="text-xl font-black text-gray-500 mb-3">ไม่มีข้อมูลผู้เช่า</h3>
+            <h3 className="text-xl font-black text-gray-500 mb-3">
+              ไม่มีข้อมูลผู้เช่า
+            </h3>
             {/* <OrangeButton
               label="เพิ่มผู้เช่าใหม่"
               icon={Plus}

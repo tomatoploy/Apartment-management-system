@@ -178,6 +178,16 @@ const parseNoteToItems = (rawNote, tagType, itemType, isNegative = false) => {
   return parsed;
 };
 
+const CONSTANT_LABELS = {
+  "Maintenance": "ค่าซ่อมบำรุง",
+  "Penalty": "ค่าปรับ",
+  "Internet": "ค่าอินเทอร์เน็ต",
+  "Laundry": "ค่าซักรีด",
+  "Parking": "ค่าที่จอดรถ",
+  "Keycard": "ค่าคีย์การ์ด",
+  "Furniture": "เฟอร์นิเจอร์",
+};
+
 const paymentToItems = (payment, selectedDate) => {
   const items = [];
   const month = toThaiMonth(selectedDate);
@@ -750,7 +760,7 @@ const BillDetail = ({
 
   const addConstantItem = (constant) => {
     const isProperty = constant.category?.toLowerCase() === 'property';
-    setItems((prev) => [...prev, { id: Date.now(), type: isProperty ? "asset" : "other", label: constant.subject || "รายการอื่น", amount: Number(constant.cost ?? 0), labels: {}, constantId: constant.id }]);
+    setItems((prev) => [...prev, { id: Date.now(), type: isProperty ? "asset" : "other", label: CONSTANT_LABELS[constant.subject] || constant.subject || "รายการอื่น", amount: Number(constant.cost ?? 0), labels: {}, constantId: constant.id }]);
     setShowConstantModal(false);
   };
 
@@ -1040,32 +1050,58 @@ const BillDetail = ({
   </div>
 )}
                 {isLoadingConst ? (
-                  <div className="py-12 flex items-center justify-center"><Loader2 className="w-8 h-8 text-orange-400 animate-spin" /></div>
-                ) : (
-                  Object.entries(groupedConstants).map(([category, catItems]) => {
-                    const style = CATEGORY_STYLE[category] ?? CATEGORY_STYLE.other;
-                    return (
-                      <div key={category}>
-                        <div className="flex items-center gap-2 mb-2 px-1"><span className={`text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-full ${style.badge} ${style.text}`}>{CATEGORY_LABEL[category] ?? category}</span></div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {catItems.map((constant) => (
-                            <button key={constant.id} onClick={() => addConstantItem(constant)} className={`flex items-center justify-between p-4 rounded-2xl border-2 border-transparent ${style.bg} hover:border-[#f3a638] hover:shadow-sm text-left group`}>
-                              <div className="flex-1 min-w-0"><p className={`font-bold text-sm ${style.text} truncate`}>{constant.subject || "ไม่ระบุชื่อ"}</p></div>
-                              <div className="ml-3 shrink-0 flex items-center gap-1"><span className="text-sm font-black text-gray-700">{Number(constant.cost ?? 0).toLocaleString()}</span><span className="text-xs text-gray-400 font-medium">฿</span><Plus size={16} className="text-gray-300 group-hover:text-[#f3a638] transition-colors ml-1" /></div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
+  <div className="py-12 flex items-center justify-center">
+    <Loader2 className="w-8 h-8 text-orange-400 animate-spin" />
+  </div>
+) : (
+  Object.entries(groupedConstants).map(([category, catItems]) => {
+    const style = CATEGORY_STYLE[category] ?? CATEGORY_STYLE.other;
+    return (
+      <div key={category}>
+        <div className="flex items-center gap-2 mb-2 px-1">
+          <span className={`text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-full ${style.badge} ${style.text}`}>
+            {CATEGORY_LABEL[category] ?? category}
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {catItems.map((constant) => (
+            <button 
+              key={constant.id} 
+              onClick={() => addConstantItem(constant)} 
+              className={`flex items-center justify-between p-4 rounded-2xl border-2 border-transparent ${style.bg} hover:border-[#f3a638] hover:shadow-sm text-left group`}
+            >
+              <div className="flex-1 min-w-0">
+                {/* ใช้ CONSTANT_LABELS เพื่อแปลงเป็นภาษาไทย */}
+                <p className={`font-bold text-sm ${style.text} truncate`} title={constant.subject}>
+                  {CONSTANT_LABELS[constant.subject] || constant.subject || "ไม่ระบุชื่อ"}
+                </p>
               </div>
-              <div className="mt-6 pt-4 border-t border-gray-100">
-                <button onClick={() => { addItem("other"); setShowConstantModal(false); }} className="w-full py-3 rounded-2xl border-2 border-dashed border-gray-200 text-gray-500 font-bold text-sm hover:border-[#f3a638] hover:text-[#f3a638] flex items-center justify-center gap-2"><Plus size={16} /> เพิ่มรายการกำหนดเอง</button>
+              <div className="ml-3 shrink-0 flex items-center gap-1">
+                <span className="text-sm font-black text-gray-700">
+                  {Number(constant.cost ?? 0).toLocaleString()}
+                </span>
+                <span className="text-xs text-gray-400 font-medium">฿</span>
+                <Plus size={16} className="text-gray-300 group-hover:text-[#f3a638] transition-colors ml-1" />
               </div>
-            </div>
-          </div>
-        )}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  })
+)}
+</div>
+<div className="mt-6 pt-4 border-t border-gray-100">
+  <button 
+    onClick={() => { addItem("other"); setShowConstantModal(false); }} 
+    className="w-full py-3 rounded-2xl border-2 border-dashed border-gray-200 text-gray-500 font-bold text-sm hover:border-[#f3a638] hover:text-[#f3a638] flex items-center justify-center gap-2"
+  >
+    <Plus size={16} /> เพิ่มรายการกำหนดเอง
+  </button>
+</div>
+</div>
+</div>
+)}
 
         {showPaymentModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => !isConfirmPay && setShowPaymentModal(false)}>

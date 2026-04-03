@@ -31,16 +31,18 @@ const ContractAlertBanner = ({ daysLeft, isExpired, onAction }) => {
             </p>
           </div>
         </div>
-        <OrangeButton
-          label="จัดการสัญญาเช่า"
-          //icon={ArrowRight}
-          onClick={onAction}
-          className={` ${
-            isExpired
-              ? ""
-              : "!bg-amber-500 hover:!brightness-95 !text-white"
-          }`}
-        />
+        <button
+  type="button"
+  onClick={onAction}
+  className={`w-full md:w-auto font-black text-sm underline underline-offset-4 transition-all shrink-0 cursor-pointer z-10 
+    ${
+      isExpired
+        ? "text-gray-400 hover:text-gray-600" // สไตล์เมื่อสัญญาหมดอายุ (ปรับสีให้ดูจางลง)
+        : "text-[#ea3720] hover:text-orange-700" // สไตล์ปกติสีส้มแดงตามที่คุณต้องการ
+    } ${isExpired ? "" : "active:opacity-80"}`}
+>
+  จัดการสัญญาเช่า
+</button>
       </div>
     </div>
   );
