@@ -92,7 +92,7 @@ const isInvalid = formData.oldMeterEnd === "" && formData.newMeterStart === "";
          <h2 className="text-xl font-bold text-gray-800">
            เปลี่ยน<span className="text-gray-800">{meterLabel}</span> ห้อง {room?.roomNumber}
          </h2>
-         <ExitButton onClick={onClose} />
+         <ExitButton onClick={onClose} className="absolute right-0"/>
        </div>
 
 
@@ -130,7 +130,7 @@ const isInvalid = formData.oldMeterEnd === "" && formData.newMeterStart === "";
          </div>
        </div>
 
-       {/* Footer Buttons */}
+      
        {/* Footer Buttons */}
         <div className="flex gap-4 h-12"> {/* ✅ กำหนดความสูง h-12 ให้ Container เพื่อล็อคความสูง */}
           
