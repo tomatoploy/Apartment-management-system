@@ -125,10 +125,14 @@ const CheckoutConfirmModal = ({
 }) => {
   const total = finalItems.reduce((s, i) => s + (Number(i.amount) || 0), 0);
   const depTotal = deposits.reduce((s, d) => s + (Number(d.amount) || 0), 0);
-  const net = mode === "absconded" ? 0 : depTotal - total;
-  const isRefund = net >= 0;
+  
+  const net = mode === "absconded" ? -total : depTotal - total;
+  const isRefund = net >= 0 && mode !== "absconded";
+  const [actualPaid, setActualPaid] = useState(mode === "absconded" ? 0 : Math.abs(net));
+  // const net = mode === "absconded" ? 0 : depTotal - total;
+  // const isRefund = net >= 0;
 
-  const [actualPaid, setActualPaid] = useState(Math.abs(net));
+  //const [actualPaid, setActualPaid] = useState(Math.abs(net));
 
   return (
     <div
@@ -1076,7 +1080,7 @@ const CheckoutManager = () => {
                 <EmptyState message="ไม่มีข้อมูลรายการทรัพย์สินพื้นฐานในระบบ" />
               )}
 
-              <div className=" p-2 bg-gray-50 rounded-2xl border border-gray-100 text-center">
+              <div className=" p-2 bg-gray-50 rounded-2xl border border-gray-100 text-center mt-6">
                 <p className="text-xs font-bold text-blue-400">
                   * หากมีรายการเสียหายอื่นที่ไม่อยู่ในรายการ
                   สามารถเพิ่มได้ในขั้นตอนถัดไป
