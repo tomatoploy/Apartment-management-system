@@ -1076,10 +1076,9 @@ const CheckoutManager = () => {
                 <EmptyState message="ไม่มีข้อมูลรายการทรัพย์สินพื้นฐานในระบบ" />
               )}
 
-              <div className=" p-2 bg-gray-50 rounded-2xl border border-gray-100 text-center">
+              <div className=" p-2 bg-gray-50 rounded-2xl border border-gray-100 text-center mt-6">
                 <p className="text-xs font-bold text-blue-400">
-                  * หากมีรายการเสียหายอื่นที่ไม่อยู่ในรายการ
-                  สามารถเพิ่มได้ในขั้นตอนถัดไป
+                  * หากมีรายการเสียหายอื่นที่ไม่อยู่ในรายการสามารถเพิ่มได้ในขั้นตอนถัดไป
                 </p>
               </div>
             </div>
