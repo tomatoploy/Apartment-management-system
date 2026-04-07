@@ -42,7 +42,7 @@ const InputField = ({
 const SelectField = ({ children, error, ...props }) => (
   <select
     {...props}
-    className={`w-full p-2.5 bg-white border rounded-xl outline-none transition-all text-sm cursor-pointer
+    className={`w-full py-2.5 bg-white border rounded-xl outline-none transition-all text-sm cursor-pointer
     focus:ring focus:ring-orange-400/30 
     ${error ? "border-red-500 bg-red-50" : "border-gray-400 focus:border-[#f3a638] hover:border-gray-500"}`}
   >
@@ -149,12 +149,11 @@ const Register = () => {
     <div className="min-h-screen w-full flex items-center justify-center bg-linear-to-br from-[#57a3de] via-[#e5b54f] to-[#d65d2c] p-4 font-kanit">
       <div className="bg-white/90 backdrop-blur-sm w-full max-w-125 rounded-[40px] p-10 shadow-2xl">
         <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">
-          ลงทะเบียน
+          ลงทะเบียนผู้ดูแลระบบ
         </h1>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
+          
               <FieldLabel required>คำนำหน้า</FieldLabel>
               <SelectField
                 name="prefix"
@@ -166,9 +165,9 @@ const Register = () => {
                 <option value="นาง">นาง</option>
                 <option value="นางสาว">นางสาว</option>
               </SelectField>
-            </div>
+            
 
-            <div>
+            
               <FieldLabel required>ชื่อจริง</FieldLabel>
               <InputField
                 name="firstName"
@@ -176,9 +175,7 @@ const Register = () => {
                 onChange={handleChange}
                 required
               />
-            </div>
-          </div>
-
+            
           <div>
             <FieldLabel required>นามสกุล</FieldLabel>
             <InputField

@@ -1156,15 +1156,11 @@ const Billing = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4 sm:mb-8">
-              <h3 className="text-xl sm:text-3xl font-black text-gray-800">
+              
+              <h3 className="text-xl sm:text-2xl font-black text-gray-800">
                 ตรวจสอบยอดรวมก่อนส่งบิล (LINE)
               </h3>
-              <button
-                onClick={() => setShowSummary(false)}
-                className="p-2 hover:bg-gray-100 rounded-full"
-              >
-                <X size={32} strokeWidth={3} />
-              </button>
+              <ExitButton onClick={() => setShowSummary(false)} />
             </div>
             <div className="overflow-y-auto rounded-3xl border-2 border-gray-100 mb-4 sm:mb-8">
               <table className="w-full text-left border-collapse min-w-[400px]">

@@ -778,6 +778,8 @@ const LazyFloor = React.memo(
     onToggle,
     onSelectFloor,
     onOpenNoteDrawer,
+    elecConstValue, 
+    waterConstValue,
   }) => {
     const ref = useRef(null);
     const [visible, setVisible] = useState(false);
@@ -928,7 +930,7 @@ const LazyFloor = React.memo(
                       >
                         <Zap size={10} fill="currentColor" />
                         {room._elecTag
-                          ? `ไฟ: ${room._elecTag}`
+                          ? `ไฟ: ${room._elecTag === "constant" || room._elecTag === "ค่ากำหนดจากส่วนกลาง" ? `ส่วนกลาง ${elecConstValue} ฿/หน่วย` : room._elecTag}`
                           : "ไฟ ยังไม่ได้ผูก"}
                       </div>
                       <div
@@ -937,7 +939,7 @@ const LazyFloor = React.memo(
                       >
                         <Droplets size={10} fill="currentColor" />
                         {room._waterTag
-                          ? `น้ำ: ${room._waterTag}`
+                          ? `น้ำ: ${room._waterTag === "constant" || room._waterTag === "ค่ากำหนดจากส่วนกลาง" ? `ส่วนกลาง ${waterConstValue} ฿/หน่วย` : room._waterTag}`
                           : "น้ำ ยังไม่ได้ผูก"}
                       </div>
                     </div>
@@ -1459,6 +1461,8 @@ const UtilityRateSetting = () => {
               onToggle={toggleRoom}
               onSelectFloor={selectFloor}
               onOpenNoteDrawer={setNoteDrawerRoom}
+              elecConstValue={elecConstValue}
+              waterConstValue={waterConstValue}
             />
           ))
         )}
