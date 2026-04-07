@@ -708,7 +708,7 @@ const LegendModal = ({ onClose }) => (
                 ใกล้ครบสัญญา
               </p>
               <p className="text-[12px] md:text-[14px] text-gray-500">
-                เหลือน้อยกว่า 30 วัน (badge ส้ม)
+                เหลือน้อยกว่า 30 วัน
               </p>
             </div>
           </div>
@@ -722,7 +722,7 @@ const LegendModal = ({ onClose }) => (
                 สัญญาหมดอายุแล้ว
               </p>
               <p className="text-[12px] md:text-[14px] text-gray-500">
-                เลยวันสิ้นสุดสัญญา (badge แดง)
+                เลยวันสิ้นสุดสัญญา
               </p>
             </div>
           </div>

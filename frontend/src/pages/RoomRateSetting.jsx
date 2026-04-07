@@ -1604,7 +1604,7 @@ const selectOccupied = () =>
               setSelectedIds(new Set());
             }}
             className={`flex-1 py-2.5 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5
-              ${applyMode === key ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              ${applyMode === key ? "bg-[#F5A623] text-white shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
           >
             {icon}
             {label}
