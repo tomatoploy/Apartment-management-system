@@ -110,6 +110,7 @@ const Request = () => {
         ...formData,
         cost: formData.cost ? Number(formData.cost) : null,
         appointmentDate: formData.appointmentDate || null,
+        subject: SUBJECT_REVERSE[formData.subject] ?? formData.subject,
       };
 
       await requestService.updateRequest(formData.id, payload);
@@ -152,17 +153,29 @@ const Request = () => {
   };
 
   // --- 5. Change Status (เปลี่ยนสถานะด่วน) ---
+  // แปลงกลับก่อนส่ง
+  const SUBJECT_REVERSE = {
+    "แจ้งซ่อม": "fix",
+    "ทำความสะอาด": "clean",
+    "แจ้งย้ายออก": "leave",
+    "อื่น ๆ": "other",
+  };
+
   const handleChangeStatus = async (id, newStatus) => {
     const targetReq = requests.find(r => r.id === id);
     if (!targetReq) return;
 
     try {
-      const payload = { ...targetReq, status: newStatus };
+      const payload = { 
+        ...targetReq, 
+        status: newStatus,
+        subject: SUBJECT_REVERSE[targetReq.subject] ?? targetReq.subject // ✅ แปลงกลับเป็นอังกฤษ
+      };
       setRequests(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
       await requestService.updateRequest(id, payload);
     } catch (err) {
       console.error("เปลี่ยนสถานะไม่สำเร็จ", err);
-      fetchRequests(); 
+      fetchRequests();
     }
   };
 
