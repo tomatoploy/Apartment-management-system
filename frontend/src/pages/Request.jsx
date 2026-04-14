@@ -207,9 +207,26 @@ const Request = () => {
     });
   }, [requests, searchTerm, activeStatusFilters, sortOrder]);
 
+const getSubjectKey = (sub) => {
+    if (!sub) return "other";
+    const s = sub.toString().trim();
+    if (["fix", "clean", "leave", "other"].includes(s)) return s;
+
+    const reverseMap = {
+      "แจ้งซ่อม": "fix",
+      "ทำความสะอาด": "clean",
+      "ย้ายออก": "leave",
+      "แจ้งย้ายออก": "leave",
+      "อื่นๆ": "other",
+      "อื่น ๆ": "other"
+    };
+    return reverseMap[s] || "other";
+  };
+
+  // ✨ นำฟังก์ชันมาครอบ req.subject ก่อนนำไปเทียบกับ activeSubject
   const listRequests = activeSubject === "all" 
     ? filteredAndSortedRequests 
-    : filteredAndSortedRequests.filter(req => req.subject === activeSubject);
+    : filteredAndSortedRequests.filter(req => getSubjectKey(req.subject) === activeSubject);
 
   const [isSubjectOpen, setIsSubjectOpen] = useState(false);
   const handleMenuClick = (path) => {
