@@ -13,7 +13,7 @@ const RequestItem = ({ req, onClick, onChangeStatus }) => {
   const [openStatus, setOpenStatus] = useState(false);
   const statusRef = useRef(null);
 
-  const subjectConfig = {
+const subjectConfig = {
     fix: {
       label: "แจ้งซ่อม",
       icon: <Wrench className="w-6 h-6 md:w-8 md:h-8" />,
@@ -34,6 +34,27 @@ const RequestItem = ({ req, onClick, onChangeStatus }) => {
       icon: <FileText className="w-6 h-6 md:w-8 md:h-8" />,
       color: "bg-[#FED7AA] text-[#9A3412]",
     },
+  };
+
+  // ✨ 1. เพิ่มฟังก์ชันแปลงค่า (ดักไว้ทั้งภาษาไทยและอังกฤษ ป้องกันเว้นวรรคผิด)
+  const getSubjectKey = (sub) => {
+    if (!sub) return "other";
+    const s = sub.toString().trim();
+    
+    // ถ้าเป็นอังกฤษอยู่แล้วให้ return ได้เลย
+    if (["fix", "clean", "leave", "other"].includes(s)) return s;
+
+    // ถ้าเป็นภาษาไทย ให้แปลงกลับเป็นอังกฤษ
+    const reverseMap = {
+      "แจ้งซ่อม": "fix",
+      "ทำความสะอาด": "clean",
+      "ย้ายออก": "leave",
+      "แจ้งย้ายออก": "leave", // ดักเผื่อไว้
+      "อื่นๆ": "other",
+      "อื่น ๆ": "other"     // ดักเผื่อกรณีมีเว้นวรรค
+    };
+    
+    return reverseMap[s] || "other";
   };
   // 3. เพิ่ม Logic สำหรับตรวจจับการคลิกข้างนอก เพื่อปิดcแถบ
   useEffect(() => {
@@ -69,8 +90,9 @@ const RequestItem = ({ req, onClick, onChangeStatus }) => {
       icon: <XCircle size={16} />,
     },
   };
-
-  const subject = subjectConfig[req.subject] || subjectConfig.other;
+  const subjectKey = getSubjectKey(req.subject);
+  const subject = subjectConfig[subjectKey] || subjectConfig.other;
+  
   const status = statusConfig[req.status] || statusConfig.pending;
 
   // ฟังก์ชันแปลงวันที่เป็นรูปแบบไทย
