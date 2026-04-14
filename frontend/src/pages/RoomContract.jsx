@@ -891,7 +891,7 @@ const RoomContract = () => {
     }
   };
 
-  const handleSave = async () => {
+const handleSave = async () => {
     try {
       let finalContractNote = formData.Note || "";
       finalContractNote = finalContractNote
@@ -926,13 +926,17 @@ const RoomContract = () => {
         });
       }
 
+      // ✨ แก้ไข 1: ดึงค่าและแปลงเป็นตัวเลขอย่างปลอดภัย (อนุญาตให้เป็นเลข 0 ได้)
+      const elecUnitVal = formData.initialElectricUnit !== "" && formData.initialElectricUnit !== null ? Number(formData.initialElectricUnit) : null;
+      const waterUnitVal = formData.initialWaterUnit !== "" && formData.initialWaterUnit !== null ? Number(formData.initialWaterUnit) : null;
+
       if (isRenewing) {
         if (contract) {
           await contractService.putContract(contract.id, {
             ...contract,
             status: "Expired",
-            finalElectricUnit: Number(formData.initialElectricUnit) || null,
-            finalWaterUnit: Number(formData.initialWaterUnit) || null,
+            finalElectricUnit: elecUnitVal, // ✨ ใช้ค่าตัวแปรใหม่ที่ดักเลข 0 ไว้แล้ว
+            finalWaterUnit: waterUnitVal,   // ✨ ใช้ค่าตัวแปรใหม่
           });
         }
         const newContractPayload = {
@@ -943,8 +947,8 @@ const RoomContract = () => {
           EndDate: formData.endDate || null,
           MonthlyRent: Number(formData.monthlyRent),
           Deposit: Number(formData.deposit),
-          InitialElectricUnit: Number(formData.initialElectricUnit) || null,
-          InitialWaterUnit: Number(formData.initialWaterUnit) || null,
+          InitialElectricUnit: elecUnitVal, // ✨ ใช้ค่าตัวแปรใหม่
+          InitialWaterUnit: waterUnitVal,   // ✨ ใช้ค่าตัวแปรใหม่
           Note: finalContractNote || null,
         };
         await contractService.postContract(newContractPayload);
@@ -953,8 +957,8 @@ const RoomContract = () => {
           {
             RoomId: roomId,
             RecordDate: today,
-            ElectricityUnit: Number(formData.initialElectricUnit),
-            WaterUnit: Number(formData.initialWaterUnit),
+            ElectricityUnit: elecUnitVal ?? 0, // ป้องกันการส่ง null ไปที่ Backend
+            WaterUnit: waterUnitVal ?? 0,      // ป้องกันการส่ง null ไปที่ Backend
             Note: "* เริ่มสัญญาใหม่ (ต่อสัญญา)",
           },
         ];
@@ -963,14 +967,14 @@ const RoomContract = () => {
           meterPayload,
           {
             headers: { "Content-Type": "application/json" },
-          },
+          }
         );
         showToast("ต่อสัญญาและบันทึกข้อมูลเรียบร้อยแล้ว!");
       } else {
+        // ✨ แก้ไข 2: เช็คการสร้างมิเตอร์ครั้งแรก ให้ทำงานแม้กรอกเลข 0 
         const isFirstTimeMeter =
-          (!contract?.initialElectricUnit &&
-            formData.initialElectricUnit > 0) ||
-          (!contract?.initialWaterUnit && formData.initialWaterUnit > 0);
+          (contract?.initialElectricUnit == null && elecUnitVal !== null) ||
+          (contract?.initialWaterUnit == null && waterUnitVal !== null);
 
         if (contract) {
           const updatedContract = {
@@ -980,8 +984,8 @@ const RoomContract = () => {
             endDate: formData.endDate || null,
             monthlyRent: Number(formData.monthlyRent),
             deposit: Number(formData.deposit),
-            initialElectricUnit: Number(formData.initialElectricUnit) || null,
-            initialWaterUnit: Number(formData.initialWaterUnit) || null,
+            initialElectricUnit: elecUnitVal, // ✨ ใช้ค่าตัวแปรใหม่
+            initialWaterUnit: waterUnitVal,   // ✨ ใช้ค่าตัวแปรใหม่
             Note: finalContractNote || null,
           };
           await contractService.putContract(contract.id, updatedContract);
@@ -993,8 +997,8 @@ const RoomContract = () => {
             {
               RoomId: roomId,
               RecordDate: today,
-              ElectricityUnit: Number(formData.initialElectricUnit),
-              WaterUnit: Number(formData.initialWaterUnit),
+              ElectricityUnit: elecUnitVal ?? 0,
+              WaterUnit: waterUnitVal ?? 0,
               Note: "* เริ่มสัญญาใหม่",
             },
           ];
@@ -1003,7 +1007,7 @@ const RoomContract = () => {
             meterPayload,
             {
               headers: { "Content-Type": "application/json" },
-            },
+            }
           );
         }
         showToast("บันทึกข้อมูลสัญญาสำเร็จ!");
