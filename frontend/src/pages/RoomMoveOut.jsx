@@ -1,23 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  ShieldCheck,
-  FileWarning,
-  Inbox,
-  ChevronDown,
-  Printer,
-  FileText,
-  Loader2,
-  X,
-  CheckCircle2,
-  AlertTriangle,
-  Edit3,
-  Download,
-  Send,
-  Banknote,
-  Zap,
-  Box,
-} from "lucide-react";
+import { ShieldCheck, FileWarning, Inbox, ChevronDown, Printer, FileText, Loader2, X, CheckCircle2, AlertTriangle, Edit3, Download, Send, Banknote, Zap, Box,} from "lucide-react";
 import RoomHeader from "../components/RoomHeader";
 import BillDetail from "./BillDetail";
 import { toThaiDate, toThaiMonth } from "../components/DateController";
@@ -27,6 +11,11 @@ import { contractService } from "../api/ContractApi";
 import { paymentService } from "../api/PaymentApi";
 import { roomService } from "../api/RoomApi";
 import { constantService } from "../api/ConstantApi";
+import { tenantService } from "../api/TenantApi";
+import { apartmentService } from "../api/ApartmentApi";
+import { adminService } from "../api/AdminApi";
+
+import MoveOutPrintTemplate from "../components/MoveOutPrintTemplate";
 
 /* ── constants & helpers ──────────────────────────────────────── */
 const extractArray = (res) => {
@@ -302,6 +291,9 @@ const CheckoutManager = () => {
   const [contractId, setContractId] = useState(null);
   const [propertyConstants, setPropertyConstants] = useState([]);
   const [roomInfo, setRoomInfo] = useState(null);
+  const [tenantData, setTenantData] = useState(null);
+  const [apartmentData, setApartmentData] = useState(null);
+  const [adminInfo, setAdminInfo] = useState(null);
 
   const [mode, setMode] = useState("normal");
   const [currentStep, setCurrentStep] = useState(1);
@@ -333,6 +325,18 @@ const CheckoutManager = () => {
         ],
       );
 
+            try {
+        const allApt = extractArray(await apartmentService.getAllApartment());
+        setApartmentData(allApt[0] || null);
+      } catch (e) { console.error("apartment load failed", e); }
+
+      try {
+        const currentAdminId = localStorage.getItem("adminId")
+          ? Number(localStorage.getItem("adminId")) : 1;
+        const adm = await adminService.getAdmin(currentAdminId);
+        setAdminInfo(adm);
+      } catch (e) { console.error("admin load failed", e); }
+
       const allRooms = extractArray(allRoomsRes);
       const targetRoom = allRooms.find(
         (r) => String(r.roomNumber) === String(roomNumber),
@@ -361,6 +365,16 @@ const CheckoutManager = () => {
 
       setContract(activeContract);
       setContractId(activeContract.id || activeContract.Id);
+
+      const tId = activeContract.tenantId || activeContract.TenantId;
+      if (tId) {
+        try {
+          const ten = await tenantService.getTenant(tId);
+          setTenantData(ten);
+        } catch (e) {
+          console.error("⚠️ ไม่สามารถดึงข้อมูลลูกค้าได้", e);
+        }
+      }
 
       const constants = extractArray(allConstantsRes);
       setPropertyConstants(
@@ -1255,7 +1269,14 @@ const CheckoutManager = () => {
                       : `ผู้เช่าต้องชำระเงินเพิ่ม ${Math.abs(netAmount).toLocaleString()} บาท`}
                 </div>
               </div>
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-2 px-6 py-3 bg-blue-50 text-blue-600 border border-blue-200 rounded-xl font-bold hover:bg-blue-100 transition-all text-sm shadow-sm"
+                >
+                  <Printer size={18} /> พิมพ์ใบสรุปการย้ายออก
+                </button>
+                
                 <OrangeButton
                   label={
                     mode === "absconded"
@@ -1280,6 +1301,46 @@ const CheckoutManager = () => {
           isConfirming={isConfirming}
         />
       )}
+      {/* 🌟 พื้นที่สำหรับพิมพ์ (ซ่อนตอนดูบนจอปกติ) */}
+      {createPortal(
+        <div id="printable-moveout-area" className="hidden print:block absolute inset-0 bg-white z-[9999]">
+        <MoveOutPrintTemplate
+          roomNumber={roomNumber}
+          tenantInfo={tenantData || {}}
+          apartmentInfo={apartmentData}
+          adminName={
+            adminInfo 
+              ? `${adminInfo.firstName} ${adminInfo.lastName}` 
+              : "ผู้ดูแลระบบ"
+          }
+          moveOutDate={new Date().toISOString()}
+          mode={mode}
+          items={editedBillItems}
+          deposits={deposits}
+          netAmount={netAmount}
+          isRefund={isRefund}
+        />
+        </div>,
+        document.body
+      )}
+
+      {/* 🌟 CSS ควบคุมการพิมพ์ */}
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #printable-moveout-area, #printable-moveout-area * {
+            visibility: visible;
+          }
+          #printable-moveout-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+        }
+      `}</style>
     </div>
   );
 };
