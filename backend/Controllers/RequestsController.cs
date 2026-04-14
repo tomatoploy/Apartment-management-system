@@ -24,26 +24,43 @@ public class RequestsController : ControllerBase
         _lineService = lineService;
     }
 
+    // 🌟 1. เพิ่มฟังก์ชันสำหรับแปลงภาษาอังกฤษเป็นภาษาไทย
+    private string TranslateSubject(string subject)
+    {
+        if (string.IsNullOrWhiteSpace(subject)) return "-";
+
+        return subject.ToLower() switch
+        {
+            "fix" => "แจ้งซ่อม",
+            "clean" => "ทำความสะอาด",
+            "leave" => "แจ้งย้ายออก",
+            "other" => "อื่น ๆ",
+            _ => subject // ถ้าไม่ตรงเงื่อนไขเลย ให้คืนค่าเดิมกลับไป
+        };
+    }
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<RequestResponseDto>>> GetRequestsAll()
     {
-        var requests = await _db.Request
-        .Include(r => r.Room)
-        .Select(r => new RequestResponseDto
+        // 🌟 2. ดึงข้อมูลมาก่อน แล้วค่อย Map แปลงภาษาไทยใน 메모리
+        var rawRequests = await _db.Request
+            .Include(r => r.Room)
+            .ToListAsync();
+
+        var requests = rawRequests.Select(r => new RequestResponseDto
         {
             Id = r.Id,
             RoomId = r.RoomId,
             RoomNumber = r.Room.Number,
             RequestDate = r.RequestDate,
-            Subject = r.Subject,
+            Subject = TranslateSubject(r.Subject), // แปลงเป็นภาษาไทย
             Body = r.Body,
             Status = r.Status,
             AppointmentDate = r.AppointmentDate,
             IsTenantCost = r.IsTenantCost,
             Cost = r.Cost,
             Note = r.Note
-        })
-        .ToListAsync();
+        }).ToList();
 
         return Ok(requests);
     }
@@ -51,29 +68,29 @@ public class RequestsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<RequestResponseDto>> GetRequest(uint id)
     {
-        var request = await _db.Request
-            .Include(r => r.Room)
-            .Where(r => r.Id == id)
-            .Select(r => new RequestResponseDto
-            {
-                Id = r.Id,
-                RoomId = r.RoomId,
-                RoomNumber = r.Room.Number,
-                RequestDate = r.RequestDate,
-                Subject = r.Subject,
-                Body = r.Body,
-                Status = r.Status,
-                AppointmentDate = r.AppointmentDate,
-                IsTenantCost = r.IsTenantCost,
-                Cost = r.Cost,
-                Note = r.Note
-            })
-            .FirstOrDefaultAsync();
+        var r = await _db.Request
+            .Include(req => req.Room)
+            .FirstOrDefaultAsync(req => req.Id == id);
 
-        if (request == null)
+        if (r == null)
             return NotFound(new { message = "Request not found" });
 
-        return Ok(request);
+        var requestDto = new RequestResponseDto
+        {
+            Id = r.Id,
+            RoomId = r.RoomId,
+            RoomNumber = r.Room.Number,
+            RequestDate = r.RequestDate,
+            Subject = TranslateSubject(r.Subject), // 🌟 แปลงเป็นภาษาไทย
+            Body = r.Body,
+            Status = r.Status,
+            AppointmentDate = r.AppointmentDate,
+            IsTenantCost = r.IsTenantCost,
+            Cost = r.Cost,
+            Note = r.Note
+        };
+
+        return Ok(requestDto);
     }
 
     [HttpPost]
@@ -92,7 +109,7 @@ public class RequestsController : ControllerBase
         {
             RoomId = room.Id,
             RequestDate = p.RequestDate,
-            Subject = p.Subject,
+            Subject = p.Subject, // ตอนบันทึกลงฐานข้อมูล ยังคงเก็บเป็นภาษาอังกฤษ (fix, clean, etc.) ไว้เหมือนเดิมเพื่อให้ระบบจัดการง่าย
             Body = p.Body,
             Status = "pending",
             AppointmentDate = p.AppointmentDate,
@@ -127,7 +144,6 @@ public class RequestsController : ControllerBase
         if (room == null)
             return BadRequest(new { message = "Room not found" });
 
-        // --- เช็คว่าสถานะเดิมไม่ใช่ finish และกำลังถูกเปลี่ยนเป็น finish ใช่หรือไม่
         bool isNewlyFinished = request.Status != "finish" && p.Status == "finish";
 
         request.RoomId = room.Id;
@@ -140,30 +156,25 @@ public class RequestsController : ControllerBase
         request.Cost = p.Cost;
         request.Note = p.Note;
 
-        await _db.SaveChangesAsync(); // บันทึกข้อมูลลงฐานข้อมูลก่อน
+        await _db.SaveChangesAsync();
 
-        // --- ส่งแจ้งเตือนถ้าเพิ่งเปลี่ยนสถานะเป็น finish
         if (isNewlyFinished)
         {
             try
             {
-                // หาผู้เช่าที่ทำสัญญาอยู่ (Status = Active) ในห้องนี้
                 var contract = await _db.Contract
                     .Include(c => c.Tenant)
                     .FirstOrDefaultAsync(c => c.RoomId == room.Id && c.Status == "Active");
 
-                // 🌟 แก้ไข: ตรวจสอบและดึงข้อมูลจาก Tenant.Note แทน LineId
                 if (contract != null && contract.Tenant != null && !string.IsNullOrEmpty(contract.Tenant.Note))
                 {
-                    // ดักจับค่า Null เผื่อกรณีแอดมินไม่ได้พิมพ์รายละเอียดมา
-                    string safeSubject = string.IsNullOrEmpty(p.Subject) ? "-" : p.Subject;
+                    // 🌟 3. นำคำมาเข้าฟังก์ชันแปลงภาษาไทยก่อนใส่ลงในการ์ด LINE
+                    string safeSubject = TranslateSubject(p.Subject); 
                     string safeBody = string.IsNullOrEmpty(p.Body) ? "-" : p.Body;
 
-                    // 1. เตรียม JSON ส่วนของ "ค่าใช้จ่าย" (จะเพิ่มเข้าไปในการ์ดก็ต่อเมื่อมีค่าใช้จ่ายจริง)
                     string costRowJson = "";
                     if (p.IsTenantCost == true && p.Cost > 0)
                     {
-                        // สังเกตเครื่องหมายจุลภาค (,) ข้างหน้า เพื่อใช้ต่อกับ Array ใน JSON ตัวหลัก
                         costRowJson = $$"""
                         ,{
                           "type": "box",
@@ -177,7 +188,6 @@ public class RequestsController : ControllerBase
                         """;
                     }
 
-                    // 2. ประกอบร่าง JSON การ์ดทั้งหมด (สไตล์ Minimal แบบไม่มี Header/Footer กวนใจ)
                     string flexCardJson = $$"""
                     {
                       "type": "bubble",
@@ -231,10 +241,9 @@ public class RequestsController : ControllerBase
                     }
                     """;
 
-                    // ข้อความแจ้งเตือน (AltText) ที่แสดงบน Notification มือถือ
+                    // 🌟 ใช้ safeSubject ในแจ้งเตือน Pop-up (AltText) ของ LINE ด้วย
                     string altText = $"🛠️ อัปเดต: รายการ {safeSubject} ของห้อง {p.RoomNumber} ดำเนินการเสร็จสิ้นแล้วค่ะ";
 
-                    // 🌟 ส่งข้อมูลโดยใช้ UID จาก contract.Tenant.Note
                     await _lineService.SendFlexMessageAsync(contract.Tenant.Note, altText, flexCardJson);
                     _logger.LogInformation($"ส่ง LINE การ์ดแจ้งสถานะ finish ไปที่ห้อง {p.RoomNumber} สำเร็จ");
                 }
@@ -244,7 +253,6 @@ public class RequestsController : ControllerBase
                 _logger.LogError($"เกิดข้อผิดพลาดในการส่ง LINE Flex แจ้งสถานะ finish: {ex.Message}");
             }
         }
-        // -----------------------------------------------------------------
 
         return Ok(new { message = "Updated successfully", id = request.Id });
     }

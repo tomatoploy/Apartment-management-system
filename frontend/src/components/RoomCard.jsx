@@ -41,7 +41,7 @@ const RoomCard = ({
   };
 
   const moveIcons     = icons.filter((i) => ["moveIn", "leave"].includes(i));
-  const activityIcons = icons.filter((i) => ["fix", "clean", "package", "urgent", "other"].includes(i));
+  const activityIcons = icons.filter((i) => ["fix", "clean", "package", "other"].includes(i));
 
   return (
     <div className="flex flex-col items-center gap-1">
