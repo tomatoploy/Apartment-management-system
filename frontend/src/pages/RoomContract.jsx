@@ -891,7 +891,7 @@ const RoomContract = () => {
     }
   };
 
-const handleSave = async () => {
+  const handleSave = async () => {
     try {
       let finalContractNote = formData.Note || "";
       finalContractNote = finalContractNote
@@ -926,17 +926,17 @@ const handleSave = async () => {
         });
       }
 
-      // ✨ แก้ไข 1: ดึงค่าและแปลงเป็นตัวเลขอย่างปลอดภัย (อนุญาตให้เป็นเลข 0 ได้)
-      const elecUnitVal = formData.initialElectricUnit !== "" && formData.initialElectricUnit !== null ? Number(formData.initialElectricUnit) : null;
-      const waterUnitVal = formData.initialWaterUnit !== "" && formData.initialWaterUnit !== null ? Number(formData.initialWaterUnit) : null;
+      // 🌟 แก้ไข: บังคับให้เป็นตัวเลขเสมอ ถ้าเป็นค่าว่างหรือ null ให้เป็น 0
+      const elecUnitVal = formData.initialElectricUnit ? Number(formData.initialElectricUnit) : 0;
+      const waterUnitVal = formData.initialWaterUnit ? Number(formData.initialWaterUnit) : 0;
 
       if (isRenewing) {
         if (contract) {
           await contractService.putContract(contract.id, {
             ...contract,
             status: "Expired",
-            finalElectricUnit: elecUnitVal, // ✨ ใช้ค่าตัวแปรใหม่ที่ดักเลข 0 ไว้แล้ว
-            finalWaterUnit: waterUnitVal,   // ✨ ใช้ค่าตัวแปรใหม่
+            finalElectricUnit: elecUnitVal,
+            finalWaterUnit: waterUnitVal,
           });
         }
         const newContractPayload = {
@@ -947,18 +947,19 @@ const handleSave = async () => {
           EndDate: formData.endDate || null,
           MonthlyRent: Number(formData.monthlyRent),
           Deposit: Number(formData.deposit),
-          InitialElectricUnit: elecUnitVal, // ✨ ใช้ค่าตัวแปรใหม่
-          InitialWaterUnit: waterUnitVal,   // ✨ ใช้ค่าตัวแปรใหม่
+          InitialElectricUnit: elecUnitVal, // ส่งเป็นตัวเลข
+          InitialWaterUnit: waterUnitVal,   // ส่งเป็นตัวเลข
           Note: finalContractNote || null,
         };
         await contractService.postContract(newContractPayload);
+        
         const today = new Date().toISOString().split("T")[0];
         const meterPayload = [
           {
             RoomId: roomId,
             RecordDate: today,
-            ElectricityUnit: elecUnitVal ?? 0, // ป้องกันการส่ง null ไปที่ Backend
-            WaterUnit: waterUnitVal ?? 0,      // ป้องกันการส่ง null ไปที่ Backend
+            ElectricityUnit: elecUnitVal,
+            WaterUnit: waterUnitVal,
             Note: "* เริ่มสัญญาใหม่ (ต่อสัญญา)",
           },
         ];
@@ -971,7 +972,8 @@ const handleSave = async () => {
         );
         showToast("ต่อสัญญาและบันทึกข้อมูลเรียบร้อยแล้ว!");
       } else {
-        // ✨ แก้ไข 2: เช็คการสร้างมิเตอร์ครั้งแรก ให้ทำงานแม้กรอกเลข 0 
+        
+        // สำหรับการสร้างมิเตอร์ครั้งแรก
         const isFirstTimeMeter =
           (contract?.initialElectricUnit == null && elecUnitVal !== null) ||
           (contract?.initialWaterUnit == null && waterUnitVal !== null);
@@ -984,8 +986,8 @@ const handleSave = async () => {
             endDate: formData.endDate || null,
             monthlyRent: Number(formData.monthlyRent),
             deposit: Number(formData.deposit),
-            initialElectricUnit: elecUnitVal, // ✨ ใช้ค่าตัวแปรใหม่
-            initialWaterUnit: waterUnitVal,   // ✨ ใช้ค่าตัวแปรใหม่
+            initialElectricUnit: elecUnitVal, // ส่งเป็นตัวเลข
+            initialWaterUnit: waterUnitVal,   // ส่งเป็นตัวเลข
             Note: finalContractNote || null,
           };
           await contractService.putContract(contract.id, updatedContract);
@@ -997,8 +999,8 @@ const handleSave = async () => {
             {
               RoomId: roomId,
               RecordDate: today,
-              ElectricityUnit: elecUnitVal ?? 0,
-              WaterUnit: waterUnitVal ?? 0,
+              ElectricityUnit: elecUnitVal,
+              WaterUnit: waterUnitVal,
               Note: "* เริ่มสัญญาใหม่",
             },
           ];
