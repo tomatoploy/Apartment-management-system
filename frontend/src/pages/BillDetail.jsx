@@ -1466,8 +1466,8 @@ const BillDetail = ({
 
             {/* 🌟 🌟 🌟 เริ่มส่วนของ UI ปุ่มที่ปรับปรุงใหม่ (Progressive Flow) 🌟 🌟 🌟 */}
             <div className="flex flex-col items-center w-full mt-8 gap-6 max-w-3xl mx-auto px-4">
-              {/* 🛠 โซนที่ 1: การจัดการรายการ (Edit) - แสดงตลอด */}
-              {(showAddBtn || showDiscountBtn) && (
+              {/* 🛠 โซนที่ 1: การจัดการรายการ (Edit) - แสดงเมื่อยังไม่ได้ชำระเงิน */}
+              {(showAddBtn || showDiscountBtn) && paymentStatus !== "paid" && (
                 <div className="flex flex-row justify-center items-center gap-3 w-full">
                   {showAddBtn && (
                     <button
@@ -1581,22 +1581,22 @@ const BillDetail = ({
 
                   {/* ปุ่มยืนยันชำระเงิน */}
                   {/* 💰 โซนสุดท้าย: ยืนยันการรับเงิน (แยกสัดส่วนชัดเจน) */}
-{mode !== "checkout" && (
-  <div className="flex justify-center w-full pt-6 border-t border-gray-100">
-    {paymentStatus === "paid" ? (
-      <div className="flex items-center justify-center gap-2 w-full md:w-auto px-12 py-3.5 rounded-2xl font-bold text-emerald-700 bg-emerald-50 border border-emerald-200">
-        <CheckCircle2 size={20} /> ชำระเงินเรียบร้อยแล้ว
-      </div>
-    ) : (
-      <button
-        onClick={openPaymentModal}
-        className="w-full md:w-auto flex items-center justify-center gap-2 px-10 py-3.5 rounded-2xl font-black bg-[#f3a638] text-white hover:bg-[#e6952e] shadow-lg shadow-orange-200/50 hover:-translate-y-0.5 active:translate-y-0 transition-all"
-      >
-        <CheckCircle2 size={20} /> กดเพื่อยืนยันรับชำระ
-      </button>
-    )}
-  </div>
-)}
+                  {mode !== "checkout" && (
+                    <div className="flex justify-center w-full pt-6 border-t border-gray-100">
+                      {paymentStatus === "paid" ? (
+                        <div className="flex items-center justify-center gap-2 w-full md:w-auto px-12 py-3.5 rounded-2xl font-bold text-emerald-700 bg-emerald-50 border border-emerald-200">
+                          <CheckCircle2 size={20} /> ชำระเงินเรียบร้อยแล้ว
+                        </div>
+                      ) : (
+                        <button
+                          onClick={openPaymentModal}
+                          className="w-full md:w-auto flex items-center justify-center gap-2 px-10 py-3.5 rounded-2xl font-black bg-[#f3a638] text-white hover:bg-[#e6952e] shadow-lg shadow-orange-200/50 hover:-translate-y-0.5 active:translate-y-0 transition-all"
+                        >
+                          <CheckCircle2 size={20} /> กดเพื่อยืนยันรับชำระ
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
