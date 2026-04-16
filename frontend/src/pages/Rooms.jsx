@@ -260,12 +260,26 @@ const Rooms = () => {
         const currentMonth = today.getMonth() + 1;
 
         // ── contract map ─────────────────────────────────────────
+        // ── contract map ─────────────────────────────────────────
         const contractByRoom = {};
         rawContracts.forEach((c) => {
           const status = (c.status || c.Status || "").toLowerCase();
-          if (status === "active" || status === "reserved") {
+          // ✨ เพิ่ม || status === "expired" เข้าไปตรงนี้เลยครับ
+          if (status === "active" || status === "reserved" || status === "expired") {
             const rId = Number(c.roomId || c.RoomId);
-            if (rId) contractByRoom[rId] = c;
+            
+            // กรณีที่มีหลายสัญญาในห้องเดียว (ทั้งเก่าและใหม่) 
+            // ให้เอาสัญญาที่ยัง Active ก่อน ถ้าไม่มีค่อยเอา Reserved ถ้าไม่มีอีกค่อยเอา Expired
+            if (rId) {
+              if (!contractByRoom[rId]) {
+                contractByRoom[rId] = c;
+              } else {
+                const currentStatus = (contractByRoom[rId].status || contractByRoom[rId].Status || "").toLowerCase();
+                if (status === "active" && currentStatus !== "active") {
+                   contractByRoom[rId] = c;
+                }
+              }
+            }
           }
         });
 
@@ -327,19 +341,30 @@ const Rooms = () => {
           let isContractExpired = false;
           const rawEndDate = contract?.endDate || contract?.EndDate;
 
-          if (rawEndDate) {
-            const endDate = new Date(rawEndDate);
-            endDate.setHours(0, 0, 0, 0);
-            const daysLeft = Math.ceil(
-              (endDate - today) / (1000 * 60 * 60 * 24),
-            );
+          // ✨ เพิ่มบรรทัดนี้เพื่อดูว่า Backend ส่งวันที่มาหน้าตาแบบไหน
+          console.log(`ห้อง ${rNumStr} หมดสัญญา:`, rawEndDate);
 
-            if (daysLeft <= 0) {
-              isContractExpired = true;
-              icons.push("urgent");
-            } else if (daysLeft <= 30) {
-              isContractUrgent = true;
-              icons.push("urgent");
+          if (rawEndDate) {
+            const rawEndStr = rawEndDate.substring(0, 10);
+            
+            if (rawEndStr) {
+              const [eYear, eMonth, eDay] = rawEndStr.split("-").map(Number);
+              const endDate = new Date(eYear, eMonth - 1, eDay); 
+              
+              const daysLeft = Math.ceil(
+                (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+              );
+              
+              // ✨ เพิ่มบรรทัดนี้เพื่อเช็คว่าคำนวณได้กี่วัน
+              console.log(`ห้อง ${rNumStr} เหลือเวลา (วัน):`, daysLeft);
+
+              if (daysLeft < 0) { 
+                isContractExpired = true;
+                icons.push("urgent");
+              } else if (daysLeft >= 0 && daysLeft <= 30) {
+                isContractUrgent = true;
+                icons.push("urgent");
+              }
             }
           }
 
@@ -364,7 +389,7 @@ const Rooms = () => {
           }
 
           // ── icons ─────────────────────────────────────────────
-          const roomStatus = (
+const roomStatus = (
             room.roomStatus ||
             room.status ||
             ""
@@ -373,16 +398,30 @@ const Rooms = () => {
 
           const roomRequests = requestMap[rNumStr] || [];
           roomRequests.forEach((req) => {
-            const sub = req.subject?.toLowerCase();
+            // ✨ 1. สร้างฟังก์ชันแปลงค่าไทยเป็นอังกฤษ (หรือถ้าเป็นอังกฤษอยู่แล้วก็ใช้ค่าเดิม)
+            let sub = req.subject?.toString().trim() || "";
+            const reverseMap = {
+              "แจ้งซ่อม": "fix",
+              "ทำความสะอาด": "clean",
+              "ย้ายออก": "leave",
+              "แจ้งย้ายออก": "leave",
+              "อื่นๆ": "other",
+              "อื่น ๆ": "other"
+            };
+            
+            // แปลงค่าก่อนนำไปตรวจสอบ
+            sub = reverseMap[sub] || sub.toLowerCase();
+
+            // ✨ 2. ตรวจสอบค่าที่ถูกแปลงแล้ว
             if (
               ["fix", "clean", "leave", "other"].includes(sub) &&
               !icons.includes(sub)
-            )
+            ) {
               icons.push(sub);
+            }
           });
 
           if (parcelMap[rNumStr]) icons.push("package");
-
           return {
             ...room,
             // ✨ คลีนชื่อลูกค้าทิ้งถ้าสถานะถูกแปลงเป็นห้องว่างหรือปิดปรับปรุง

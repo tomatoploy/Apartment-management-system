@@ -13,7 +13,7 @@ const RoomCard = ({
   isContractExpired = false,
   isContractUrgent = false,
 }) => {
-
+  console.log(`ห้อง ${roomNumber} ได้รับไอคอน:`, icons);
   const normalizedStatus = status ? status.toString().toLowerCase() : "available";
 
   const statusColors = {
@@ -30,7 +30,7 @@ const RoomCard = ({
     ? <Clock size={16} className="text-red-600" />      // หมดแล้ว → แดง
     : <Clock size={16} className="text-orange-500" />;  // ใกล้หมด → ส้ม
 
-  const iconMap = {
+const iconMap = {
     moveIn:  <LogIn  size={16} className="text-green-600" />,
     leave:   <LogOut size={16} className="text-red-600" />,
     fix:     <Wrench size={16} className="text-blue-600" />,
@@ -40,8 +40,27 @@ const RoomCard = ({
     other:   <FileText size={16} className="text-[#9A3412]" />,
   };
 
-  const moveIcons     = icons.filter((i) => ["moveIn", "leave"].includes(i));
-  const activityIcons = icons.filter((i) => ["fix", "clean", "package", "other"].includes(i));
+  // ✨ 1. เพิ่มฟังก์ชันแปลงค่าไทยเป็นอังกฤษ
+  const normalizeIconKey = (iconStr) => {
+    if (!iconStr) return "";
+    const s = iconStr.toString().trim();
+    const map = {
+      "แจ้งซ่อม": "fix",
+      "ทำความสะอาด": "clean",
+      "แจ้งย้ายออก": "leave",
+      "ย้ายออก": "leave",
+      "อื่นๆ": "other",
+      "อื่น ๆ": "other"
+    };
+    return map[s] || s;
+  };
+
+  // ✨ 2. ทำการ map array เดิมผ่านฟังก์ชันแปลงค่าก่อน
+  const normalizedIconsList = icons.map(normalizeIconKey);
+
+  // ✨ 3. ใช้ list ที่แปลงค่าแล้วมา filter
+  const moveIcons     = normalizedIconsList.filter((i) => ["moveIn", "leave"].includes(i));
+  const activityIcons = normalizedIconsList.filter((i) => ["fix", "clean", "package", "other"].includes(i));
 
   return (
     <div className="flex flex-col items-center gap-1">

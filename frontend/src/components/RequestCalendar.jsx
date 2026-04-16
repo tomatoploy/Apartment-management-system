@@ -134,7 +134,25 @@ const RequestCalendar = ({ requests, subjectConfig, onItemClick }) => {
                   {/* รายการนัดหมาย */}
                   <div className="flex flex-col gap-1 md:gap-1.5 overflow-y-auto max-h-[50px] md:max-h-20 no-scrollbar">
                     {appointments.map(req => {
-                      const subject = subjectConfig[req.subject] || subjectConfig.other;
+                      // ✨ 1. สร้างฟังก์ชันแปลงค่า (ดักไว้ทั้งไทยและอังกฤษ)
+                      const getSubjectKey = (sub) => {
+                        if (!sub) return "other";
+                        const s = sub.toString().trim();
+                        const map = {
+                          "แจ้งซ่อม": "fix",
+                          "ทำความสะอาด": "clean",
+                          "แจ้งย้ายออก": "leave",
+                          "ย้ายออก": "leave",
+                          "อื่นๆ": "other",
+                          "อื่น ๆ": "other"
+                        };
+                        return map[s] || s;
+                      };
+
+                      // ✨ 2. แปลงค่าก่อนนำไปดึง Config
+                      const normalizedSubject = getSubjectKey(req.subject);
+                      const subject = subjectConfig[normalizedSubject] || subjectConfig.other;
+                      
                       const status = STATUS_CONFIG[req.status];
 
                       return (
