@@ -423,12 +423,12 @@ const RoomDetail = () => {
                     value={`${tenant.title}${tenant.firstName} ${tenant.lastName}`}
                     icon={<User size={18} />}
                   />
-                  <InfoItem
+                  {/* <InfoItem
                     label="ยอดค้างชำระ"
                     value={`${tenant.outstandingBalance.toLocaleString()} ฿`}
                     icon={<CreditCard size={18} />}
                     valueClassName="text-red-500 "
-                  />
+                  /> */}
                   <InfoItem
                     label="เบอร์โทรศัพท์"
                     value={tenant.phone}
@@ -444,11 +444,11 @@ const RoomDetail = () => {
                     value={toThaiDate(tenant.checkInDate)}
                     icon={<Calendar size={18} />}
                   />
-                  <InfoItem
+                  {/* <InfoItem
                     label="วันย้ายออก"
                     value={toThaiDate(tenant.moveOutDate)}
                     icon={<FileText size={18} />}
-                  />
+                  /> */}
                   <InfoItem
                     label="วันหมดสัญญา"
                     value={toThaiDate(tenant.contractEndDate)}
