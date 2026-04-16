@@ -430,7 +430,7 @@ const reqCounts = { fix: 0, clean: 0, leave: 0, other: 0 };
           <div className="inline-flex items-center gap-1.5 bg-[#f3a638]/10 text-[#f3a638] px-3 py-1 rounded-lg text-[10px] sm:text-[11px] font-black tracking-widest uppercase mb-1.5 sm:mb-2">
             <Home size={11} /> {apartmentName}
           </div>
-          <h1 className="text-lg sm:text-xl font-black text-gray-900">สวัสดี, {adminName} 👋</h1>
+          <h1 className="text-lg sm:text-xl font-black text-gray-900">สวัสดี, {adminName} </h1>
           <p className="text-[11px] sm:text-xs font-semibold text-gray-400 mt-1 flex items-center gap-1.5">
             <Calendar size={12} />
             {new Date().toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}

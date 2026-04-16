@@ -1479,8 +1479,8 @@ const BillDetail = ({
 
             {/* 🌟 🌟 🌟 เริ่มส่วนของ UI ปุ่มที่ปรับปรุงใหม่ (Progressive Flow) 🌟 🌟 🌟 */}
             <div className="flex flex-col items-center w-full mt-8 gap-6 max-w-3xl mx-auto px-4">
-              {/* 🛠 โซนที่ 1: การจัดการรายการ (Edit) - แสดงตลอด */}
-              {(showAddBtn || showDiscountBtn) && (
+              {/* 🛠 โซนที่ 1: การจัดการรายการ (Edit) - แสดงเมื่อยังไม่ได้ชำระเงิน */}
+              {(showAddBtn || showDiscountBtn) && paymentStatus !== "paid" && (
                 <div className="flex flex-row justify-center items-center gap-3 w-full">
                   {showAddBtn && (
                     <button
