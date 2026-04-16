@@ -44,6 +44,15 @@ const Request = () => {
   const [modals, setModals] = useState({ filter: false, add: false, edit: false, sort: false });
   const [selectedRequest, setSelectedRequest] = useState(null);
 
+  const SUBJECT_REVERSE = {
+    "แจ้งซ่อม": "fix",
+    "ทำความสะอาด": "clean",
+    "แจ้งย้ายออก": "leave",
+    "ย้ายออก": "leave",
+    "อื่น ๆ": "other",
+    "อื่นๆ": "other",
+  };
+
   // --- 1. Load Data ---
   const fetchRequests = async () => {
     try {
@@ -73,7 +82,9 @@ const Request = () => {
         ...formData,
         cost: formData.cost ? Number(formData.cost) : null,
         appointmentDate: formData.appointmentDate || null,
-        isTenantCost: formData.isTenantCost || false
+        isTenantCost: formData.isTenantCost || false,
+        // ✨ 2. แปลง subject กลับเป็น key ภาษาอังกฤษก่อนบันทึก
+        subject: SUBJECT_REVERSE[formData.subject] ?? formData.subject 
       };
 
       await requestService.createRequest(payload);
@@ -153,14 +164,6 @@ const Request = () => {
   };
 
   // --- 5. Change Status (เปลี่ยนสถานะด่วน) ---
-  // แปลงกลับก่อนส่ง
-  const SUBJECT_REVERSE = {
-    "แจ้งซ่อม": "fix",
-    "ทำความสะอาด": "clean",
-    "แจ้งย้ายออก": "leave",
-    "อื่น ๆ": "other",
-  };
-
   const handleChangeStatus = async (id, newStatus) => {
     const targetReq = requests.find(r => r.id === id);
     if (!targetReq) return;
@@ -184,9 +187,12 @@ const Request = () => {
 
   const filteredAndSortedRequests = useMemo(() => {
     let result = requests.filter((req) => {
+      // ✨ 3. เพิ่มการค้นหาจาก subject ด้วย เผื่อผู้ใช้พิมพ์ค้นหา "ซ่อม" หรือ "สะอาด"
       const matchesSearch = 
         (req.roomNumber && req.roomNumber.toLowerCase().includes(keyword)) || 
-        (req.body && req.body.toLowerCase().includes(keyword));
+        (req.body && req.body.toLowerCase().includes(keyword)) ||
+        (req.subject && req.subject.toLowerCase().includes(keyword)) || 
+        (req.subject && SUBJECT_CONFIG[SUBJECT_REVERSE[req.subject] || req.subject]?.label.includes(keyword));
       
       const matchesStatus = activeStatusFilters.length === 0 || activeStatusFilters.includes(req.status);
       return matchesSearch && matchesStatus;

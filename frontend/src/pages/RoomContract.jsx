@@ -628,10 +628,11 @@ const RoomContract = () => {
 
       const activeContract =
         roomContracts.find((c) => c.status === "Active") ||
-        roomContracts.find((c) => c.status === "Reserved");
+        roomContracts.find((c) => c.status === "Reserved") ||
+        roomContracts.find((c) => c.status === "Expired");
 
       let history = roomContracts
-        .filter((c) => c.status !== "Active" && c.status !== "Reserved")
+        .filter((c) => c.status !== "Active" && c.status !== "Reserved" && c.status !== "Expired") // ✨ เพิ่ม && c.status !== "Expired" ไม่ให้ไปซ้ำในประวัติ
         .sort(
           (a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0),
         );
@@ -1206,12 +1207,16 @@ const RoomContract = () => {
                             className={
                               contract.status === "Active"
                                 ? "text-green-500"
+                                : contract.status === "Expired"
+                                ? "text-red-500"  // ✨ ถ้าหมดอายุให้เป็นสีแดง
                                 : "text-orange-400"
                             }
                           />
                           สถานะ:{" "}
                           {contract.status === "Reserved"
                             ? "รอทำสัญญา"
+                            : contract.status === "Expired"
+                            ? "หมดอายุแล้ว" // ✨ แปลเป็นข้อความภาษาไทย
                             : contract.status}
                         </p>
                       </div>
