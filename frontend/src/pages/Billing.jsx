@@ -775,48 +775,55 @@ const Billing = () => {
         : [...prev, status],
     );
 
-  const printContent = printType && (
+const printContent = printType && (
     <div id="printable-area">
       {printType === "bills" &&
-        summaryRows.map((room) => (
-          <div key={room.roomNumber} className="print-sheet">
-            <BillMonthlyPrintTemplate
-              roomNumber={room.roomNumber}
-              total={room.total}
-              apartmentInfo={apartmentInfo}
-              adminName={
-                adminInfo && adminInfo.firstName
-                  ? `${adminInfo.firstName} ${adminInfo.lastName}`
-                  : "ผู้ดูแลระบบ"
-              }
-              customerInfo={{ firstName: room.tenantFirstName, lastName: "" }}
-              contractInfo={cycleDates}
-              items={[
-                { type: "rent", amount: room.rent },
-                { type: "electric", amount: room.electric },
-                { type: "water", amount: room.water },
-                ...(room.other > 0
-                  ? [
-                      {
-                        type: "other",
-                        label: "บริการอื่นๆ",
-                        amount: room.other,
-                      },
-                    ]
-                  : []),
-                ...(room.discount > 0
-                  ? [
-                      {
-                        type: "discount",
-                        label: "ส่วนลด",
-                        amount: room.discount,
-                      },
-                    ]
-                  : []),
-              ].filter((item) => item.amount !== 0)}
-            />
-          </div>
-        ))}
+        summaryRows.map((room) => {
+          // ✨ 1. เพิ่มโค้ดดึงรายละเอียดมิเตอร์จาก Note ออกมา
+          const elecNote = room.calculationNote?.split('|').find(n => n.trim().startsWith('ไฟ:'))?.replace('ไฟ:', '').trim() || '';
+          const waterNote = room.calculationNote?.split('|').find(n => n.trim().startsWith('น้ำ:'))?.replace('น้ำ:', '').trim() || '';
+
+          return (
+            <div key={room.roomNumber} className="print-sheet">
+              <BillMonthlyPrintTemplate
+                roomNumber={room.roomNumber}
+                total={room.total}
+                apartmentInfo={apartmentInfo}
+                adminName={
+                  adminInfo && adminInfo.firstName
+                    ? `${adminInfo.firstName} ${adminInfo.lastName}`
+                    : "ผู้ดูแลระบบ"
+                }
+                customerInfo={{ firstName: room.tenantFirstName, lastName: "" }}
+                contractInfo={cycleDates}
+                // ✨ 2. แก้ไขตรง items ให้มีการส่ง label เข้าไปด้วย
+                items={[
+                  { type: "rent", label: "ค่าเช่าห้องพัก", amount: room.rent },
+                  { type: "electric", label: `ค่าไฟ ${elecNote}`, amount: room.electric },
+                  { type: "water", label: `ค่าน้ำประปา ${waterNote}`, amount: room.water },
+                  ...(room.other > 0
+                    ? [
+                        {
+                          type: "other",
+                          label: "บริการอื่นๆ",
+                          amount: room.other,
+                        },
+                      ]
+                    : []),
+                  ...(room.discount > 0
+                    ? [
+                        {
+                          type: "discount",
+                          label: "ส่วนลด",
+                          amount: room.discount,
+                        },
+                      ]
+                    : []),
+                ].filter((item) => item.amount !== 0)}
+              />
+            </div>
+          );
+        })}
       {printType === "summary" && (
         <BillSummaryPrintTemplate
           rooms={summaryRows}

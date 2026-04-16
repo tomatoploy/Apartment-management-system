@@ -44,6 +44,15 @@ const Request = () => {
   const [modals, setModals] = useState({ filter: false, add: false, edit: false, sort: false });
   const [selectedRequest, setSelectedRequest] = useState(null);
 
+  const SUBJECT_REVERSE = {
+    "แจ้งซ่อม": "fix",
+    "ทำความสะอาด": "clean",
+    "แจ้งย้ายออก": "leave",
+    "ย้ายออก": "leave",
+    "อื่น ๆ": "other",
+    "อื่นๆ": "other",
+  };
+
   // --- 1. Load Data ---
   const fetchRequests = async () => {
     try {
@@ -73,7 +82,9 @@ const Request = () => {
         ...formData,
         cost: formData.cost ? Number(formData.cost) : null,
         appointmentDate: formData.appointmentDate || null,
-        isTenantCost: formData.isTenantCost || false
+        isTenantCost: formData.isTenantCost || false,
+        // ✨ 2. แปลง subject กลับเป็น key ภาษาอังกฤษก่อนบันทึก
+        subject: SUBJECT_REVERSE[formData.subject] ?? formData.subject 
       };
 
       await requestService.createRequest(payload);
@@ -110,6 +121,7 @@ const Request = () => {
         ...formData,
         cost: formData.cost ? Number(formData.cost) : null,
         appointmentDate: formData.appointmentDate || null,
+        subject: SUBJECT_REVERSE[formData.subject] ?? formData.subject,
       };
 
       await requestService.updateRequest(formData.id, payload);
@@ -157,12 +169,16 @@ const Request = () => {
     if (!targetReq) return;
 
     try {
-      const payload = { ...targetReq, status: newStatus };
+      const payload = { 
+        ...targetReq, 
+        status: newStatus,
+        subject: SUBJECT_REVERSE[targetReq.subject] ?? targetReq.subject // ✅ แปลงกลับเป็นอังกฤษ
+      };
       setRequests(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
       await requestService.updateRequest(id, payload);
     } catch (err) {
       console.error("เปลี่ยนสถานะไม่สำเร็จ", err);
-      fetchRequests(); 
+      fetchRequests();
     }
   };
 
@@ -171,9 +187,12 @@ const Request = () => {
 
   const filteredAndSortedRequests = useMemo(() => {
     let result = requests.filter((req) => {
+      // ✨ 3. เพิ่มการค้นหาจาก subject ด้วย เผื่อผู้ใช้พิมพ์ค้นหา "ซ่อม" หรือ "สะอาด"
       const matchesSearch = 
         (req.roomNumber && req.roomNumber.toLowerCase().includes(keyword)) || 
-        (req.body && req.body.toLowerCase().includes(keyword));
+        (req.body && req.body.toLowerCase().includes(keyword)) ||
+        (req.subject && req.subject.toLowerCase().includes(keyword)) || 
+        (req.subject && SUBJECT_CONFIG[SUBJECT_REVERSE[req.subject] || req.subject]?.label.includes(keyword));
       
       const matchesStatus = activeStatusFilters.length === 0 || activeStatusFilters.includes(req.status);
       return matchesSearch && matchesStatus;
@@ -194,9 +213,26 @@ const Request = () => {
     });
   }, [requests, searchTerm, activeStatusFilters, sortOrder]);
 
+const getSubjectKey = (sub) => {
+    if (!sub) return "other";
+    const s = sub.toString().trim();
+    if (["fix", "clean", "leave", "other"].includes(s)) return s;
+
+    const reverseMap = {
+      "แจ้งซ่อม": "fix",
+      "ทำความสะอาด": "clean",
+      "ย้ายออก": "leave",
+      "แจ้งย้ายออก": "leave",
+      "อื่นๆ": "other",
+      "อื่น ๆ": "other"
+    };
+    return reverseMap[s] || "other";
+  };
+
+  // ✨ นำฟังก์ชันมาครอบ req.subject ก่อนนำไปเทียบกับ activeSubject
   const listRequests = activeSubject === "all" 
     ? filteredAndSortedRequests 
-    : filteredAndSortedRequests.filter(req => req.subject === activeSubject);
+    : filteredAndSortedRequests.filter(req => getSubjectKey(req.subject) === activeSubject);
 
   const [isSubjectOpen, setIsSubjectOpen] = useState(false);
   const handleMenuClick = (path) => {

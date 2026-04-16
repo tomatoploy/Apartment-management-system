@@ -778,21 +778,29 @@ const BillDetail = ({
       const rId = targetRoom.roomId || targetRoom.id;
       setRoomId(rId);
 
+      // ✨ เพิ่ม "expired" เข้าไปในโหมดปกติด้วย เพื่อให้ออกบิลเดือนสุดท้ายที่หมดสัญญาได้
       const contractStatusList =
         mode === "checkout"
           ? ["active", "reserved", "expired", "terminated"]
-          : ["active", "reserved"];
+          : ["active", "reserved", "expired"]; 
 
-      const contract = extractArray(allContracts).find(
-        (c) =>
-          Number(c.roomId) === Number(rId) &&
-          contractStatusList.includes((c.status || "").toLowerCase()),
-      );
+      // 💡 หรือถ้าอยากดึงสัญญาล่าสุดมาให้ชัวร์ที่สุด (ป้องกันกรณีมีสัญญาซ้อนกัน) ให้เปลี่ยนการหา contract เป็นแบบนี้ครับ:
+      const roomContracts = extractArray(allContracts)
+        .filter(
+          (c) =>
+            Number(c.roomId) === Number(rId) &&
+            contractStatusList.includes((c.status || "").toLowerCase())
+        )
+        // เรียงจากสัญญาใหม่ล่าสุดไปเก่า
+        .sort((a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0));
+
+      const contract = roomContracts[0];
 
       if (!contract) {
-        setLoadError("ห้องนี้ไม่มีสัญญา Active");
+        setLoadError("ห้องนี้ไม่มีสัญญาที่สามารถออกบิลได้");
         return;
       }
+      
       setContractId(contract.id || contract.Id);
 
       const tId = contract.tenantId || contract.TenantId;
@@ -1379,10 +1387,15 @@ const BillDetail = ({
           </div>
         ) : items && items.length > 0 ? (
           <>
-            {mode !== "checkout" && (
+          {mode !== "checkout" && (
               <div className="flex justify-center mb-4 gap-2 flex-wrap">
                 <span
-                  className={`px-3 py-1 rounded-full text-xs font-bold ${paymentId ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-600"}`}
+                  // ✨ เปลี่ยนตรงนี้: ถ้า !paymentId ให้เป็น bg-gray-100 text-gray-500
+                  className={`px-3 py-1 rounded-full text-xs font-bold border ${
+                    paymentId 
+                      ? "bg-green-100 text-green-700 border-green-200" 
+                      : "bg-gray-100 text-gray-500 border-gray-200"
+                  }`}
                 >
                   {paymentId
                     ? "✓ บิลที่บันทึกแล้ว"
@@ -1587,7 +1600,16 @@ const BillDetail = ({
                         <div className="flex items-center justify-center gap-2 w-full md:w-auto px-12 py-3.5 rounded-2xl font-bold text-emerald-700 bg-emerald-50 border border-emerald-200">
                           <CheckCircle2 size={20} /> ชำระเงินเรียบร้อยแล้ว
                         </div>
+                      ) : !paymentId || isDirty ? (
+                        // ✨ เพิ่มปุ่มสีเทา: จะแสดงเมื่อบิลยังไม่ได้เซฟ หรือ มีการแก้ไขค้างอยู่
+                        <button
+                          disabled
+                          className="w-full md:w-auto flex items-center justify-center gap-2 px-10 py-3.5 rounded-2xl font-black bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed transition-all"
+                        >
+                          <CheckCircle2 size={20} /> กดเพื่อยืนยันรับชำระ (ต้องบันทึกบิลก่อน)
+                        </button>
                       ) : (
+                        // ✨ ปุ่มสีส้ม: จะแสดงก็ต่อเมื่อเซฟบิลลง Database เรียบร้อยแล้วเท่านั้น
                         <button
                           onClick={openPaymentModal}
                           className="w-full md:w-auto flex items-center justify-center gap-2 px-10 py-3.5 rounded-2xl font-black bg-[#f3a638] text-white hover:bg-[#e6952e] shadow-lg shadow-orange-200/50 hover:-translate-y-0.5 active:translate-y-0 transition-all"

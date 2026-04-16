@@ -232,17 +232,39 @@ const Dashboard = () => {
       if (!p.pickupDate) parcelMap[p.roomId || p.RoomId] = true;
     });
 
-    const reqCounts = { fix: 0, clean: 0, leave: 0, other: 0 };
+const reqCounts = { fix: 0, clean: 0, leave: 0, other: 0 };
     const requestMap = {};
+
+    // ✨ 1. เพิ่มฟังก์ชันแปลงภาษาไทยให้ตรงกับ Key ที่เราตั้งไว้
+    const getSubjectKey = (sub) => {
+      if (!sub) return 'other';
+      const s = sub.toString().trim();
+      if (['fix', 'clean', 'leave', 'other'].includes(s)) return s;
+      
+      const reverseMap = {
+        "แจ้งซ่อม": "fix",
+        "ทำความสะอาด": "clean",
+        "ย้ายออก": "leave",
+        "แจ้งย้ายออก": "leave",
+        "อื่นๆ": "other",
+        "อื่น ๆ": "other"
+      };
+      return reverseMap[s] || 'other';
+    };
+
     requests.forEach(r => {
+      // นับเฉพาะรายการที่ยังไม่สำเร็จหรือยกเลิก
       if (r.status !== "finish" && r.status !== "cancel") {
         const rId = r.roomId || r.RoomId;
         if (rId) {
           if (!requestMap[rId]) requestMap[rId] = [];
           requestMap[rId].push(r);
         }
-        const sub = (r.subject || "").toLowerCase();
-        if (reqCounts[sub] !== undefined) reqCounts[sub]++;
+        
+        // ✨ 2. นำฟังก์ชันมาใช้ครอบ r.subject
+        const subKey = getSubjectKey(r.subject);
+        
+        if (reqCounts[subKey] !== undefined) reqCounts[subKey]++;
         else reqCounts.other++;
       }
     });

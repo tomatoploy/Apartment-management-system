@@ -628,10 +628,11 @@ const RoomContract = () => {
 
       const activeContract =
         roomContracts.find((c) => c.status === "Active") ||
-        roomContracts.find((c) => c.status === "Reserved");
+        roomContracts.find((c) => c.status === "Reserved") ||
+        roomContracts.find((c) => c.status === "Expired");
 
       let history = roomContracts
-        .filter((c) => c.status !== "Active" && c.status !== "Reserved")
+        .filter((c) => c.status !== "Active" && c.status !== "Reserved" && c.status !== "Expired") // ✨ เพิ่ม && c.status !== "Expired" ไม่ให้ไปซ้ำในประวัติ
         .sort(
           (a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0),
         );
@@ -926,13 +927,17 @@ const RoomContract = () => {
         });
       }
 
+      // 🌟 แก้ไข: บังคับให้เป็นตัวเลขเสมอ ถ้าเป็นค่าว่างหรือ null ให้เป็น 0
+      const elecUnitVal = formData.initialElectricUnit ? Number(formData.initialElectricUnit) : 0;
+      const waterUnitVal = formData.initialWaterUnit ? Number(formData.initialWaterUnit) : 0;
+
       if (isRenewing) {
         if (contract) {
           await contractService.putContract(contract.id, {
             ...contract,
             status: "Expired",
-            finalElectricUnit: Number(formData.initialElectricUnit) || null,
-            finalWaterUnit: Number(formData.initialWaterUnit) || null,
+            finalElectricUnit: elecUnitVal,
+            finalWaterUnit: waterUnitVal,
           });
         }
         const newContractPayload = {
@@ -943,18 +948,19 @@ const RoomContract = () => {
           EndDate: formData.endDate || null,
           MonthlyRent: Number(formData.monthlyRent),
           Deposit: Number(formData.deposit),
-          InitialElectricUnit: Number(formData.initialElectricUnit) || null,
-          InitialWaterUnit: Number(formData.initialWaterUnit) || null,
+          InitialElectricUnit: elecUnitVal, // ส่งเป็นตัวเลข
+          InitialWaterUnit: waterUnitVal,   // ส่งเป็นตัวเลข
           Note: finalContractNote || null,
         };
         await contractService.postContract(newContractPayload);
+        
         const today = new Date().toISOString().split("T")[0];
         const meterPayload = [
           {
             RoomId: roomId,
             RecordDate: today,
-            ElectricityUnit: Number(formData.initialElectricUnit),
-            WaterUnit: Number(formData.initialWaterUnit),
+            ElectricityUnit: elecUnitVal,
+            WaterUnit: waterUnitVal,
             Note: "* เริ่มสัญญาใหม่ (ต่อสัญญา)",
           },
         ];
@@ -963,14 +969,15 @@ const RoomContract = () => {
           meterPayload,
           {
             headers: { "Content-Type": "application/json" },
-          },
+          }
         );
         showToast("ต่อสัญญาและบันทึกข้อมูลเรียบร้อยแล้ว!");
       } else {
+        
+        // สำหรับการสร้างมิเตอร์ครั้งแรก
         const isFirstTimeMeter =
-          (!contract?.initialElectricUnit &&
-            formData.initialElectricUnit > 0) ||
-          (!contract?.initialWaterUnit && formData.initialWaterUnit > 0);
+          (contract?.initialElectricUnit == null && elecUnitVal !== null) ||
+          (contract?.initialWaterUnit == null && waterUnitVal !== null);
 
         if (contract) {
           const updatedContract = {
@@ -980,8 +987,8 @@ const RoomContract = () => {
             endDate: formData.endDate || null,
             monthlyRent: Number(formData.monthlyRent),
             deposit: Number(formData.deposit),
-            initialElectricUnit: Number(formData.initialElectricUnit) || null,
-            initialWaterUnit: Number(formData.initialWaterUnit) || null,
+            initialElectricUnit: elecUnitVal, // ส่งเป็นตัวเลข
+            initialWaterUnit: waterUnitVal,   // ส่งเป็นตัวเลข
             Note: finalContractNote || null,
           };
           await contractService.putContract(contract.id, updatedContract);
@@ -993,8 +1000,8 @@ const RoomContract = () => {
             {
               RoomId: roomId,
               RecordDate: today,
-              ElectricityUnit: Number(formData.initialElectricUnit),
-              WaterUnit: Number(formData.initialWaterUnit),
+              ElectricityUnit: elecUnitVal,
+              WaterUnit: waterUnitVal,
               Note: "* เริ่มสัญญาใหม่",
             },
           ];
@@ -1003,7 +1010,7 @@ const RoomContract = () => {
             meterPayload,
             {
               headers: { "Content-Type": "application/json" },
-            },
+            }
           );
         }
         showToast("บันทึกข้อมูลสัญญาสำเร็จ!");
@@ -1200,12 +1207,16 @@ const RoomContract = () => {
                             className={
                               contract.status === "Active"
                                 ? "text-green-500"
+                                : contract.status === "Expired"
+                                ? "text-red-500"  // ✨ ถ้าหมดอายุให้เป็นสีแดง
                                 : "text-orange-400"
                             }
                           />
                           สถานะ:{" "}
                           {contract.status === "Reserved"
                             ? "รอทำสัญญา"
+                            : contract.status === "Expired"
+                            ? "หมดอายุแล้ว" // ✨ แปลเป็นข้อความภาษาไทย
                             : contract.status}
                         </p>
                       </div>

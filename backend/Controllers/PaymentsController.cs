@@ -419,13 +419,6 @@ public class PaymentsController : ControllerBase
         if (payment == null)
             return NotFound(new { message = "Payment not found" });
 
-        if (payment.Status == "paid")
-            return BadRequest(new
-            {
-                message = "ไม่สามารถแก้ไขบิลที่ชำระแล้วได้ " +
-                          "ใช้ PATCH /payments/{id}/status แทน"
-            });
-
         payment.RoomRate               = dto.RoomRate               ?? payment.RoomRate;
         payment.ElectricalPricePerUnit = dto.ElectricalCost         ?? payment.ElectricalPricePerUnit;
         payment.WaterPricePerUnit      = dto.WaterCost               ?? payment.WaterPricePerUnit;

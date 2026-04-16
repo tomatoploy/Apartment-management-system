@@ -19,6 +19,15 @@ const RoomRequest = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
+  const SUBJECT_REVERSE = {
+    "แจ้งซ่อม": "fix",
+    "ทำความสะอาด": "clean",
+    "แจ้งย้ายออก": "leave",
+    "ย้ายออก": "leave",
+    "อื่น ๆ": "other",
+    "อื่นๆ": "other",
+  };
+
   // --- 1. Fetch Data จาก API ---
   const fetchRoomRequests = async () => {
     setIsLoading(true);
@@ -46,7 +55,7 @@ const RoomRequest = () => {
 
   // --- 2. Handlers (เชื่อมต่อ API) ---
   
-  // เปลี่ยนสถานะด่วนผ่าน RequestItem
+// เปลี่ยนสถานะด่วนผ่าน RequestItem
   const handleChangeStatus = async (id, newStatus) => {
     const targetReq = requests.find(r => r.id === id);
     if (!targetReq) return;
@@ -55,7 +64,13 @@ const RoomRequest = () => {
       // อัปเดต UI ให้เปลี่ยนทันที (Optimistic Update) เพื่อความลื่นไหล
       setRequests(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
       
-      const payload = { ...targetReq, status: newStatus };
+      // แปลง subject กลับเป็น key ภาษาอังกฤษก่อนส่ง API
+      const payload = { 
+        ...targetReq, 
+        status: newStatus,
+        subject: SUBJECT_REVERSE[targetReq.subject] ?? targetReq.subject 
+      };
+      
       await requestService.updateRequest(id, payload);
     } catch (err) {
       console.error("เปลี่ยนสถานะไม่สำเร็จ", err);
@@ -69,12 +84,14 @@ const RoomRequest = () => {
   };
 
   // บันทึกการแก้ไข
-  const handleEditSave = async (formData) => {
+const handleEditSave = async (formData) => {
     try {
       const payload = {
         ...formData,
         cost: formData.cost ? Number(formData.cost) : null,
         appointmentDate: formData.appointmentDate || null,
+        // ✨ 3. เผื่อกดเซฟจาก Modal แก้ไข ก็ต้องแปลง subject กลับเป็นอังกฤษด้วย
+        subject: SUBJECT_REVERSE[formData.subject] ?? formData.subject, 
       };
 
       await requestService.updateRequest(formData.id, payload);
